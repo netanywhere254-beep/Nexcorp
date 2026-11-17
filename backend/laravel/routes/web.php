@@ -29,6 +29,9 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// Authenticated NexCore AI workspace; tenant identity is verified by middleware.
+Route::middleware(['auth', 'organization.active'])->get('/ai', fn () => view('ai.chat'));
+
 // Shared NexCore AI gateway: tenant identity comes from server-verified session context.
 Route::middleware(['auth', 'organization.active', 'throttle:10,1'])
     ->post('/ai/assist', [NexCoreAiController::class, 'assist']);
