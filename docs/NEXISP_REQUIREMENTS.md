@@ -51,3 +51,14 @@ Provide a multi-tenant platform for internet service providers to manage custome
 - [ ] Define whether customer self-service is included in the first release.
 - [ ] Confirm hosting, backup, and data-retention requirements.
 - [ ] Prioritize the first NetPulse pilot workflows.
+
+
+## 8. MikroTik PPPoE service reference
+
+A NestJS/TypeScript reference implementation is stored at [NEXISP_MIKROTIK_NESTJS_SERVICE_REFERENCE.ts](NEXISP_MIKROTIK_NESTJS_SERVICE_REFERENCE.ts). It demonstrates:
+- Creating a PPPoE secret with a selected RouterOS profile.
+- Finding and disconnecting active PPP sessions for a username.
+- Releasing the API connection in a `finally` block and returning safe public errors.
+- Avoiding raw error logging and documenting server-side credential handling.
+
+**Implementation boundary:** this is reference code, not an active NexISP endpoint. The repository's current application direction is Laravel + MySQL. Do not wire in a NestJS service unless a separate Node.js integration service is approved. Before production use, add tenant authorization, audit events, secret-manager integration, rate limits, RouterOS version compatibility tests, and lab-router tests. Restrict RouterOS API access to a private management network/VPN and firewall allowlist; never expose it publicly.
