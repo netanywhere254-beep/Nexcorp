@@ -3,7 +3,9 @@ name: Nexora Dual Architecture CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'implementation/**'
   pull_request:
     branches:
       - main
