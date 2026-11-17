@@ -148,3 +148,14 @@ Do not add `-v` unless you deliberately intend to delete all three databases and
 
 Before any public deployment, add a TLS reverse proxy, authentication, rate limiting, firewall controls, backups with tested restores, monitoring, controlled migrations, and API health checks. The three isolated networks also mean cross-product reporting must use authenticated service APIs or a separately designed integration layer; the services cannot directly query one another's databases.
 
+## Continuous integration checks
+
+The repository's GitHub Actions workflow is [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It runs on pushes and pull requests targeting `main`, and can also be started manually from the Actions tab.
+
+Current checks:
+- Validates the Nexora, NexISP, and Loopza Prisma reference schemas using a pinned Prisma CLI version and placeholder CI database URLs. Schema validation does not connect to or migrate a database.
+- Validates the optional three-service Docker Compose configuration using the committed example environment file.
+- Checks the Debian/Ubuntu installer script with `bash -n`.
+
+**This is validation CI, not a production deployment.** The current repository does not yet have root or per-service Node package manifests/lockfiles, actual migration directories, a working test suite, or the three application Dockerfiles. Therefore the workflow intentionally does not run `npm ci`, `npm test`, `prisma migrate deploy`, or `docker build`; those commands would fail or misleadingly imply that the applications are implemented. Add application-specific build and test jobs when the relevant application source and lockfiles are committed. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, and rollback procedure are configured.
+
