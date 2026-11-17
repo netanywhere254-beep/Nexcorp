@@ -71,3 +71,16 @@ A separate Loopza schema reference is stored at [LOOPZA_PRISMA_SCHEMA_REFERENCE.
 **Important architecture boundary:** this is a Prisma/PostgreSQL reference using `LOOPZA_DATABASE_URL`; it is not an active application schema. The current Nexcorp database implementation direction remains Laravel + MySQL, with Loopza represented as a module/workspace in the shared schema proposal. Do not create a separate PostgreSQL database or run Prisma migrations unless the project explicitly approves a separate Loopza service/database.
 
 **Implementation requirements:** use server-side business membership checks for every business-scoped operation; never trust a client-supplied business ID. Store only password hashes (Argon2id preferred), encrypt provider access tokens or use a secret manager, and require explicit approval before publishing campaigns or materially changing ad budgets. Validate the schema against the chosen Prisma version before adoption.
+
+
+## 10. Amplify campaign service reference
+
+A NestJS/Prisma service example is stored at [LOOPZA_AMPLIFY_NESTJS_SERVICE_REFERENCE.ts](LOOPZA_AMPLIFY_NESTJS_SERVICE_REFERENCE.ts). It demonstrates:
+- Creating draft campaigns in the database after validating the business workspace, campaign name, positive budget, currency code, and schedule.
+- Storing budgets as Prisma Decimal values, consistent with the Loopza schema reference.
+- Listing campaigns filtered by the requested business workspace.
+- Updating campaign status only when both the campaign ID and business ID match, to reduce cross-workspace access risk.
+
+**Important:** the service is a reference and is not integrated into the active application. It expects a generated Prisma client and a project-specific `PrismaService`. The current shared application direction remains Laravel + MySQL unless a separate NestJS/Prisma Loopza service is formally approved.
+
+Before production use, add controller guards and role-based authorization for business membership, DTO validation, rate limits, audit events for campaign creation/status changes, tests for cross-business access, and verified provider integrations. Marking a campaign ACTIVE in this service changes only the internal record; it does not publish an advertisement to Meta, Google, TikTok, or YouTube. Publishing requires approved provider credentials, supported API permissions, user confirmation, and a separate integration workflow.
