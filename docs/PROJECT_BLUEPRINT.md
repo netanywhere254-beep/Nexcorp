@@ -170,3 +170,15 @@ This is a different option from the separate Nexora/NexISP/Loopza service propos
 The Compose reference expects a root backend `Dockerfile` and a root `Dockerfile.frontend`, plus compatible backend and Next.js application code. Those build files and complete applications are not currently present, so the reference is not yet buildable or deployable. The frontend `NEXT_PUBLIC_API_URL` is passed at build time; localhost is suitable only for local development. Production requires a real HTTPS endpoint or same-origin reverse proxy, protected secrets, database backups, migrations, health checks, monitoring, and a rollback plan.
 
 Before using this alternative, decide whether the project should be a single Node/Next.js + PostgreSQL application, three independently deployed services, or the existing Laravel + MySQL modular monolith. Do not mix the three approaches into one deployment without a reviewed architecture and migration plan.
+
+
+## 15. Approved dual-architecture arrangement
+
+The project will retain two isolated application foundations:
+
+- **Primary:** Laravel modular monolith + MySQL in `backend/laravel`. This remains the canonical implementation path and source of truth for new Nexora, NexISP, and Loopza business features.
+- **Standby alternative:** Next.js web + Node.js API + PostgreSQL in `backup/node-postgres`. This is maintained separately as an alternative technical foundation.
+
+The corresponding Compose files and environment templates are `infra/docker-compose.primary.yml` / `infra/.env.primary.example` and `infra/docker-compose.backup.yml` / `infra/.env.backup.example`. Their ports, networks, secrets, and database volumes are separate.
+
+This decision does not mean automatic failover or database replication. MySQL and PostgreSQL require a designed and tested migration/reconciliation process. The backup application currently has only a starter web screen and API health/readiness endpoints; it does not have feature parity or production business data. See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for setup commands and the cutover requirements.
