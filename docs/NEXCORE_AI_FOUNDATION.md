@@ -2,7 +2,7 @@
 
 Status: initial Laravel primary-platform foundation committed for review; not deployed.
 
-CI trigger note: the repository default-branch workflow now includes pull requests targeting `implementation/**`, so this stacked PR is eligible for the full dual-architecture validation workflow.
+CI trigger note: both the default workflow and the commerce-base workflow now include pull requests targeting `implementation/**`. This commit updates the AI branch after those trigger fixes so GitHub receives a fresh pull-request synchronization event.
 
 ## Purpose and ownership
 
