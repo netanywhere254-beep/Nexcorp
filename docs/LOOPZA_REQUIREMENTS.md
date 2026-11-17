@@ -55,3 +55,19 @@ Each integration must be checked against current provider APIs, review requireme
 - [ ] Define subscription tiers and managed-service pricing.
 - [ ] Confirm whether billing is shared with NexISP or independently implemented.
 - [ ] Define data retention, reporting refresh frequency, and consent requirements.
+
+
+## 9. Prisma/PostgreSQL schema reference
+
+A separate Loopza schema reference is stored at [LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma](LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma). It expands the initial Business, Subscription, and Campaign concepts with:
+- User accounts and business memberships with workspace roles.
+- Business workspaces with country-code and status fields.
+- Separate subscription plans and business subscription instances/history.
+- Explicit billing intervals and subscription lifecycle statuses.
+- Decimal monetary fields and explicit currency codes.
+- Campaign channel, lifecycle, schedule, budget, and metrics fields.
+- Tenant-oriented indexes and relational delete rules.
+
+**Important architecture boundary:** this is a Prisma/PostgreSQL reference using `LOOPZA_DATABASE_URL`; it is not an active application schema. The current Nexcorp database implementation direction remains Laravel + MySQL, with Loopza represented as a module/workspace in the shared schema proposal. Do not create a separate PostgreSQL database or run Prisma migrations unless the project explicitly approves a separate Loopza service/database.
+
+**Implementation requirements:** use server-side business membership checks for every business-scoped operation; never trust a client-supplied business ID. Store only password hashes (Argon2id preferred), encrypt provider access tokens or use a secret manager, and require explicit approval before publishing campaigns or materially changing ad budgets. Validate the schema against the chosen Prisma version before adoption.
