@@ -12,9 +12,9 @@
             --night-2: #171e3b;
             --paper: #f5f2e9;
             --white: #fffdf7;
-            --lime: #d7ff54;
-            --coral: #ff715b;
-            --blue: #637cff;
+            --cyan: #25d9ff;
+            --coral: #ff718f;
+            --blue: #527bff;
             --ink: #151a32;
             --muted: #b7bdd0;
             --line: rgba(255,255,255,.16);
@@ -35,13 +35,13 @@
         }
         a { color: inherit; text-decoration: none; }
         button { font: inherit; }
-        ::selection { background: var(--lime); color: var(--night); }
+        ::selection { background: var(--cyan); color: var(--night); }
         .wrap { width: min(var(--max), calc(100% - 64px)); margin-inline: auto; }
 
         .topline {
             min-height: 34px;
             padding: 7px 0;
-            background: var(--lime);
+            background: var(--cyan);
             color: var(--night);
             font-size: 10px;
             font-weight: 900;
@@ -65,13 +65,19 @@
         }
         .brand { display:flex; align-items:center; gap:12px; min-width:max-content; }
         .brand-mark {
-            width:39px; height:39px;
-            display:grid; place-items:center;
-            color:var(--night); background:var(--lime);
-            font-weight:1000; font-size:21px;
-            transform:rotate(-7deg);
-            border-radius: 3px 13px 3px 13px;
+            width:43px; height:43px; display:grid; place-items:center;
+            color:var(--night); background:var(--cyan);
+            transform:rotate(-7deg); border-radius:4px 14px 4px 14px;
+            box-shadow:5px 5px 0 rgba(82,123,255,.55);
         }
+        .brand-mark svg { width:31px; height:31px; transform:rotate(7deg); }
+        .venture-brand { display:flex; align-items:center; gap:13px; }
+        .venture-logo { width:43px; height:43px; flex:0 0 43px; display:grid; place-items:center; border-radius:12px; background:#172044; color:var(--cyan); }
+        .venture-logo svg { width:29px; height:29px; }
+        .venture:nth-child(2) .venture-logo { background:#202b61; color:#8fa8ff; border-radius:50%; }
+        .venture:nth-child(3) .venture-logo { background:#25345e; color:#ff91a7; transform:rotate(45deg); }
+        .venture:nth-child(3) .venture-logo svg { transform:rotate(-45deg); }
+        .venture-name { line-height:1.05; }
         .brand-name { font-size:15px; font-weight:950; letter-spacing:.23em; }
         .brand-name small {
             display:block; margin-top:1px; color:#a8aec3;
@@ -82,10 +88,10 @@
             color:#c9cddd; font-size:12px; font-weight:700;
             transition:color .2s ease;
         }
-        .nav-links a:hover { color:var(--lime); }
+        .nav-links a:hover { color:var(--cyan); }
         .nav-contact {
             display:inline-flex; align-items:center; gap:12px;
-            padding:12px 16px; color:var(--night); background:var(--lime);
+            padding:12px 16px; color:var(--night); background:var(--cyan);
             font-size:11px; font-weight:900; letter-spacing:.04em;
             border-radius:2px; transition:transform .2s ease, background .2s ease;
         }
@@ -112,7 +118,7 @@
         .hero-inner { position:relative; display:grid; grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr); align-items:center; gap:35px; }
         .kicker {
             display:flex; align-items:center; gap:12px;
-            color:var(--lime); font-size:10px; font-weight:900;
+            color:var(--cyan); font-size:10px; font-weight:900;
             letter-spacing:.22em; text-transform:uppercase;
         }
         .kicker:before { content:""; width:28px; height:2px; background:var(--coral); }
@@ -122,7 +128,7 @@
             line-height:.91; letter-spacing:-.075em; font-weight:900;
         }
         .hero h1 .outline {
-            color:transparent; -webkit-text-stroke:1.5px var(--lime);
+            color:transparent; -webkit-text-stroke:1.5px var(--cyan);
             font-family:var(--serif); font-style:italic; font-weight:400;
             letter-spacing:-.065em;
         }
@@ -130,7 +136,7 @@
         .hero-actions { display:flex; align-items:center; gap:22px; flex-wrap:wrap; margin-top:32px; }
         .button-primary {
             display:inline-flex; align-items:center; gap:22px;
-            padding:16px 19px; background:var(--lime); color:var(--night);
+            padding:16px 19px; background:var(--cyan); color:var(--night);
             font-size:11px; font-weight:950; letter-spacing:.06em;
             transition:transform .2s ease, box-shadow .2s ease;
         }
@@ -140,9 +146,9 @@
             min-height:420px; position:relative; display:grid; place-items:center;
         }
         .orbit {
-            width:min(33vw,390px); aspect-ratio:1; border:1px solid rgba(215,255,84,.5);
+            width:min(33vw,390px); aspect-ratio:1; border:1px solid rgba(37,217,255,.5);
             border-radius:50%; position:relative; display:grid; place-items:center;
-            box-shadow:0 0 0 34px rgba(215,255,84,.035), 0 0 0 68px rgba(99,124,255,.045);
+            box-shadow:0 0 0 34px rgba(37,217,255,.035), 0 0 0 68px rgba(99,124,255,.045);
         }
         .orbit:before,.orbit:after { content:""; position:absolute; border:1px solid rgba(99,124,255,.55); border-radius:50%; inset:16%; transform:rotate(48deg) scaleX(.52); }
         .orbit:after { transform:rotate(-48deg) scaleX(.52); border-color:rgba(255,113,91,.7); }
@@ -151,7 +157,7 @@
             background:var(--coral); color:var(--night);
             font-size:clamp(42px,6vw,72px); font-weight:1000;
             border-radius:48% 52% 44% 56% / 52% 43% 57% 48%;
-            transform:rotate(-12deg); box-shadow:16px 18px 0 rgba(215,255,84,.9);
+            transform:rotate(-12deg); box-shadow:16px 18px 0 rgba(37,217,255,.9);
         }
         .orbit-label {
             position:absolute; padding:9px 12px; background:var(--paper); color:var(--night);
@@ -211,13 +217,13 @@
             border-bottom:1px solid var(--line); transition:background .25s ease, padding .25s ease;
         }
         .venture:hover { background:rgba(99,124,255,.09); padding-inline:20px; }
-        .venture-index { color:var(--lime); font-size:11px; font-weight:900; letter-spacing:.12em; }
+        .venture-index { color:var(--cyan); font-size:11px; font-weight:900; letter-spacing:.12em; }
         .venture-name { font-size:clamp(26px,3.5vw,42px); font-weight:950; letter-spacing:-.06em; }
         .venture-type { display:block; color:#9ca5c0; font-size:9px; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
         .venture p { max-width:490px; margin:0; color:#c0c6d8; font-size:13px; line-height:1.8; }
         .venture-arrow {
             width:38px; height:38px; display:grid; place-items:center;
-            color:var(--night); background:var(--lime); border-radius:50%;
+            color:var(--night); background:var(--cyan); border-radius:50%;
             font-size:19px; transition:transform .2s ease;
         }
         .venture:hover .venture-arrow { transform:rotate(45deg); }
@@ -239,7 +245,7 @@
             border:1px solid rgba(255,255,255,.35); border-radius:50%;
         }
         .ai-stamp:after { width:180px; height:180px; }
-        .ai-glyph { position:relative; z-index:1; color:var(--lime); font-size:120px; font-weight:300; line-height:1; }
+        .ai-glyph { position:relative; z-index:1; color:var(--cyan); font-size:120px; font-weight:300; line-height:1; }
         .ai-stamp small {
             position:absolute; bottom:22px; right:24px; color:white;
             font-size:9px; font-weight:900; letter-spacing:.2em;
@@ -257,7 +263,7 @@
 
         .contact {
             position:relative; overflow:hidden; padding:clamp(75px,9vw,120px) 0;
-            background:var(--lime); color:var(--night);
+            background:var(--cyan); color:var(--night);
         }
         .contact:after {
             content:"N"; position:absolute; right:-25px; bottom:-180px;
@@ -337,7 +343,7 @@
     <header class="site-header">
         <div class="wrap nav">
             <a class="brand" href="#home" aria-label="Nexora Group home">
-                <span class="brand-mark">N</span>
+                <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 37V11h7l16 17V11h7v26h-7L16 20v17z" fill="currentColor"/><circle cx="38" cy="10" r="4" fill="#527bff"/></svg></span>
                 <span class="brand-name">NEXORA<small>GROUP</small></span>
             </a>
             <nav class="nav-links" id="site-links" aria-label="Main navigation">
@@ -441,19 +447,19 @@
                 <div class="venture-list">
                     <article class="venture">
                         <span class="venture-index">01</span>
-                        <div><span class="venture-type">Connectivity & ISP technology</span><div class="venture-name">NexISP</div></div>
+                        <div class="venture-brand"><span class="venture-logo" aria-label="NexISP logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 12.5C10.8 6.7 21.2 6.7 28 12.5M8 17c4.6-3.9 11.4-3.9 16 0M12.2 21.2c2.2-1.8 5.4-1.8 7.6 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="25.5" r="2.1" fill="currentColor"/></svg></span><div><span class="venture-type">Connectivity & ISP technology</span><div class="venture-name">NexISP</div></div></div>
                         <p>Technology for internet service providers and connectivity businesses — helping manage customers, networks, service delivery and growth. NetPulse WiFi is the first operating business tenant.</p>
                         <a class="venture-arrow" href="#contact" aria-label="Enquire about NexISP">↗</a>
                     </article>
                     <article class="venture">
                         <span class="venture-index">02</span>
-                        <div><span class="venture-type">Marketing & business growth</span><div class="venture-name">Loopza</div></div>
+                        <div class="venture-brand"><span class="venture-logo" aria-label="Loopza logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5.5c5.8 0 10.5 4.7 10.5 10.5S21.8 26.5 16 26.5 5.5 21.8 5.5 16 10.2 5.5 16 5.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M11 16h10M16 11v10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="25.5" cy="7" r="3" fill="#25d9ff"/></svg></span><div><span class="venture-type">Marketing & business growth</span><div class="venture-name">Loopza</div></div></div>
                         <p>A digital marketing platform being developed to help businesses plan, manage and amplify their advertising across the channels where their audiences spend time.</p>
                         <a class="venture-arrow" href="#contact" aria-label="Enquire about Loopza">↗</a>
                     </article>
                     <article class="venture">
                         <span class="venture-index">03</span>
-                        <div><span class="venture-type">Shared intelligence initiative</span><div class="venture-name">NexCore AI</div></div>
+                        <div class="venture-brand"><span class="venture-logo" aria-label="NexCore AI logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5 27 10v12L16 28.5 5 22V10z" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="16" cy="16" r="4" fill="currentColor"/><path d="M16 7v5m0 8v5m-8-9h4m8 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div><span class="venture-type">Shared intelligence initiative</span><div class="venture-name">NexCore AI</div></div></div>
                         <p>A shared intelligence foundation for the ecosystem, designed around useful assistance, responsible automation and clear human oversight.</p>
                         <a class="venture-arrow" href="#intelligence" aria-label="Explore NexCore AI">↗</a>
                     </article>
