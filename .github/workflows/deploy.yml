@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Laravel tests
         working-directory: backend/laravel
-        run: php artisan test
+        run: vendor/bin/phpunit
 
   standby-nestjs:
     name: Standby NestJS API build and tests
