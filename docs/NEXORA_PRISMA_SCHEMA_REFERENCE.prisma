@@ -1,0 +1,99 @@
+// Nexora parent-company Prisma/PostgreSQL schema reference.
+// STATUS: Design reference only. Nexcorp's current application direction is
+// Laravel + MySQL. Do not run Prisma migrations or generate a production client
+// until the parent-company service architecture is formally approved.
+//
+// Configure NEXORA_DATABASE_URL in the service environment. Never commit .env
+// files, real credentials, or secrets.
+//
+// Security and data notes:
+// - passwordHash must contain a strong password hash (Argon2id preferred).
+// - Executive role is an authorization input; enforce it in server-side guards
+//   and policies, never from client-supplied values.
+// - Financial amounts use Decimal, not Float. Revenue is a reported summary;
+//   a real finance module still needs immutable ledger entries and reconciliation.
+// - Reports must be scoped by authorized executive role and, where applicable,
+//   subsidiary access.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NEXORA_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Executive {
+  id           String            @id @default(uuid())
+  name         String
+  email        String            @unique
+  passwordHash String
+  role         ExecRole          @default(MANAGER)
+  status       ExecutiveStatus   @default(ACTIVE)
+  reports      CorporateReport[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([role, status])
+}
+
+model Subsidiary {
+  id              String            @id @default(uuid())
+  name            String
+  industry        String
+  status          SubsidiaryStatus  @default(ACTIVE)
+  revenue         Decimal           @default(0.00) @db.Decimal(16, 2)
+  revenueCurrency String            @default("KES") @db.VarChar(3)
+  reports         CorporateReport[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status, industry])
+}
+
+model CorporateReport {
+  id           String                   @id @default(uuid())
+  title        String
+  category     CorporateReportCategory  @default(OTHER)
+  content      String                   @db.Text
+  authorId     String
+  subsidiaryId String?
+  author       Executive                @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  subsidiary   Subsidiary?              @relation(fields: [subsidiaryId], references: [id], onDelete: SetNull)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  @@index([authorId, createdAt])
+  @@index([subsidiaryId, category, createdAt])
+  @@index([category, createdAt])
+}
+
+enum ExecRole {
+  SUPER_ADMIN
+  DIRECTOR
+  FINANCE
+  MANAGER
+}
+
+enum ExecutiveStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum SubsidiaryStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PLANNED
+}
+
+enum CorporateReportCategory {
+  FINANCIAL
+  OPERATIONS
+  PERFORMANCE
+  COMPLIANCE
+  STRATEGY
+  OTHER
+}
