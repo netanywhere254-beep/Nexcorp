@@ -1,11 +1,11 @@
-# Nexora ecosystem — NexISP + Loopza
+# Nexora Group ecosystem — Nexora, NexISP + Loopza
 
-This repository contains the shared platform foundation for Nexora, NexISP, and Loopza.
+This repository contains the shared platform foundation for Nexora Group and its products: Nexora, NexISP, and Loopza.
 
 ## Architecture choice
 
 - **Primary:** Laravel modular monolith + MySQL, located in backend/laravel.
-- **Standby alternative:** Next.js web + Node.js API + PostgreSQL, located in backup/node-postgres.
+- **Standby alternative:** Next.js web + NestJS API + PostgreSQL, located in backup/node-postgres.
 
 The primary is the source of truth for new features and business records. The standby is kept separate as an alternative technology foundation. It is not automatically synchronized and is not yet a production failover system.
 
@@ -72,7 +72,7 @@ Do not add -v unless you intentionally want to delete that stack's database volu
 - MySQL 8.4 primary Compose service with a persistent volume and health check.
 - Initial users, organizations, organization-membership, and audit-log migration/models.
 - Primary /health endpoint and automated feature test.
-- Separate Express API with PostgreSQL connectivity and live/readiness endpoints.
+- Separate NestJS API with PostgreSQL connectivity and live/readiness endpoints.
 - Separate Next.js standby screen with API health-check interaction.
 - Separate Compose files, ports, networks, volumes, and example environment files.
 - CI checks for both code paths and Docker build configurations.
