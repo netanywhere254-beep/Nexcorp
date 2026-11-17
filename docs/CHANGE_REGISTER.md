@@ -10,11 +10,12 @@ This register distinguishes a committed source update from a verified build or w
 
 | ID | Previous file / implementation | Current replacement | Status | Verification |
 |---|---|---|---|---|
-| CHG-001 | `backend/laravel/composer.json` with Laravel Tinker dependency constraint | Updated Laravel dependency manifest on this branch | UPDATED — committed in PR #1 | Dependency install and Laravel migrations/tests were reported passing in the PR workflow summary; re-check latest Actions before release. |
-| CHG-002 | Express API: `backup/node-postgres/api/src/server.js` | NestJS TypeScript API under `backup/node-postgres/api/src/` | UPDATED — committed in PR #1 | NestJS build/tests were reported passing in the PR workflow summary; re-check latest Actions before release. |
-| CHG-003 | Express package manifest: `backup/node-postgres/api/package.json` | NestJS package manifest | UPDATED — committed in PR #1 | Included in NestJS build/test workflow; re-check latest Actions. |
-| CHG-004 | Enterprise Group parent branding and subsidiary references | Nexora Group branding in parent/subsidiary pages and documentation | UPDATED — committed in PR #1 | Source changes are included in PR #1; visual/live deployment validation remains pending. |
-| CHG-005 | Prior deployment and workflow configuration | Updated Docker/GitHub Actions configuration for the two foundations | UPDATED — committed in PR #1 | Docker image build was still pending in the last reported status; do not mark Docker validation complete until Actions confirms it. |
+| CHG-001 | `backend/laravel/composer.json` with Laravel Tinker dependency constraint | Updated Laravel dependency manifest on this branch | VERIFIED — committed in PR #1 | Composer dependency installation, SQLite migrations and PHPUnit passed in CI run #113. |
+| CHG-002 | Express API: `backup/node-postgres/api/src/server.js` | NestJS TypeScript API under `backup/node-postgres/api/src/` | VERIFIED — committed in PR #1 | NestJS build and tests passed in CI run #113. |
+| CHG-003 | Express package manifest: `backup/node-postgres/api/package.json` | NestJS package manifest | VERIFIED — committed in PR #1 | Included in successful NestJS build/test job #113. |
+| CHG-004 | Enterprise Group parent branding and subsidiary references | Nexora Group branding in parent/subsidiary pages and documentation | UPDATED — committed in PR #1 | Source changes included in PR #1; visual/live deployment validation remains pending. |
+| CHG-005 | Prior deployment and workflow configuration | Updated Docker/GitHub Actions configuration for the two foundations | VERIFIED — committed in PR #1 | Both Compose configurations validated and primary/standby Docker image builds passed in CI run #113. |
+| CHG-006 | CI result previously pending | Recorded successful dual-architecture CI run #113 | VERIFIED | [Nexora Dual Architecture CI #113](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44106165728): all five jobs passed. |
 
 ## Architecture status
 
