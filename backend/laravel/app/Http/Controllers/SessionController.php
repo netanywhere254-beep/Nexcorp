@@ -1,15 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\AuditLog;
-use Illuminate\\Cache\\RateLimiter;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Auth;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\AuditLog;
+use Illuminate\Cache\RateLimiter;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SessionController
 {
