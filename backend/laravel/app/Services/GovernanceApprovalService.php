@@ -143,9 +143,11 @@ class GovernanceApprovalService
 
             if ($request->expires_at && $request->expires_at->isPast()) {
                 $request->update(['status' => 'expired', 'completed_at' => now()]);
-                throw ValidationException::withMessages([
-                    'approval' => 'This governance request has expired.',
+                $this->audit($actor, 'governance.expired', $request, [
+                    'approval_id' => $approval->id,
                 ]);
+
+                return $request->fresh('approvals');
             }
 
             if ($actor->status !== 'active'
@@ -153,6 +155,17 @@ class GovernanceApprovalService
                 || $actor->id === $request->requested_by
                 || $actor->id === $request->subject_user_id) {
                 throw new AuthorizationException('This user is not the assigned approver.');
+            }
+
+            $earlierPending = $request->approvals()
+                ->where('approval_level', '<', $approval->approval_level)
+                ->where('decision', '!=', 'approved')
+                ->exists();
+
+            if ($earlierPending) {
+                throw ValidationException::withMessages([
+                    'approval' => 'Approval stages must be completed in order.',
+                ]);
             }
 
             $hasAuthority = GroupAuthority::query()
