@@ -139,3 +139,10 @@ A separate reference implementation is stored at [NEXISP_PRISMA_SCHEMA_REFERENCE
 A separate reference schema is stored at [LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma](LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma). It models Loopza users, business workspaces, workspace memberships, subscription plans, business subscription instances, and advertising campaigns. It uses `LOOPZA_DATABASE_URL` and PostgreSQL-specific Decimal fields.
 
 **Important:** this is an alternative implementation reference, not an active database schema. The proposed shared application architecture remains Laravel + MySQL, where Loopza workspaces and campaigns are represented in the shared schema above. Do not create a second production database or run Prisma migrations until the project explicitly approves that change. Keep the shared identity and workspace authorization model consistent if the schema is ever adopted.
+
+
+## 11. Prisma/PostgreSQL reference supplied for Nexora
+
+A parent-company reference schema is stored at [NEXORA_PRISMA_SCHEMA_REFERENCE.prisma](NEXORA_PRISMA_SCHEMA_REFERENCE.prisma). It models executive accounts and roles, subsidiary records, Decimal revenue summaries with currency codes, and corporate reports linked to an author and optionally to a subsidiary.
+
+**Important:** this is a design reference only. The proposed shared application architecture remains Laravel + MySQL. The Nexora schema is not wired into a live application and must not be migrated into a separate PostgreSQL database unless that architecture is explicitly approved. Executive roles require server-side authorization. The subsidiary revenue field is a summary, not a substitute for a proper financial ledger, payment reconciliation, or audited accounting records.
