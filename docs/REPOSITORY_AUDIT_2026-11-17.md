@@ -22,7 +22,8 @@ The repository contains a useful dual-architecture starter foundation and produc
 
 - Private GitHub repository and default branch `main` are present.
 - Primary and standby Compose files and example environment templates exist.
-- A GitHub Actions workflow exists for source tests and Docker builds. Its success must be checked from an actual workflow run; configuration alone is not proof of a green build.
+- GitHub Actions workflow **Nexora Dual Architecture CI**, run **#113** (17 November 2026), completed successfully on this implementation branch.
+- The run passed all five jobs: both Docker stack validation/build, Next.js production build, Laravel dependency/migration/test validation, Prisma reference-schema validation, and NestJS API build/tests.
 - The corporate, NexISP, and Loopza static websites are present. They are frontend pages, not connected product applications.
 - Product requirements and Prisma schema references exist. Prisma files are reference documents and are not active migrations for the approved Laravel/MySQL primary.
 
@@ -44,7 +45,7 @@ Not yet implemented:
 
 ### Standby NestJS application
 
-The previous standby API was Express, which did not match the user's approved Next.js/NestJS/PostgreSQL arrangement. This implementation branch replaces that API starter with NestJS, TypeScript, PostgreSQL health/readiness handling, and a build/test script. The actual CI result and Docker image build still need to be verified through GitHub Actions.
+The previous standby API was Express, which did not match the approved Next.js/NestJS/PostgreSQL arrangement. This implementation branch replaces that API starter with NestJS, TypeScript, PostgreSQL health/readiness handling, and a build/test script. The latest PR workflow run successfully built and tested the NestJS API and built both standby Docker images.
 
 The standby remains a technical foundation only. It does not currently provide feature parity or live business-data replication.
 
@@ -55,6 +56,19 @@ The standby remains a technical foundation only. It does not currently provide f
 - Updated standby Compose and CI configuration to identify and build/test NestJS.
 - Corrected a Laravel setup guide requirement from PHP 8.2+ to PHP 8.3+.
 - Preserved the primary Laravel/MySQL architecture and separate PostgreSQL standby.
+
+## Verified CI result
+
+- **Workflow:** Nexora Dual Architecture CI
+- **Run:** [#113](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44106165728)
+- **Commit:** `b54b88f7dd3b0e72ab31a1f1ba2e03494ad96df1`
+- **Result:** 5/5 jobs successful.
+- **Docker job:** primary Compose validation and Laravel image build; standby Compose validation and NestJS/API + Next.js image builds; retained reference Compose checks; installer shell syntax check.
+- **Laravel job:** Composer validation/install, SQLite migrations, PHPUnit.
+- **Standby jobs:** Next.js production build; NestJS dependency install, build and tests.
+- **Schema job:** Nexora, NexISP and Loopza Prisma reference schemas validated.
+
+This is build/CI verification, not a production deployment or end-to-end feature acceptance test.
 
 ## Risks and controls
 
@@ -69,18 +83,12 @@ The standby remains a technical foundation only. It does not currently provide f
 
 ## Recommended implementation order
 
-1. Make the primary Laravel application compile, migrate, and pass automated tests.
-2. Implement shared identity, authorization, organization membership, tenant policies, and audit logging.
-3. Implement NexISP MVP: customers, plans, subscriptions, invoices, payments, reconciliation, then MikroTik provisioning.
-4. Implement Loopza MVP: business workspaces, memberships, campaigns, approval workflow, reporting, then approved channel adapters.
-5. Implement the Nexora Group corporate portal with permissioned portfolio reporting.
-6. Bring the NestJS standby to a documented compatible schema and recovery export/import process.
-7. Add security review, backup/restore drills, monitoring, deployment, rollback, and controlled pilot acceptance.
-
-
-## CI issues discovered during audit
-
-The most recent pre-audit run on `main` failed in two jobs. The Laravel dependency installation failed because `laravel/tinker ^2.10.1` does not declare compatibility with Laravel 13; this unused dependency has been removed from the implementation branch. The Laravel Docker image failed at the same Composer install step for the same dependency conflict. The new pull-request workflow run must confirm the correction and the NestJS conversion; until it completes, the branch is not considered build-verified.
+1. Implement shared identity, authentication, authorization, organization membership, tenant policies, and audit logging with tests.
+2. Implement NexISP MVP: customers, plans, subscriptions, invoices, payments, reconciliation, then MikroTik provisioning.
+3. Implement Loopza MVP: business workspaces, memberships, campaigns, approval workflow, reporting, then approved channel adapters.
+4. Implement the Nexora Group corporate portal with permissioned portfolio reporting.
+5. Bring the NestJS standby to a documented compatible schema and recovery export/import process.
+6. Add security review, backup/restore drills, monitoring, deployment, rollback, and controlled pilot acceptance.
 
 ## Completion standard
 
