@@ -5,7 +5,7 @@ The repository now has two separate application starter foundations, each with a
 | Role | Stack | Compose file | Local URL |
 |---|---|---|---|
 | Primary | Laravel + MySQL | docker-compose.primary.yml | http://localhost:8080 |
-| Standby alternative | Next.js + Node.js + PostgreSQL | docker-compose.backup.yml | http://localhost:3100 |
+| Standby alternative | Next.js + NestJS + PostgreSQL | docker-compose.backup.yml | http://localhost:3100 |
 
 Use the matching environment template: .env.primary.example or .env.backup.example. Copy it to the matching local file without the .example suffix, replace placeholder passwords, and never commit the local environment file.
 
@@ -171,7 +171,7 @@ The repository's GitHub Actions workflow is [../.github/workflows/deploy.yml](..
 
 Current checks:
 - Installs Laravel dependencies, validates Composer configuration, runs the primary migrations against SQLite, and executes Laravel tests.
-- Installs and tests the standby Express API, then builds the standby Next.js application.
+- Installs and tests the standby NestJS API, then builds the standby Next.js application.
 - Validates the retained Nexora, NexISP, and Loopza Prisma schema references.
 - Validates and builds both active Docker stacks (primary and standby).
 - Validates the historical Compose references and checks the Debian/Ubuntu installer script with `bash -n`.
@@ -180,7 +180,7 @@ Current checks:
 
 ## Historical single-backend + frontend + PostgreSQL reference (superseded)
 
-The active standby implementation is now infra/docker-compose.backup.yml. The older root-level Compose proposal below is retained for history only and should not be used as the current backup startup path.
+The active standby implementation is Next.js + NestJS + PostgreSQL in `backup/node-postgres`, defined by `infra/docker-compose.backup.yml`. The older root-level Compose proposal below is retained for history only and should not be used as the current backup startup path.
 
 ## Optional single-backend + frontend + PostgreSQL reference
 

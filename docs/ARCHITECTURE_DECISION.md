@@ -19,7 +19,7 @@ This is the canonical path for new application features and the source of truth 
 The fallback technology path is maintained separately under backup/node-postgres:
 
 - web/ — Next.js web application.
-- api/ — Express API.
+- api/ — NestJS API.
 - PostgreSQL — separate database managed by the backup Compose stack.
 
 Backup Compose file: infra/docker-compose.backup.yml  
@@ -111,7 +111,7 @@ Do not add -v unless you deliberately intend to delete the corresponding databas
 
 ## 7. Delivery status and limitations
 
-The repository now contains the initial Laravel application shell, primary MySQL Compose definition, initial shared platform migration, a basic health test, and a separate Next.js/Express/PostgreSQL standby shell with a live-health test.
+The repository now contains the initial Laravel application shell, primary MySQL Compose definition, initial shared platform migration, a basic health test, and a separate Next.js/NestJS/PostgreSQL standby shell with a live-health test.
 
 This does not mean the full Nexora, NexISP, or Loopza products are complete. Authentication screens, roles and permissions, tenant-enforcement policies, billing, M-Pesa, router provisioning, campaign workflows, provider integrations, production TLS, monitoring, backups, and cross-database migration tooling remain to be implemented and tested.
 

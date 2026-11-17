@@ -57,10 +57,10 @@ jobs:
 
       - name: Run Laravel tests
         working-directory: backend/laravel
-        run: php artisan test
+        run: vendor/bin/phpunit
 
-  standby-node:
-    name: Standby Node API tests
+  standby-nestjs:
+    name: Standby NestJS API build and tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -75,7 +75,7 @@ jobs:
         working-directory: backup/node-postgres/api
         run: npm install --no-audit --no-fund
 
-      - name: Test standby API
+      - name: Build and test standby NestJS API
         working-directory: backup/node-postgres/api
         run: npm test
 
