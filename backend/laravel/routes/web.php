@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -27,3 +28,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [SessionController::class, 'logout']);
     });
 });
+
+// Shared NexCore AI gateway: tenant identity comes from server-verified session context.
+Route::middleware(['auth', 'organization.active', 'throttle:10,1'])
+    ->post('/ai/assist', [NexCoreAiController::class, 'assist']);
