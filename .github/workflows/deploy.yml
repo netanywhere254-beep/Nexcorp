@@ -54,5 +54,12 @@ jobs:
           --file infra/docker-compose.nexora-multiservice-reference.yml
           config --quiet
 
+      - name: Validate single-backend Compose reference
+        run: >-
+          docker compose
+          --env-file infra/.env.master-ecosystem.example
+          --file infra/docker-compose.master-ecosystem-reference.yml
+          config --quiet
+
       - name: Check Linux installer shell syntax
         run: bash -n infra/install-nexisp.sh
