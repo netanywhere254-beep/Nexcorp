@@ -1,0 +1,155 @@
+# CI validates both application foundations. It does not deploy production.
+name: Nexora Dual Architecture CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - main
+      - 'implementation/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  primary-laravel:
+    name: Primary Laravel application tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, pdo_sqlite, intl, zip, fileinfo, dom, xml
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer configuration
+        working-directory: backend/laravel
+        run: composer validate --no-check-publish
+
+      - name: Install Laravel dependencies
+        working-directory: backend/laravel
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run Laravel migrations against SQLite
+        working-directory: backend/laravel
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php artisan migrate --force
+
+      - name: Run Laravel tests
+        working-directory: backend/laravel
+        run: vendor/bin/phpunit
+
+  standby-nestjs:
+    name: Standby NestJS API build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install API dependencies
+        working-directory: backup/node-postgres/api
+        run: npm install --no-audit --no-fund
+
+      - name: Build and test standby NestJS API
+        working-directory: backup/node-postgres/api
+        run: npm test
+
+  standby-next:
+    name: Standby Next.js production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install web dependencies
+        working-directory: backup/node-postgres/web
+        run: npm install --no-audit --no-fund
+
+      - name: Build standby web application
+        working-directory: backup/node-postgres/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4100
+        run: npm run build
+
+  validate-reference-schemas:
+    name: Validate retained Prisma schema references
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate Nexora Prisma schema reference
+        env:
+          NEXORA_DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/nexora?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/NEXORA_PRISMA_SCHEMA_REFERENCE.prisma
+
+      - name: Validate NexISP Prisma schema reference
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/nexisp?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/NEXISP_PRISMA_SCHEMA_REFERENCE.prisma
+
+      - name: Validate Loopza Prisma schema reference
+        env:
+          LOOPZA_DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/loopza?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma
+
+  validate-compose:
+    name: Validate and build both Docker stacks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate primary Compose configuration
+        run: docker compose --env-file infra/.env.primary.example -f infra/docker-compose.primary.yml config --quiet
+
+      - name: Build primary Laravel image
+        run: docker compose --env-file infra/.env.primary.example -f infra/docker-compose.primary.yml build app
+
+      - name: Validate standby Compose configuration
+        run: docker compose --env-file infra/.env.backup.example -f infra/docker-compose.backup.yml config --quiet
+
+      - name: Build standby API and web images
+        run: docker compose --env-file infra/.env.backup.example -f infra/docker-compose.backup.yml build api web
+
+      - name: Validate retained multi-service reference
+        run: docker compose --env-file infra/.env.nexora-stack.example -f infra/docker-compose.nexora-multiservice-reference.yml config --quiet
+
+      - name: Validate retained single-backend reference
+        run: docker compose --env-file infra/.env.master-ecosystem.example -f infra/docker-compose.master-ecosystem-reference.yml config --quiet
+
+      - name: Check Linux installer shell syntax
+        run: bash -n infra/install-nexisp.sh
