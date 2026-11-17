@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, implementation/nexora-commerce-foundation]
   workflow_dispatch:
 
 permissions:
