@@ -137,3 +137,19 @@ The proposed corporate data model is documented separately in [NEXORA_PRISMA_SCH
 The corporate layer should provide portfolio-level visibility while preserving product-level access boundaries. Executive roles must be enforced server-side. Finance users should receive only the financial permissions required for their work, and report access should be auditable.
 
 This schema is a reference only. It does not establish a deployed Nexora admin portal, finance ledger, or live subsidiary integrations. Revenue summaries must eventually be calculated from reconciled financial records rather than treated as the accounting ledger itself.
+
+## 12. Alternative deployment proposal: three independent services
+
+A supplied Compose draft proposes three separately deployed applications: Nexora, NexISP, and Loopza. The repository records an improved version at [docker-compose.nexora-multiservice-reference.yml](../infra/docker-compose.nexora-multiservice-reference.yml), with a placeholder-only environment template at [infra/.env.nexora-stack.example](../infra/.env.nexora-stack.example).
+
+The reference defines one API and one isolated PostgreSQL database per product/service. This could support independent deployment and scaling, but it also introduces separate authentication/authorization boundaries, database operations, backups, monitoring, deployments, and service-to-service API contracts. Nexora portfolio reporting would need authenticated APIs or a governed integration layer; it should not read directly from NexISP or Loopza databases.
+
+**No architecture switch has been approved.** The current initial technology direction remains Laravel modular monolith + MySQL. The three-service Compose file is a proposal only. Its expected `nexora/`, `nexisp/`, and `loopza/` build directories and Dockerfiles do not yet exist in the repository, so it is not currently buildable or deployable.
+
+Before adopting this design, explicitly decide:
+1. Whether each name represents an independently deployed service, a product, or a legal subsidiary.
+2. Whether identity is centralized in Nexora or each service owns its user accounts.
+3. Which APIs and authorization rules allow Nexora to obtain portfolio reports.
+4. Who owns migrations, backups, monitoring, secrets, incident response, and releases for each service.
+5. Whether the additional infrastructure and operational cost is justified for the first release.
+
