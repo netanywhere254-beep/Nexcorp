@@ -1,4 +1,4 @@
-# Nexcorp Project Blueprint
+# Nexora Group Ecosystem — Project Blueprint
 
 **Status:** Dual-architecture foundation committed; NexISP and Loopza product implementation remains in progress.  
 **Repository:** `netanywhere254-beep/Nexcorp`  
@@ -25,7 +25,7 @@ Nexcorp/
 │   └── laravel/                 # Primary Laravel 13 application
 ├── backup/
 │   └── node-postgres/
-│       ├── api/                 # Standby Express API
+│       ├── api/                 # Standby NestJS API
 │       └── web/                 # Standby Next.js app
 ├── frontend/
 │   └── components/              # Product UI components
@@ -126,7 +126,7 @@ Phases may overlap only where dependencies and available resources allow. Do not
 - **Nexcorp** is the current GitHub repository name; it does not by itself establish the legal parent-company name.
 - **Nexora Group** is the confirmed official parent-company name.
 - **NexISP** and **Loopza** are the current product names.
-- Do not rename the repository or change product branding until the naming decision is confirmed.
+- The GitHub repository remains named `Nexcorp`; this does not change the official corporate brand.
 
 ## 10. Definition of done
 
@@ -149,7 +149,7 @@ A supplied Compose draft proposes three separately deployed applications: Nexora
 
 The reference defines one API and one isolated PostgreSQL database per product/service. This could support independent deployment and scaling, but it also introduces separate authentication/authorization boundaries, database operations, backups, monitoring, deployments, and service-to-service API contracts. Nexora portfolio reporting would need authenticated APIs or a governed integration layer; it should not read directly from NexISP or Loopza databases.
 
-**The three-service architecture has not been selected as the primary or standby.** The approved arrangement is Laravel + MySQL as primary and the separate Next.js + Node.js + PostgreSQL foundation as standby, as documented in section 15. The three-service Compose file remains an optional reference only. Its expected `nexora/`, `nexisp/`, and `loopza/` build directories and Dockerfiles do not yet exist in the repository, so it is not currently buildable or deployable.
+**The three-service architecture has not been selected as the primary or standby.** The approved arrangement is Laravel + MySQL as primary and the separate Next.js + NestJS + PostgreSQL foundation as standby, as documented in section 15. The three-service Compose file remains an optional reference only. Its expected `nexora/`, `nexisp/`, and `loopza/` build directories and Dockerfiles do not yet exist in the repository, so it is not currently buildable or deployable.
 
 Before adopting this design, explicitly decide:
 1. Whether each name represents an independently deployed service, a product, or a legal subsidiary.
@@ -160,7 +160,7 @@ Before adopting this design, explicitly decide:
 
 ## 13. Continuous integration baseline
 
-A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It now installs dependencies and tests the primary Laravel application, tests the standby Express API, builds the standby Next.js application, validates the retained Prisma schema references, validates both active Compose configurations, and builds both active Docker stacks. It also validates the retained historical Compose references and checks the Linux installer shell syntax.
+A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It now installs dependencies and tests the primary Laravel application, tests the standby NestJS API, builds the standby Next.js application, validates the retained Prisma schema references, validates both active Compose configurations, and builds both active Docker stacks. It also validates the retained historical Compose references and checks the Linux installer shell syntax.
 
 This is build-and-test CI, not production deployment. A green run would verify the checked-in foundations build and pass their current tests; it would not certify business feature completeness, production security, disaster recovery, or deployment. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, backups, and rollback procedure are configured.
 
@@ -168,7 +168,7 @@ This is build-and-test CI, not production deployment. A green run would verify t
 
 The earlier supplied root-level Compose proposal is retained at [docker-compose.master-ecosystem-reference.yml](../infra/docker-compose.master-ecosystem-reference.yml), with [infra/.env.master-ecosystem.example](../infra/.env.master-ecosystem.example), for historical reference. It expected root-level Dockerfiles and application files that were not present.
 
-The approved standby alternative is now maintained separately under [backup/node-postgres](../backup/node-postgres), with its own Next.js web application, Express API, PostgreSQL service, Dockerfiles, and environment template. Use the dedicated [docker-compose.backup.yml](../infra/docker-compose.backup.yml) rather than the historical master-ecosystem reference.
+The approved standby alternative is now maintained separately under [backup/node-postgres](../backup/node-postgres), with its own Next.js web application, NestJS API, PostgreSQL service, Dockerfiles, and environment template. Use the dedicated [docker-compose.backup.yml](../infra/docker-compose.backup.yml) rather than the historical master-ecosystem reference.
 
 The standby remains a starter foundation. It does not have feature parity with the primary Laravel application and does not synchronize production data. See section 15 and [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for the approved arrangement and cutover requirements.
 
@@ -178,7 +178,7 @@ The standby remains a starter foundation. It does not have feature parity with t
 The project will retain two isolated application foundations:
 
 - **Primary:** Laravel modular monolith + MySQL in `backend/laravel`. This remains the canonical implementation path and source of truth for new Nexora, NexISP, and Loopza business features.
-- **Standby alternative:** Next.js web + Node.js API + PostgreSQL in `backup/node-postgres`. This is maintained separately as an alternative technical foundation.
+- **Standby alternative:** Next.js web + NestJS API + PostgreSQL in `backup/node-postgres`. This is maintained separately as an alternative technical foundation.
 
 The corresponding Compose files and environment templates are `infra/docker-compose.primary.yml` / `infra/.env.primary.example` and `infra/docker-compose.backup.yml` / `infra/.env.backup.example`. Their ports, networks, secrets, and database volumes are separate.
 
