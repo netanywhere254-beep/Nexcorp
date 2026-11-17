@@ -32,6 +32,7 @@ class SessionController
         if (! Auth::attempt([
             'email' => $validated['email'],
             'password' => $validated['password'],
+            'status' => 'active',
         ], (bool) ($validated['remember'] ?? false))) {
             $limiter->hit($key, 60);
 
@@ -65,6 +66,8 @@ class SessionController
 
         $user = $request->user();
         $organization = $user->organizations()
+            ->wherePivot('status', 'active')
+            ->where('organizations.status', 'active')
             ->whereKey($validated['organization_id'])
             ->first();
 
@@ -116,6 +119,8 @@ class SessionController
             'email' => $user->email,
             'phone' => $user->phone,
             'organizations' => $user->organizations()
+                ->wherePivot('status', 'active')
+                ->where('organizations.status', 'active')
                 ->get(['organizations.id', 'organizations.name', 'organizations.slug', 'organizations.type'])
                 ->map(fn ($organization) => [
                     'id' => $organization->id,
