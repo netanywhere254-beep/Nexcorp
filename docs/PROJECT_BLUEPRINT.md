@@ -1,6 +1,6 @@
 # Nexcorp Project Blueprint
 
-**Status:** Initial planning document  
+**Status:** Dual-architecture foundation committed; NexISP and Loopza product implementation remains in progress.  
 **Repository:** `netanywhere254-beep/Nexcorp`  
 **Default branch:** `main`
 
