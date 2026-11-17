@@ -48,6 +48,12 @@ Laravel primary tables:
 
 These tables are not exposed as public registration fields. Do not add a public role or is_admin assignment endpoint.
 
+## Implemented Laravel service baseline
+
+The current implementation branch includes a transactional `GovernanceApprovalService` for trusted internal callers. It creates a request with a server-supplied approval plan, prevents requester/subject self-assignment as approvers, requires consecutive approval levels, checks that the assigned approver has the exact active authority and scope, enforces approval order, and activates the requested scoped authority only after all stages approve. Rejection closes the request; expired requests are marked expired; decision and activation events are written to the audit log. Repeated decisions are rejected.
+
+This service is not yet exposed through public or authenticated HTTP routes. The approval plan must be assembled by trusted server-side workflow code, never accepted from a browser as a list of approver IDs. The service has feature tests in the branch, but those tests are not considered verified until the corresponding CI run passes. MFA, approval-management UI, revocation workflow, secure CEO bootstrap command, and active NestJS parity remain outstanding.
+
 ## CEO bootstrap
 
 The first CEO identity must be provisioned out-of-band by an authorized deployment operator using a one-time, reviewed bootstrap procedure. Do not create a public bootstrap URL, reusable setup password, default CEO credentials, or seed a known CEO account into production. Record the operator, target account, timestamp, environment, and change reference in the security audit trail. Disable the bootstrap capability after successful initialization.
