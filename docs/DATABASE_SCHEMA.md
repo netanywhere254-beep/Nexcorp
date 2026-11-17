@@ -160,11 +160,11 @@ Each service has a separate database, credential set, persistent volume, and pri
 
 **Important:** this is an optional PostgreSQL/Prisma architecture reference only. The current schema decision remains Laravel + MySQL modular monolith. The three application build directories and Dockerfiles are not yet present, and no application container can be built from this Compose reference today. Do not run migrations or deploy the stack until the architecture is formally approved and each service implementation is complete and tested.
 
-## 13. Alternative single PostgreSQL database deployment reference
+## 13. Standby PostgreSQL database boundary
 
-The optional [single-backend Compose reference](../infra/docker-compose.master-ecosystem-reference.yml) defines one PostgreSQL 15 database for a backend API and Next.js frontend. It is a deployment proposal only and is not wired to active migrations or an application.
+The approved standby alternative has a separate PostgreSQL 16 service defined in [docker-compose.backup.yml](../infra/docker-compose.backup.yml). It belongs only to the Next.js/Node.js standby foundation under backup/node-postgres. It is not connected to the primary Laravel application or its MySQL database.
 
-**Important:** the current database design remains a Laravel modular monolith + MySQL. The PostgreSQL Compose reference, the three-database Prisma proposal, and the MySQL schema in this document are alternatives, not components to run together by default. Do not create or migrate a production database until the backend and database architecture is explicitly selected and its migration strategy is implemented and tested.
+The primary data model in this document remains Laravel modular monolith + MySQL. The standby PostgreSQL database is an isolated fallback foundation, not a replicated or synchronized production database. The historical [single-backend Compose reference](../infra/docker-compose.master-ecosystem-reference.yml) and three-service Prisma proposal remain reference material. Do not mix these database configurations or assume cross-engine failover exists.
 
 
 ## 14. Current migration implementation boundary
