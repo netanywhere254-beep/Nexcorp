@@ -90,3 +90,10 @@ A Docker Compose reference stack is stored under `infra/`:
 The reference improves on the supplied draft by removing hard-coded credentials, requiring environment-provided secrets, adding PostgreSQL/Redis health checks and persistent volumes, requiring Redis authentication, avoiding published PostgreSQL/Redis host ports, binding the API to localhost by default, and waiting for healthy dependencies.
 
 **Implementation boundary:** this is an optional NestJS + PostgreSQL + Redis reference stack. It is not the active Laravel + MySQL deployment and is not ready to run until a compatible NestJS backend and `backend/Dockerfile` exist. Architecture selection must be resolved before production deployment. A Docker volume is not a backup; configure and test database backups, TLS reverse proxying, monitoring, restore procedures, and controlled migrations.
+
+
+## 11. Linux host preparation reference
+
+A Debian/Ubuntu server preparation script is stored at [infra/install-nexisp.sh](../infra/install-nexisp.sh), with usage and security notes in [infra/README.md](../infra/README.md). It installs Docker Engine, Git, and an available Docker Compose package, then enables and starts Docker. It intentionally does not perform an unattended full operating-system upgrade or deploy the application.
+
+This is host preparation only. It does not mean NexISP is deployed or production-ready. The optional NestJS/PostgreSQL/Redis reference stack still requires an approved architecture decision, a working NestJS backend, a Dockerfile, configured secrets, TLS, backups, monitoring, and deployment testing.
