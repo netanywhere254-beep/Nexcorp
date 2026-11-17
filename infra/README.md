@@ -159,3 +159,52 @@ Current checks:
 
 **This is validation CI, not a production deployment.** The current repository does not yet have root or per-service Node package manifests/lockfiles, actual migration directories, a working test suite, or the three application Dockerfiles. Therefore the workflow intentionally does not run `npm ci`, `npm test`, `prisma migrate deploy`, or `docker build`; those commands would fail or misleadingly imply that the applications are implemented. Add application-specific build and test jobs when the relevant application source and lockfiles are committed. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, and rollback procedure are configured.
 
+## Optional single-backend + frontend + PostgreSQL reference
+
+A separate Compose proposal based on the supplied single-backend stack is stored in:
+
+- [docker-compose.master-ecosystem-reference.yml](docker-compose.master-ecosystem-reference.yml)
+- [.env.master-ecosystem.example](.env.master-ecosystem.example)
+
+It describes one backend container, one Next.js frontend container, and one PostgreSQL 15 database. The real local environment file must be created from the example:
+
+Windows PowerShell:
+
+```powershell
+Copy-Item infra/.env.master-ecosystem.example infra/.env.master-ecosystem
+notepad infra/.env.master-ecosystem
+```
+
+macOS / Linux:
+
+```bash
+cp infra/.env.master-ecosystem.example infra/.env.master-ecosystem
+nano infra/.env.master-ecosystem
+```
+
+Replace the placeholder password with a long, unique, URL-safe secret. Keep it consistent in `POSTGRES_PASSWORD` and `DATABASE_URL`. Never commit the real environment file.
+
+Validate the Compose configuration:
+
+```bash
+docker compose --env-file infra/.env.master-ecosystem -f infra/docker-compose.master-ecosystem-reference.yml config
+```
+
+Only after the compatible root `Dockerfile`, `Dockerfile.frontend`, backend application, and Next.js application exist:
+
+```bash
+docker compose --env-file infra/.env.master-ecosystem -f infra/docker-compose.master-ecosystem-reference.yml up -d --build
+docker compose --env-file infra/.env.master-ecosystem -f infra/docker-compose.master-ecosystem-reference.yml ps
+docker compose --env-file infra/.env.master-ecosystem -f infra/docker-compose.master-ecosystem-reference.yml logs -f backend
+```
+
+Stop without deleting persistent database data:
+
+```bash
+docker compose --env-file infra/.env.master-ecosystem -f infra/docker-compose.master-ecosystem-reference.yml down
+```
+
+Do not add `-v` unless you intend to delete the database volume and have verified backups.
+
+**Architecture and build warning:** this is a Node/Next.js + PostgreSQL proposal, not the active Laravel modular monolith + MySQL direction. The repository currently has no compatible root backend Dockerfile or `Dockerfile.frontend`, and no complete backend/Next.js application setup. It is not currently buildable or deployable. The frontend API URL is passed as a build argument because Next.js commonly embeds `NEXT_PUBLIC_*` values during build; `http://localhost:4000` is for local browser access only. Use a public HTTPS URL or same-origin reverse-proxy route for a real deployment. This stack and the three-database reference both default to host port 5432; do not run both together without changing one host port.
+
