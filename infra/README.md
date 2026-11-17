@@ -85,3 +85,66 @@ The script checks the Linux distribution, uses sudo when needed, verifies the Do
 The script does **not** deploy NexISP. The optional NestJS Compose stack remains a reference configuration and requires a compatible NestJS application and `backend/Dockerfile` before it can be built. Review the architecture warning above before proceeding.
 
 **Docker privilege warning:** users added to the `docker` group effectively receive root-level control of the host. The installer does not add users automatically. Only a trusted server administrator should run the optional `usermod -aG docker USERNAME` command printed by the installer, then sign out and back in.
+
+## Optional Nexora + NexISP + Loopza multi-service reference
+
+The repository also contains an alternative three-API / three-database Compose design:
+
+- [docker-compose.nexora-multiservice-reference.yml](docker-compose.nexora-multiservice-reference.yml)
+- [.env.nexora-stack.example](.env.nexora-stack.example)
+
+It defines separate API containers and isolated PostgreSQL databases for Nexora, NexISP, and Loopza. Each database has its own named volume, credentials, health check, and private Docker network. API host ports default to localhost only: Nexora 3101, NexISP 3102, and Loopza 3103.
+
+The connection variables intentionally match the Prisma reference schemas:
+- Nexora receives `NEXORA_DATABASE_URL`.
+- NexISP's current Prisma reference expects `DATABASE_URL`; Compose maps the host-side `NEXISP_DATABASE_URL` value into that container variable.
+- Loopza receives `LOOPZA_DATABASE_URL`.
+
+**Architecture warning:** this is an optional Node.js/Prisma + PostgreSQL microservice proposal. The current project blueprint and database design still specify a Laravel modular monolith + MySQL. Do not treat this Compose file as approval to change the architecture or as a production deployment.
+
+**Build limitation:** the Compose build contexts are `../nexora`, `../nexisp`, and `../loopza` relative to this file. Those application directories and their Dockerfiles are not yet present in the repository. The stack cannot build until each service has a compatible application, Dockerfile, health/startup behavior, and reviewed database migrations.
+
+### Configure and validate
+
+Run from the repository root.
+
+Windows PowerShell:
+
+```powershell
+Copy-Item infra/.env.nexora-stack.example infra/.env.nexora-stack
+notepad infra/.env.nexora-stack
+```
+
+macOS / Linux:
+
+```bash
+cp infra/.env.nexora-stack.example infra/.env.nexora-stack
+nano infra/.env.nexora-stack
+```
+
+Replace every placeholder. Use a different long, URL-safe password for each database and keep each password identical in its corresponding `POSTGRES_PASSWORD` and database URL. Do not commit or share the real environment file.
+
+Validate the Compose model before building:
+
+```bash
+docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml config
+```
+
+After the three service folders and Dockerfiles exist and the architecture is approved:
+
+```bash
+docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml up -d --build
+docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml ps
+docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml logs -f nexora_api
+```
+
+Use `nexisp_api` or `loopza_api` instead of `nexora_api` to view the other API logs. Stop the stack without deleting database volumes:
+
+```bash
+docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml down
+```
+
+Do not add `-v` unless you deliberately intend to delete all three databases and have verified backups. Docker volumes are persistence, not backups.
+
+Before any public deployment, add a TLS reverse proxy, authentication, rate limiting, firewall controls, backups with tested restores, monitoring, controlled migrations, and API health checks. The three isolated networks also mean cross-product reporting must use authenticated service APIs or a separately designed integration layer; the services cannot directly query one another's databases.
+
