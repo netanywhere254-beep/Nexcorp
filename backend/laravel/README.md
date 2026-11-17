@@ -1,6 +1,6 @@
 # Nexora primary application — Laravel + MySQL
 
-This directory is the primary application foundation. It contains a minimal Laravel 12 application, a MySQL-ready Docker image, a health endpoint, and the first shared organization/user/audit migrations.
+This directory is the primary application foundation. It contains a minimal Laravel 13 application, a MySQL-ready Docker image, a health endpoint, and the first shared organization/user/audit migrations.
 
 ## Local development
 
