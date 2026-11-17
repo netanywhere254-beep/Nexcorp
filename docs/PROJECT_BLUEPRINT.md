@@ -82,11 +82,15 @@ Do not promise automatic publishing or campaign control until the relevant platf
 - Prefer small, reviewable changes with clear commit messages.
 - Document decisions rather than relying on chat history.
 
-## 6. Technology selection
+## 6. Initial technology direction
 
-The final stack is **not yet locked**. Before implementation, compare maintainability, cost, mobile-friendly development, hosting requirements, security, ecosystem maturity, and integration support. Record the chosen versions and rationale in an Architecture Decision Record.
+The proposed starting stack is:
+- **Backend:** Laravel (PHP), organized as a modular monolith.
+- **Database:** MySQL.
+- **Frontend:** Laravel Blade templates with lightweight JavaScript initially.
+- **Payments and external services:** adapter/service interfaces so providers can be added or replaced without coupling core billing logic to one vendor.
 
-Avoid selecting infrastructure that creates unavoidable recurring costs before the project has a working budget.
+This is the working direction, not yet a deployed application or a completed technical decision record. Confirm compatible versions, hosting, authentication, queues, and deployment approach before implementation. Avoid infrastructure that creates unavoidable recurring costs before the project has a working budget.
 
 ## 7. Delivery roadmap
 
