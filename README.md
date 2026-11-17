@@ -9,7 +9,7 @@ This repository contains the shared platform foundation for Nexora Group and its
 
 The primary is the source of truth for new features and business records. The standby is kept separate as an alternative technology foundation. It is not automatically synchronized and is not yet a production failover system.
 
-Read docs/ARCHITECTURE_DECISION.md before starting either stack.
+Read [the repository audit](docs/REPOSITORY_AUDIT_2026-11-17.md) and [architecture decision](docs/ARCHITECTURE_DECISION.md) before starting either stack.
 
 ## Start the primary application
 
