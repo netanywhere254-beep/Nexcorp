@@ -1,6 +1,6 @@
 # Initial Database Schema — Nexcorp
 
-**Status:** Proposed design for review; not yet implemented as Laravel migrations.
+**Status:** Partially implemented. The initial Laravel migration creates users, organizations, organization_members, and audit_logs. Product-specific NexISP and Loopza tables remain proposed and are not yet implemented.
 **Database:** MySQL
 **Backend direction:** Laravel modular monolith for the first release.
 
@@ -165,3 +165,10 @@ Each service has a separate database, credential set, persistent volume, and pri
 The optional [single-backend Compose reference](../infra/docker-compose.master-ecosystem-reference.yml) defines one PostgreSQL 15 database for a backend API and Next.js frontend. It is a deployment proposal only and is not wired to active migrations or an application.
 
 **Important:** the current database design remains a Laravel modular monolith + MySQL. The PostgreSQL Compose reference, the three-database Prisma proposal, and the MySQL schema in this document are alternatives, not components to run together by default. Do not create or migrate a production database until the backend and database architecture is explicitly selected and its migration strategy is implemented and tested.
+
+
+## 14. Current migration implementation boundary
+
+The primary Laravel application now includes an initial migration at `backend/laravel/database/migrations/2026_11_17_000001_create_shared_platform_tables.php` for the shared users, organizations, organization_members, and audit_logs tables. Matching Eloquent models are in `backend/laravel/app/Models`.
+
+This is only the shared foundation. The full NexISP and Loopza tables in this document are still design specifications; do not assume they exist in the live database until corresponding Laravel migrations, models, policies, and tests are committed. The separate PostgreSQL/Prisma schemas remain reference material for the standby architecture and are not applied to the primary MySQL database.
