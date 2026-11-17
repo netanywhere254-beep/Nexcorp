@@ -1,4 +1,4 @@
-# BACKUP: separate Next.js web + Express API + PostgreSQL stack.
+# BACKUP: separate Next.js web + NestJS API + PostgreSQL stack.
 # This is a standby alternative, not a live replica of the primary system.
 # Run from the repository root using infra/.env.backup.
 name: nexora-backup
