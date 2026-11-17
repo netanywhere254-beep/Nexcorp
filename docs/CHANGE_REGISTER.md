@@ -17,7 +17,7 @@ This register distinguishes a committed source update from a verified build or w
 | CHG-012 | Public registration with privilege boundary | Account-only registration; no public admin assignment | UPDATED — PR #1 | Registration hardening committed; email verification remains a launch gate. |
 | CHG-013 | Governance schema without approval workflow | Transactional staged approval service and tests | UPDATED — PR #1 | No HTTP endpoint, CEO bootstrap, MFA or NestJS parity yet. |
 | CHG-014 | No tenant-aware commerce tables | NexISP plans/subscriptions, Loopza products/orders, payment transaction records | UPDATED — PR #4 | Schema and models committed; payment verification and fulfillment remain outstanding. |
-| CHG-015 | AI only referenced in planning documents | NexCore AI provider adapter, authenticated tenant-scoped gateway, usage metering, feature allow-list, and service tests | IMPLEMENTED FOUNDATION — CI pending | Added /ai/assist, provider configuration, ai_usage_logs, and service tests. Provider is disabled by default. No UI, RAG, autonomous agents, orchestration, budget enforcement, or NestJS parity yet. |
+| CHG-015 | AI only referenced in planning documents | NexCore AI provider adapter, authenticated tenant-scoped gateway, usage metering, feature allow-list, and service tests | IMPLEMENTED FOUNDATION — CI pending | Added /ai/assist, provider configuration, ai_usage_logs, service tests, and endpoint authentication/tenant-context security tests. Provider is disabled by default. No UI, RAG, autonomous agents, orchestration, budget enforcement, or NestJS parity yet. |
 
 ## Architecture status
 
