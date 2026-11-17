@@ -1,0 +1,135 @@
+# Optional three-service reference stack for Nexora, NexISP, and Loopza.
+# NOT the active Laravel + MySQL architecture.
+# Run from the repository root:
+# docker compose --env-file infra/.env.nexora-stack -f infra/docker-compose.nexora-multiservice-reference.yml up -d --build
+#
+# Build contexts expect ./nexora, ./nexisp, and ./loopza, each with a compatible
+# application and Dockerfile. Those application services are not yet implemented.
+
+name: nexora-multiservice-reference
+
+services:
+  nexora_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${NEXORA_POSTGRES_USER:?Set NEXORA_POSTGRES_USER in infra/.env.nexora-stack}
+      POSTGRES_PASSWORD: ${NEXORA_POSTGRES_PASSWORD:?Set NEXORA_POSTGRES_PASSWORD in infra/.env.nexora-stack}
+      POSTGRES_DB: ${NEXORA_POSTGRES_DB:?Set NEXORA_POSTGRES_DB in infra/.env.nexora-stack}
+    volumes:
+      - nexora_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$\{POSTGRES_USER}\" -d \"$\{POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - nexora_private
+
+  nexora_api:
+    build:
+      context: ../nexora
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      NEXORA_DATABASE_URL: ${NEXORA_DATABASE_URL:?Set NEXORA_DATABASE_URL in infra/.env.nexora-stack}
+    ports:
+      - "127.0.0.1:${NEXORA_API_HOST_PORT:-3101}:3000"
+    depends_on:
+      nexora_db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - nexora_private
+
+  nexisp_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${NEXISP_POSTGRES_USER:?Set NEXISP_POSTGRES_USER in infra/.env.nexora-stack}
+      POSTGRES_PASSWORD: ${NEXISP_POSTGRES_PASSWORD:?Set NEXISP_POSTGRES_PASSWORD in infra/.env.nexora-stack}
+      POSTGRES_DB: ${NEXISP_POSTGRES_DB:?Set NEXISP_POSTGRES_DB in infra/.env.nexora-stack}
+    volumes:
+      - nexisp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$\{POSTGRES_USER}\" -d \"$\{POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - nexisp_private
+
+  nexisp_api:
+    build:
+      context: ../nexisp
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # The current NexISP Prisma reference reads DATABASE_URL.
+      DATABASE_URL: ${NEXISP_DATABASE_URL:?Set NEXISP_DATABASE_URL in infra/.env.nexora-stack}
+    ports:
+      - "127.0.0.1:${NEXISP_API_HOST_PORT:-3102}:3000"
+    depends_on:
+      nexisp_db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - nexisp_private
+
+  loopza_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${LOOPZA_POSTGRES_USER:?Set LOOPZA_POSTGRES_USER in infra/.env.nexora-stack}
+      POSTGRES_PASSWORD: ${LOOPZA_POSTGRES_PASSWORD:?Set LOOPZA_POSTGRES_PASSWORD in infra/.env.nexora-stack}
+      POSTGRES_DB: ${LOOPZA_POSTGRES_DB:?Set LOOPZA_POSTGRES_DB in infra/.env.nexora-stack}
+    volumes:
+      - loopza_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$\{POSTGRES_USER}\" -d \"$\{POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - loopza_private
+
+  loopza_api:
+    build:
+      context: ../loopza
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      LOOPZA_DATABASE_URL: ${LOOPZA_DATABASE_URL:?Set LOOPZA_DATABASE_URL in infra/.env.nexora-stack}
+    ports:
+      - "127.0.0.1:${LOOPZA_API_HOST_PORT:-3103}:3000"
+    depends_on:
+      loopza_db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - loopza_private
+
+volumes:
+  nexora_pgdata:
+  nexisp_pgdata:
+  loopza_pgdata:
+
+networks:
+  nexora_private:
+    driver: bridge
+  nexisp_private:
+    driver: bridge
+  loopza_private:
+    driver: bridge
