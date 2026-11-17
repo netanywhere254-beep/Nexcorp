@@ -132,3 +132,10 @@ This is a proposed schema, not a claim that tables or Laravel migrations already
 A separate reference implementation is stored at [NEXISP_PRISMA_SCHEMA_REFERENCE.prisma](NEXISP_PRISMA_SCHEMA_REFERENCE.prisma). It is based on the Prisma schema supplied during project development and includes tenant-scoped relations, decimal money fields, explicit transaction/subscription statuses, and safer credential handling.
 
 **Important:** this is an alternative design reference only. The current repository direction remains Laravel + MySQL. The Prisma file is not wired into the application, and no Prisma migrations or generated client should be used unless the project explicitly approves changing its backend/database stack. Before production use, validate the schema with the selected Prisma version and add automated tenant-isolation tests.
+
+
+## 10. Prisma/PostgreSQL reference supplied for Loopza
+
+A separate reference schema is stored at [LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma](LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma). It models Loopza users, business workspaces, workspace memberships, subscription plans, business subscription instances, and advertising campaigns. It uses `LOOPZA_DATABASE_URL` and PostgreSQL-specific Decimal fields.
+
+**Important:** this is an alternative implementation reference, not an active database schema. The proposed shared application architecture remains Laravel + MySQL, where Loopza workspaces and campaigns are represented in the shared schema above. Do not create a second production database or run Prisma migrations until the project explicitly approves that change. Keep the shared identity and workspace authorization model consistent if the schema is ever adopted.
