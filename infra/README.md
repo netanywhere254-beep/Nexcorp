@@ -170,11 +170,17 @@ Before any public deployment, add a TLS reverse proxy, authentication, rate limi
 The repository's GitHub Actions workflow is [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It runs on pushes and pull requests targeting `main`, and can also be started manually from the Actions tab.
 
 Current checks:
-- Validates the Nexora, NexISP, and Loopza Prisma reference schemas using a pinned Prisma CLI version and placeholder CI database URLs. Schema validation does not connect to or migrate a database.
-- Validates the optional three-service Docker Compose configuration using the committed example environment file.
-- Checks the Debian/Ubuntu installer script with `bash -n`.
+- Installs Laravel dependencies, validates Composer configuration, runs the primary migrations against SQLite, and executes Laravel tests.
+- Installs and tests the standby Express API, then builds the standby Next.js application.
+- Validates the retained Nexora, NexISP, and Loopza Prisma schema references.
+- Validates and builds both active Docker stacks (primary and standby).
+- Validates the historical Compose references and checks the Debian/Ubuntu installer script with `bash -n`.
 
-**This is validation CI, not a production deployment.** The current repository does not yet have root or per-service Node package manifests/lockfiles, actual migration directories, a working test suite, or the three application Dockerfiles. Therefore the workflow intentionally does not run `npm ci`, `npm test`, `prisma migrate deploy`, or `docker build`; those commands would fail or misleadingly imply that the applications are implemented. Add application-specific build and test jobs when the relevant application source and lockfiles are committed. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, and rollback procedure are configured.
+**This is build-and-test CI, not a production deployment.** A green run verifies the current foundations and tests only. It does not certify complete business features, production security, disaster recovery, or a live deployment. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, backups, and rollback procedure are configured.
+
+## Historical single-backend + frontend + PostgreSQL reference (superseded)
+
+The active standby implementation is now infra/docker-compose.backup.yml. The older root-level Compose proposal below is retained for history only and should not be used as the current backup startup path.
 
 ## Optional single-backend + frontend + PostgreSQL reference
 
