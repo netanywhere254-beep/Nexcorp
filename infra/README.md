@@ -1,6 +1,6 @@
 # Primary and standby deployment paths
 
-The repository now has two separate, buildable application foundations:
+The repository now has two separate application starter foundations, each with an isolated Compose definition and CI build checks:
 
 | Role | Stack | Compose file | Local URL |
 |---|---|---|---|
