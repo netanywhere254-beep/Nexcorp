@@ -24,7 +24,7 @@ class NexCoreAiController extends Controller
 
             return response()->json(['status' => 'success', 'data' => $result]);
         } catch (RuntimeException $exception) {
-            $status = $exception->getMessage() === 'NexCore AI is not configured.' ? 503 : 502;
+            $status = match ($exception->getMessage()) {\n                'NexCore AI is not configured.' => 503,\n                'NexCore AI budget is not enabled for this organization.' => 403,\n                'NexCore AI monthly request budget reached.' => 429,\n                default => 502,\n            };
 
             return response()->json(['status' => 'unavailable', 'message' => $exception->getMessage()], $status);
         }
