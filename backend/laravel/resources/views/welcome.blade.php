@@ -56,7 +56,7 @@
         <div class="wrap">
             <div class="section-head"><div><div class="eyebrow">The Nexora ecosystem</div><h2>Distinct ventures.<br>Shared ambition.</h2></div><p>Explore the businesses and technology initiatives being developed within the Nexora ecosystem.</p></div>
             <div class="grid">
-                <article class="card"><div class="card-icon">⌁</div><div class="sub">Connectivity & ISP technology</div><h3>NexISP</h3><p>Internet service provider management and connectivity technology, with NetPulse WiFi as the first operating business tenant.</p><a href="https://netanywhere254.com" aria-label="Visit NetAnywhere website">NetPulse / Net.Anywhere254 ↗</a></article>
+                <article class="card"><div class="card-icon">⌁</div><div class="sub">Connectivity & ISP technology</div><h3>NexISP</h3><p>Internet service provider management and connectivity technology, with NetPulse WiFi as the first operating business tenant.</p><a href="#contact">NetPulse / Net.Anywhere254 ↗</a></article>
                 <article class="card"><div class="card-icon">↗</div><div class="sub">Business growth technology</div><h3>Loopza</h3><p>A marketing technology platform designed to help businesses plan, manage and amplify their digital advertising.</p><a href="#contact">Explore Loopza ↗</a></article>
                 <article class="card"><div class="card-icon">✳</div><div class="sub">Shared intelligence layer</div><h3>NexCore AI</h3><p>A shared AI foundation intended to support products and teams with useful assistance under clear access and approval controls.</p><a href="#intelligence">Discover NexCore AI ↗</a></article>
             </div>
