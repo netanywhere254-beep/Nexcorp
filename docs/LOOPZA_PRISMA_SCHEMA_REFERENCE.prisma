@@ -1,0 +1,185 @@
+// Loopza Prisma/PostgreSQL schema reference.
+// STATUS: Design reference only. The active Nexcorp application direction is
+// Laravel + MySQL. Do not run Prisma migrations or generate a production client
+// until the project formally approves a PostgreSQL/Prisma architecture.
+//
+// Configure LOOPZA_DATABASE_URL in the Loopza service environment only.
+// Never commit .env files, real passwords, or provider API tokens.
+//
+// Security notes:
+// - User.passwordHash must contain a strong password hash (Argon2id preferred),
+//   never a raw password. Authentication should be centralized if Nexcorp's
+//   shared identity module is implemented.
+// - Business is a workspace/tenant. Always authorize and scope reads/writes by
+//   business membership on the server; never trust a client-supplied businessId.
+// - Monetary values use Decimal, not Float.
+// - Store ad-provider tokens encrypted or in a dedicated secret manager.
+// - Campaign metrics are provider data snapshots, not verified billing records.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("LOOPZA_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  passwordHash String
+  fullName     String?
+  status       UserStatus       @default(ACTIVE)
+  memberships  BusinessMember[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([status])
+}
+
+model Business {
+  id            String                 @id @default(uuid())
+  name          String
+  countryCode   String                 @db.VarChar(2)
+  contactEmail  String
+  status        BusinessStatus         @default(PENDING)
+  memberships   BusinessMember[]
+  subscriptions BusinessSubscription[]
+  campaigns     Campaign[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([countryCode, status])
+  @@index([contactEmail])
+}
+
+model BusinessMember {
+  id         String           @id @default(uuid())
+  businessId String
+  userId     String
+  role       BusinessRole     @default(MEMBER)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId, role])
+}
+
+model SubscriptionPlan {
+  id            String                 @id @default(uuid())
+  code          String                 @unique
+  name          String
+  description   String?
+  price         Decimal                @db.Decimal(12, 2)
+  currency      String                 @default("USD") @db.VarChar(3)
+  interval      BillingInterval        @default(MONTHLY)
+  isActive      Boolean                @default(true)
+  entitlements  Json?
+  subscriptions BusinessSubscription[]
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([isActive])
+}
+
+model BusinessSubscription {
+  id                     String             @id @default(uuid())
+  businessId             String
+  planId                 String
+  status                 SubscriptionStatus @default(PENDING)
+  currency               String             @default("USD") @db.VarChar(3)
+  amount                 Decimal            @db.Decimal(12, 2)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  cancelledAt            DateTime?
+  externalProvider       String?
+  externalSubscriptionId String?
+  business               Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  plan                   SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([businessId, status])
+  @@index([planId])
+  @@index([currentPeriodEnd])
+  @@unique([externalProvider, externalSubscriptionId])
+}
+
+model Campaign {
+  id             String          @id @default(uuid())
+  businessId     String
+  name           String
+  objective      String?
+  channel        AdChannel
+  budget         Decimal         @db.Decimal(12, 2)
+  budgetCurrency String          @default("USD") @db.VarChar(3)
+  status         CampaignStatus  @default(DRAFT)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  metrics        Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([channel, status])
+  @@index([startsAt, endsAt])
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum BusinessStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+  CANCELLED
+}
+
+enum BusinessRole {
+  OWNER
+  ADMIN
+  CAMPAIGN_MANAGER
+  VIEWER
+  MEMBER
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum AdChannel {
+  FACEBOOK
+  INSTAGRAM
+  GOOGLE
+  TIKTOK
+  YOUTUBE
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
