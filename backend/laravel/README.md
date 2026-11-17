@@ -4,7 +4,7 @@ This directory is the primary application foundation. It contains a minimal Lara
 
 ## Local development
 
-Requirements: PHP 8.2+, Composer 2, and MySQL 8.
+Requirements: PHP 8.3+, Composer 2, and MySQL 8.
 
 1. Copy the .env.example file to .env.
 2. Set a unique APP_KEY by running php artisan key:generate.
