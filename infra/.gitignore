@@ -12,3 +12,13 @@
 .env.master-ecosystem
 .env.master-ecosystem.*
 !.env.master-ecosystem.example
+
+# Primary Laravel/MySQL local environment
+.env.primary
+.env.primary.*
+!.env.primary.example
+
+# Standby Next.js/Node/PostgreSQL local environment
+.env.backup
+.env.backup.*
+!.env.backup.example
