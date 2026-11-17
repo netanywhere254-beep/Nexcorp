@@ -3,3 +3,8 @@
 !.env.nexisp.example
 *.pem
 *.key
+# Optional Nexora/NexISP/Loopza multi-service environment file
+.env.nexora-stack
+.env.nexora-stack.*
+!.env.nexora-stack.example
+
