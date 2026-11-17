@@ -68,3 +68,20 @@ docker compose --env-file infra/.env.nexisp -f infra/docker-compose.nestjs-refer
 - Configure application health checks, structured redacted logs, monitoring, resource limits, and a tested disaster-recovery process before production.
 - Redis is configured with authentication and persistence, but Redis data should not be treated as the authoritative financial or subscription record.
 - The API container needs a real Dockerfile and a working NestJS build. Its database migrations must be run through a controlled deployment process, not blindly on every container start.
+
+
+## Prepare a Debian/Ubuntu server
+
+The repository includes [install-nexisp.sh](install-nexisp.sh), which prepares a Debian/Ubuntu host by installing Docker Engine, Git, and Docker Compose (v2 when available), then enables and starts Docker.
+
+From the repository root on the Linux server:
+
+```bash
+bash infra/install-nexisp.sh
+```
+
+The script checks the Linux distribution, uses sudo when needed, verifies the Docker and Compose commands, and prints the next steps. It intentionally does not run a full `apt-get upgrade -y`; schedule operating-system upgrades separately because they can restart services or change a production server.
+
+The script does **not** deploy NexISP. The optional NestJS Compose stack remains a reference configuration and requires a compatible NestJS application and `backend/Dockerfile` before it can be built. Review the architecture warning above before proceeding.
+
+**Docker privilege warning:** users added to the `docker` group effectively receive root-level control of the host. The installer does not add users automatically. Only a trusted server administrator should run the optional `usermod -aG docker USERNAME` command printed by the installer, then sign out and back in.
