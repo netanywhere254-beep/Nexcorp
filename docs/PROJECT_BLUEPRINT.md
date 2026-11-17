@@ -161,3 +161,12 @@ The workflow deliberately does not run npm installation/tests, database migratio
 
 Extend the workflow with real application-specific build and test jobs once those projects exist. Add a production deployment job only after selecting a deployment host, configuring protected GitHub environments and secrets, requiring appropriate approvals, and implementing health checks and rollback.
 
+## 14. Alternative single-backend deployment proposal
+
+A supplied Docker Compose design proposes one backend API, one Next.js frontend, and one PostgreSQL 15 database. Its hardened configuration reference is [docker-compose.master-ecosystem-reference.yml](../infra/docker-compose.master-ecosystem-reference.yml), with [infra/.env.master-ecosystem.example](../infra/.env.master-ecosystem.example) as a placeholder-only environment template.
+
+This is a different option from the separate Nexora/NexISP/Loopza service proposal in section 12. It also conflicts with the current initial Laravel modular monolith + MySQL direction. No architecture switch has been approved.
+
+The Compose reference expects a root backend `Dockerfile` and a root `Dockerfile.frontend`, plus compatible backend and Next.js application code. Those build files and complete applications are not currently present, so the reference is not yet buildable or deployable. The frontend `NEXT_PUBLIC_API_URL` is passed at build time; localhost is suitable only for local development. Production requires a real HTTPS endpoint or same-origin reverse proxy, protected secrets, database backups, migrations, health checks, monitoring, and a rollback plan.
+
+Before using this alternative, decide whether the project should be a single Node/Next.js + PostgreSQL application, three independently deployed services, or the existing Laravel + MySQL modular monolith. Do not mix the three approaches into one deployment without a reviewed architecture and migration plan.
