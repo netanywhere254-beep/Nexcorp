@@ -24,7 +24,7 @@ macOS/Linux:
 
     cp infra/.env.primary.example infra/.env.primary
 
-Edit the environment file and replace both placeholder MySQL passwords with different strong secrets. Then run:
+Edit the environment file and replace both placeholder MySQL passwords with different long, unique hexadecimal secrets. You can generate a secret with `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`. Generate a separate value for each password. For a persistent environment, generate an APP_KEY with `php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"` and paste the complete result into APP_KEY. Then run:
 
     docker compose --env-file infra/.env.primary -f infra/docker-compose.primary.yml config
     docker compose --env-file infra/.env.primary -f infra/docker-compose.primary.yml up -d --build
