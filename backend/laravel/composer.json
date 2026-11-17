@@ -25,7 +25,7 @@
     }
   },
   "scripts": {
-    "test": "@php artisan test",
+    "test": "@php vendor/bin/phpunit",
     "post-autoload-dump": [
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
       "@php artisan package:discover --ansi"
