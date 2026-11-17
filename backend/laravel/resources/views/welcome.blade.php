@@ -3,82 +3,549 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#071426">
-    <meta name="description" content="Nexora is a technology group building connected digital services across connectivity, business growth and intelligent software.">
-    <title>Nexora — Technology that moves possibility forward</title>
+    <meta name="theme-color" content="#10152d">
+    <meta name="description" content="Nexora Group builds technology ventures that connect people, empower businesses and open new possibilities.">
+    <title>Nexora Group — Make What’s Next Matter</title>
     <style>
-        :root{--ink:#071426;--panel:#0d2035;--panel2:#102941;--line:#24435f;--white:#eff7ff;--muted:#a6bad0;--cyan:#39c9f5;--blue:#3985ff;--lime:#b6f36b;--max:1160px}
-        *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--ink);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}button,a{ -webkit-tap-highlight-color:transparent}.wrap{width:min(var(--max),calc(100% - 44px));margin:auto}
-        .nav{height:82px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff16}.logo{display:flex;align-items:center;gap:12px;font-weight:850;letter-spacing:.17em}.symbol{width:35px;height:35px;border:2px solid var(--cyan);border-radius:11px;display:grid;place-items:center;color:var(--cyan);font-size:19px;transform:rotate(-8deg)}.logo span:last-child{font-size:15px}.links{display:flex;gap:30px;align-items:center;color:#c0d0df;font-size:13px}.links a:hover,.footer a:hover{color:var(--cyan)}.nav-cta,.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:9px;background:var(--cyan);color:#041522;font-weight:800;font-size:13px;border:1px solid var(--cyan);transition:.2s}.nav-cta:hover,.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}.menu{display:none;background:none;border:1px solid var(--line);color:white;border-radius:8px;padding:8px 11px;font-size:20px}
-        .hero{position:relative;overflow:hidden;padding:112px 0 105px;background:radial-gradient(ellipse at 78% 35%,#123d60 0,transparent 42%),linear-gradient(115deg,#071426 40%,#0a1e32 100%)}.hero:after{content:"";position:absolute;width:490px;height:490px;border:1px solid #45cafa22;border-radius:50%;right:-120px;top:5px;box-shadow:0 0 0 55px #45cafa08,0 0 0 110px #45cafa05;pointer-events:none}.eyebrow{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.hero h1{font-size:clamp(44px,7vw,82px);line-height:1.02;letter-spacing:-.055em;max-width:820px;margin:22px 0}.hero h1 em{font-style:normal;color:var(--cyan)}.hero p{max-width:620px;color:var(--muted);font-size:18px;line-height:1.8;margin:0 0 30px}.actions{display:flex;gap:13px;flex-wrap:wrap}.btn.secondary{background:transparent;color:var(--white);border-color:#4a6680}.hero-note{margin-top:55px;color:#819bb4;font-size:12px;letter-spacing:.04em}
-        section{padding:88px 0}.section-head{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:34px}.section-head h2{font-size:clamp(30px,4vw,46px);letter-spacing:-.04em;line-height:1.1;margin:10px 0 0}.section-head p{max-width:430px;color:var(--muted);margin:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:linear-gradient(145deg,#102941,#0a1b2e);border:1px solid var(--line);border-radius:17px;padding:27px;min-height:265px;display:flex;flex-direction:column;transition:.25s}.card:hover{transform:translateY(-5px);border-color:#3abfe9}.card-icon{width:45px;height:45px;border-radius:13px;background:#173b56;color:var(--cyan);display:grid;place-items:center;font-size:22px;font-weight:800}.card h3{font-size:22px;margin:24px 0 8px}.card p{color:var(--muted);font-size:14px;margin:0 0 20px}.card a{margin-top:auto;color:var(--cyan);font-size:13px;font-weight:800}.card .sub{color:#819bb4;font-size:10px;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
-        .purpose{background:#0a1b2d;border-block:1px solid #ffffff12}.purpose-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}.purpose h2{font-size:clamp(32px,4vw,48px);line-height:1.12;letter-spacing:-.04em;margin:14px 0}.purpose p{color:var(--muted)}.principles{display:grid;gap:13px}.principle{display:flex;gap:16px;padding:17px;border:1px solid var(--line);border-radius:12px;background:#0c2238}.num{color:var(--cyan);font-size:12px;font-weight:900;letter-spacing:.1em}.principle strong{display:block}.principle span:last-child{color:var(--muted);font-size:13px}
-        .ai{padding:0 0 90px}.ai-panel{border:1px solid #2c5c79;border-radius:20px;padding:clamp(25px,5vw,55px);background:radial-gradient(ellipse at 90% 10%,#164d6b 0,transparent 48%),linear-gradient(120deg,#102941,#0a1b2e);display:flex;justify-content:space-between;align-items:center;gap:30px}.ai-panel h2{font-size:clamp(30px,4vw,43px);line-height:1.1;letter-spacing:-.04em;margin:12px 0}.ai-panel p{color:var(--muted);max-width:620px;margin:0}.ai-mark{flex:0 0 110px;width:110px;height:110px;border-radius:32px;border:1px solid #4ac9f577;display:grid;place-items:center;color:var(--cyan);font-size:44px;box-shadow:0 0 60px #32c4f522}
-        .contact{padding:75px 0;border-top:1px solid #ffffff14}.contact-inner{display:flex;justify-content:space-between;align-items:center;gap:25px}.contact h2{font-size:clamp(30px,4vw,44px);letter-spacing:-.04em;margin:8px 0}.contact p{color:var(--muted);margin:0}.footer{border-top:1px solid #ffffff14;padding:28px 0;color:#819bb4;font-size:12px}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.footer-links{display:flex;gap:20px}
-        @media(max-width:760px){.links{display:none;position:absolute;z-index:5;top:72px;left:0;right:0;padding:22px;background:#091a2d;border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:18px}.links.open{display:flex}.menu{display:block}.nav-cta{display:none}.hero{padding:82px 0 70px}.hero:after{right:-310px}.hero p{font-size:16px}.section-head{display:block}.section-head p{margin-top:16px}.grid{grid-template-columns:1fr}.card{min-height:220px}.purpose-grid{grid-template-columns:1fr;gap:28px}.ai-panel{align-items:flex-start}.ai-mark{flex-basis:70px;width:70px;height:70px;border-radius:22px;font-size:30px}.contact-inner{align-items:flex-start;flex-direction:column}section{padding:68px 0}}
-        @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+        :root {
+            --night: #10152d;
+            --night-2: #171e3b;
+            --paper: #f5f2e9;
+            --white: #fffdf7;
+            --lime: #d7ff54;
+            --coral: #ff715b;
+            --blue: #637cff;
+            --ink: #151a32;
+            --muted: #b7bdd0;
+            --line: rgba(255,255,255,.16);
+            --serif: Georgia, "Times New Roman", serif;
+            --sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+            --max: 1240px;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background: var(--night);
+            color: var(--white);
+            font-family: var(--sans);
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: inherit; text-decoration: none; }
+        button { font: inherit; }
+        ::selection { background: var(--lime); color: var(--night); }
+        .wrap { width: min(var(--max), calc(100% - 64px)); margin-inline: auto; }
+
+        .topline {
+            min-height: 34px;
+            padding: 7px 0;
+            background: var(--lime);
+            color: var(--night);
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .19em;
+            text-transform: uppercase;
+        }
+        .topline .wrap { display:flex; justify-content:space-between; gap:15px; }
+
+        .site-header {
+            position: relative;
+            z-index: 20;
+            background: var(--night);
+            border-bottom: 1px solid var(--line);
+        }
+        .nav {
+            min-height: 88px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:28px;
+        }
+        .brand { display:flex; align-items:center; gap:12px; min-width:max-content; }
+        .brand-mark {
+            width:39px; height:39px;
+            display:grid; place-items:center;
+            color:var(--night); background:var(--lime);
+            font-weight:1000; font-size:21px;
+            transform:rotate(-7deg);
+            border-radius: 3px 13px 3px 13px;
+        }
+        .brand-name { font-size:15px; font-weight:950; letter-spacing:.23em; }
+        .brand-name small {
+            display:block; margin-top:1px; color:#a8aec3;
+            font-size:8px; font-weight:700; letter-spacing:.24em;
+        }
+        .nav-links { display:flex; align-items:center; gap:clamp(18px,3vw,38px); }
+        .nav-links a {
+            color:#c9cddd; font-size:12px; font-weight:700;
+            transition:color .2s ease;
+        }
+        .nav-links a:hover { color:var(--lime); }
+        .nav-contact {
+            display:inline-flex; align-items:center; gap:12px;
+            padding:12px 16px; color:var(--night); background:var(--lime);
+            font-size:11px; font-weight:900; letter-spacing:.04em;
+            border-radius:2px; transition:transform .2s ease, background .2s ease;
+        }
+        .nav-contact:hover { transform:translateY(-3px); background:#e5ff8b; }
+        .menu-toggle {
+            display:none; border:1px solid var(--line); background:transparent;
+            color:var(--white); padding:9px 12px; border-radius:3px;
+        }
+
+        .hero {
+            position:relative; overflow:hidden;
+            padding:clamp(80px,10vw,145px) 0 70px;
+            background:
+                radial-gradient(ellipse at 83% 43%, rgba(99,124,255,.28), transparent 35%),
+                radial-gradient(ellipse at 10% 100%, rgba(255,113,91,.13), transparent 35%),
+                var(--night);
+        }
+        .hero-grid {
+            position:absolute; inset:0; opacity:.16; pointer-events:none;
+            background-image:linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px);
+            background-size:68px 68px;
+            mask-image:linear-gradient(to right, transparent, black 45%, black);
+        }
+        .hero-inner { position:relative; display:grid; grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr); align-items:center; gap:35px; }
+        .kicker {
+            display:flex; align-items:center; gap:12px;
+            color:var(--lime); font-size:10px; font-weight:900;
+            letter-spacing:.22em; text-transform:uppercase;
+        }
+        .kicker:before { content:""; width:28px; height:2px; background:var(--coral); }
+        .hero h1 {
+            max-width:850px; margin:25px 0 25px;
+            font-size:clamp(54px,8.3vw,112px);
+            line-height:.91; letter-spacing:-.075em; font-weight:900;
+        }
+        .hero h1 .outline {
+            color:transparent; -webkit-text-stroke:1.5px var(--lime);
+            font-family:var(--serif); font-style:italic; font-weight:400;
+            letter-spacing:-.065em;
+        }
+        .hero-copy { max-width:560px; color:#c0c6d8; font-size:16px; line-height:1.85; }
+        .hero-actions { display:flex; align-items:center; gap:22px; flex-wrap:wrap; margin-top:32px; }
+        .button-primary {
+            display:inline-flex; align-items:center; gap:22px;
+            padding:16px 19px; background:var(--lime); color:var(--night);
+            font-size:11px; font-weight:950; letter-spacing:.06em;
+            transition:transform .2s ease, box-shadow .2s ease;
+        }
+        .button-primary:hover { transform:translateY(-4px); box-shadow:6px 6px 0 var(--coral); }
+        .text-link { color:var(--white); font-size:12px; font-weight:800; border-bottom:1px solid var(--coral); padding-bottom:5px; }
+        .hero-art {
+            min-height:420px; position:relative; display:grid; place-items:center;
+        }
+        .orbit {
+            width:min(33vw,390px); aspect-ratio:1; border:1px solid rgba(215,255,84,.5);
+            border-radius:50%; position:relative; display:grid; place-items:center;
+            box-shadow:0 0 0 34px rgba(215,255,84,.035), 0 0 0 68px rgba(99,124,255,.045);
+        }
+        .orbit:before,.orbit:after { content:""; position:absolute; border:1px solid rgba(99,124,255,.55); border-radius:50%; inset:16%; transform:rotate(48deg) scaleX(.52); }
+        .orbit:after { transform:rotate(-48deg) scaleX(.52); border-color:rgba(255,113,91,.7); }
+        .orbit-core {
+            width:42%; aspect-ratio:1; display:grid; place-items:center;
+            background:var(--coral); color:var(--night);
+            font-size:clamp(42px,6vw,72px); font-weight:1000;
+            border-radius:48% 52% 44% 56% / 52% 43% 57% 48%;
+            transform:rotate(-12deg); box-shadow:16px 18px 0 rgba(215,255,84,.9);
+        }
+        .orbit-label {
+            position:absolute; padding:9px 12px; background:var(--paper); color:var(--night);
+            font-size:9px; font-weight:950; letter-spacing:.13em; text-transform:uppercase;
+        }
+        .orbit-label.one { top:9%; right:0; transform:rotate(5deg); }
+        .orbit-label.two { bottom:12%; left:-5%; transform:rotate(-6deg); }
+        .hero-foot {
+            position:relative; margin-top:65px; padding-top:18px;
+            border-top:1px solid var(--line); display:flex; justify-content:space-between;
+            gap:20px; color:#929bb5; font-size:9px; font-weight:800; letter-spacing:.18em;
+            text-transform:uppercase;
+        }
+
+        .ticker {
+            overflow:hidden; background:var(--coral); color:var(--night);
+            padding:15px 0; white-space:nowrap;
+        }
+        .ticker-track { display:flex; width:max-content; gap:28px; animation:marquee 28s linear infinite; }
+        .ticker span { font-size:12px; font-weight:950; letter-spacing:.17em; text-transform:uppercase; }
+        .ticker b { font-size:17px; }
+        @keyframes marquee { to { transform:translateX(-50%); } }
+
+        .section { padding:clamp(78px,9vw,125px) 0; }
+        .section-paper { background:var(--paper); color:var(--ink); }
+        .section-label {
+            color:#5e6bd0; font-size:10px; font-weight:950;
+            letter-spacing:.2em; text-transform:uppercase;
+        }
+        .section-title {
+            max-width:780px; margin:17px 0 0;
+            font-size:clamp(38px,5.7vw,72px); line-height:.99;
+            letter-spacing:-.065em; font-weight:900;
+        }
+        .section-title em { font-family:var(--serif); font-weight:400; }
+        .intro-grid { display:grid; grid-template-columns:1fr .72fr; gap:9%; align-items:end; }
+        .intro-copy { color:#53596e; font-size:16px; line-height:1.9; max-width:480px; }
+        .intro-copy strong { color:var(--ink); }
+
+        .values {
+            margin-top:65px; border-top:1px solid #d8d5cb;
+            display:grid; grid-template-columns:repeat(4,1fr);
+        }
+        .value { padding:24px 20px 0 0; border-right:1px solid #d8d5cb; margin-right:20px; }
+        .value:last-child { border:0; margin:0; }
+        .value-num { color:#6a73d6; font-size:10px; font-weight:900; letter-spacing:.15em; }
+        .value h3 { margin:13px 0 7px; font-size:17px; letter-spacing:-.03em; }
+        .value p { margin:0; color:#62677a; font-size:12px; line-height:1.75; }
+
+        .ventures-head { display:flex; justify-content:space-between; align-items:end; gap:30px; margin-bottom:48px; }
+        .ventures-head .section-title { max-width:650px; }
+        .ventures-note { max-width:300px; color:#b9bfd1; font-size:13px; line-height:1.8; }
+        .venture-list { border-top:1px solid var(--line); }
+        .venture {
+            display:grid; grid-template-columns:72px minmax(190px,.8fr) 1.2fr 42px;
+            gap:25px; align-items:center; padding:29px 10px;
+            border-bottom:1px solid var(--line); transition:background .25s ease, padding .25s ease;
+        }
+        .venture:hover { background:rgba(99,124,255,.09); padding-inline:20px; }
+        .venture-index { color:var(--lime); font-size:11px; font-weight:900; letter-spacing:.12em; }
+        .venture-name { font-size:clamp(26px,3.5vw,42px); font-weight:950; letter-spacing:-.06em; }
+        .venture-type { display:block; color:#9ca5c0; font-size:9px; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+        .venture p { max-width:490px; margin:0; color:#c0c6d8; font-size:13px; line-height:1.8; }
+        .venture-arrow {
+            width:38px; height:38px; display:grid; place-items:center;
+            color:var(--night); background:var(--lime); border-radius:50%;
+            font-size:19px; transition:transform .2s ease;
+        }
+        .venture:hover .venture-arrow { transform:rotate(45deg); }
+        .venture:nth-child(2) .venture-arrow { background:var(--coral); }
+        .venture:nth-child(3) .venture-arrow { background:#8c9bff; }
+
+        .ai-feature { background:#dfe5ff; color:var(--night); overflow:hidden; }
+        .ai-layout { display:grid; grid-template-columns:1fr .8fr; gap:7%; align-items:center; }
+        .ai-feature .section-label { color:#515fc6; }
+        .ai-feature .section-title { max-width:620px; }
+        .ai-copy { color:#515873; font-size:14px; line-height:1.9; max-width:560px; }
+        .ai-stamp {
+            min-height:330px; position:relative; display:grid; place-items:center;
+            background:var(--blue); overflow:hidden;
+            clip-path:polygon(9% 0,100% 0,100% 83%,87% 100%,0 100%,0 13%);
+        }
+        .ai-stamp:before,.ai-stamp:after {
+            content:""; position:absolute; width:250px; height:250px;
+            border:1px solid rgba(255,255,255,.35); border-radius:50%;
+        }
+        .ai-stamp:after { width:180px; height:180px; }
+        .ai-glyph { position:relative; z-index:1; color:var(--lime); font-size:120px; font-weight:300; line-height:1; }
+        .ai-stamp small {
+            position:absolute; bottom:22px; right:24px; color:white;
+            font-size:9px; font-weight:900; letter-spacing:.2em;
+        }
+
+        .future { background:var(--night-2); }
+        .future-layout { display:grid; grid-template-columns:.8fr 1.2fr; gap:10%; }
+        .future-copy { color:#b7bdd0; font-size:15px; line-height:1.9; }
+        .future-copy p { margin-top:0; }
+        .future-quote {
+            padding:25px 0 0 28px; border-left:3px solid var(--coral);
+            font-family:var(--serif); font-size:clamp(24px,3.4vw,39px);
+            line-height:1.25; color:var(--white);
+        }
+
+        .contact {
+            position:relative; overflow:hidden; padding:clamp(75px,9vw,120px) 0;
+            background:var(--lime); color:var(--night);
+        }
+        .contact:after {
+            content:"N"; position:absolute; right:-25px; bottom:-180px;
+            color:rgba(16,21,45,.07); font-size:480px; font-weight:1000;
+            line-height:1; pointer-events:none;
+        }
+        .contact-inner { position:relative; z-index:1; display:flex; align-items:end; justify-content:space-between; gap:35px; }
+        .contact .section-label { color:#515fc6; }
+        .contact .section-title { max-width:760px; }
+        .contact-copy { max-width:360px; color:#424a30; font-size:13px; line-height:1.8; }
+        .contact-button {
+            display:inline-flex; align-items:center; gap:22px; margin-top:18px;
+            padding:16px 20px; background:var(--night); color:white;
+            font-size:11px; font-weight:900; letter-spacing:.06em;
+        }
+        .contact-button:hover { background:#303a70; }
+
+        .footer { background:#0b1025; padding:35px 0 25px; }
+        .footer-top { display:flex; justify-content:space-between; align-items:start; gap:35px; padding-bottom:34px; }
+        .footer-tag { max-width:300px; color:#939bb3; font-family:var(--serif); font-size:19px; font-style:italic; }
+        .footer-links { display:flex; flex-wrap:wrap; gap:22px; }
+        .footer-links a { color:#b7bdd0; font-size:11px; font-weight:700; }
+        .footer-bottom { display:flex; justify-content:space-between; gap:20px; padding-top:20px; border-top:1px solid var(--line); color:#77809c; font-size:10px; }
+
+        @media (max-width:900px) {
+            .hero-inner { grid-template-columns:1fr .65fr; }
+            .hero-art { min-height:320px; }
+            .orbit { width:min(34vw,300px); }
+            .venture { grid-template-columns:45px minmax(150px,.8fr) 1.2fr 38px; gap:15px; }
+            .values { grid-template-columns:repeat(2,1fr); row-gap:25px; }
+            .value:nth-child(2) { border-right:0; }
+        }
+        @media (max-width:700px) {
+            .wrap { width:min(var(--max),calc(100% - 38px)); }
+            .topline .wrap span:last-child { display:none; }
+            .nav { min-height:72px; }
+            .menu-toggle { display:block; }
+            .nav-contact { display:none; }
+            .nav-links {
+                display:none; position:absolute; top:71px; left:0; right:0;
+                padding:22px; background:var(--night-2);
+                border:1px solid var(--line); flex-direction:column; align-items:flex-start;
+            }
+            .nav-links.open { display:flex; }
+            .hero { padding-top:78px; }
+            .hero-inner { grid-template-columns:1fr; }
+            .hero h1 { font-size:clamp(53px,14vw,82px); }
+            .hero-art { min-height:270px; margin-top:10px; }
+            .orbit { width:230px; }
+            .hero-foot { margin-top:42px; flex-wrap:wrap; }
+            .intro-grid,.ai-layout,.future-layout { grid-template-columns:1fr; gap:28px; }
+            .values { margin-top:42px; }
+            .ventures-head { display:block; }
+            .ventures-note { margin-top:20px; }
+            .venture { grid-template-columns:32px 1fr 38px; gap:12px; padding:23px 0; }
+            .venture p { grid-column:2 / 4; grid-row:2; }
+            .venture-arrow { grid-column:3; grid-row:1; }
+            .ai-stamp { min-height:260px; }
+            .contact-inner { display:block; }
+            .contact-copy { margin-top:28px; }
+            .footer-top,.footer-bottom { flex-direction:column; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            html { scroll-behavior:auto; }
+            *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; }
+        }
     </style>
 </head>
 <body>
-<header class="wrap nav">
-    <a class="logo" href="#top" aria-label="Nexora home"><span class="symbol">N</span><span>NEXORA</span></a>
-    <nav class="links" id="site-links" aria-label="Main navigation">
-        <a href="#about">About</a><a href="#companies">Our companies</a><a href="#intelligence">NexCore AI</a><a href="#contact">Contact</a>
-    </nav>
-    <a class="nav-cta" href="#companies">Explore the ecosystem ↗</a>
-    <button class="menu" id="menu" aria-label="Toggle navigation" aria-expanded="false">☰</button>
-</header>
-<main id="top">
-    <section class="hero">
+    <div class="topline">
         <div class="wrap">
-            <div class="eyebrow">A technology group · Built for what’s next</div>
-            <h1>Technology that moves <em>possibility</em> forward.</h1>
-            <p>Nexora is building a connected ecosystem of digital businesses — bringing people online, helping businesses grow and making intelligent technology more useful.</p>
-            <div class="actions"><a class="btn" href="#companies">Discover Nexora ↗</a><a class="btn secondary" href="#about">Our vision</a></div>
-            <div class="hero-note">CONNECTIVITY &nbsp;·&nbsp; DIGITAL GROWTH &nbsp;·&nbsp; INTELLIGENCE</div>
+            <span>Independent thinking. Connected ambition.</span>
+            <span>Technology · Enterprise · Possibility</span>
         </div>
-    </section>
-    <section id="about">
-        <div class="wrap section-head">
-            <div><div class="eyebrow">Who we are</div><h2>One group. A world of<br>connected opportunities.</h2></div>
-            <p>We bring focused technology ventures together under one group — each with its own purpose, products and customers, supported by shared foundations and a long-term view.</p>
+    </div>
+
+    <header class="site-header">
+        <div class="wrap nav">
+            <a class="brand" href="#home" aria-label="Nexora Group home">
+                <span class="brand-mark">N</span>
+                <span class="brand-name">NEXORA<small>GROUP</small></span>
+            </a>
+            <nav class="nav-links" id="site-links" aria-label="Main navigation">
+                <a href="#story">Our story</a>
+                <a href="#ventures">Ventures</a>
+                <a href="#intelligence">NexCore AI</a>
+                <a href="#future">Our direction</a>
+            </nav>
+            <a class="nav-contact" href="#contact">LET’S TALK <span>↗</span></a>
+            <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="site-links">☰</button>
         </div>
-        <div class="wrap purpose-grid">
-            <div><div class="eyebrow">Our direction</div><h2>Build useful technology. Create meaningful progress.</h2><p>Our approach is practical: solve real problems, make digital services easier to access and build dependable products that can grow with the people and businesses that use them.</p></div>
-            <div class="principles">
-                <div class="principle"><span class="num">01</span><div><strong>Customer-led</strong><span>Start with real needs and design around the people we serve.</span></div></div>
-                <div class="principle"><span class="num">02</span><div><strong>Connected by design</strong><span>Build ventures that can collaborate while retaining clear responsibilities.</span></div></div>
-                <div class="principle"><span class="num">03</span><div><strong>Responsible innovation</strong><span>Put security, accountability and trust at the centre of technology.</span></div></div>
+    </header>
+
+    <main id="home">
+        <section class="hero">
+            <div class="hero-grid" aria-hidden="true"></div>
+            <div class="wrap">
+                <div class="hero-inner">
+                    <div>
+                        <div class="kicker">A new kind of technology group</div>
+                        <h1>Make what’s next <span class="outline">matter.</span></h1>
+                        <p class="hero-copy">
+                            We build technology ventures with a clear purpose:
+                            connect people, unlock business potential and turn
+                            ambitious ideas into useful, everyday solutions.
+                        </p>
+                        <div class="hero-actions">
+                            <a class="button-primary" href="#ventures">EXPLORE OUR WORLD <span>↗</span></a>
+                            <a class="text-link" href="#story">Get to know Nexora</a>
+                        </div>
+                    </div>
+                    <div class="hero-art" aria-label="Abstract Nexora brand artwork">
+                        <div class="orbit">
+                            <span class="orbit-label one">Think beyond</span>
+                            <div class="orbit-core">N</div>
+                            <span class="orbit-label two">Build forward</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-foot">
+                    <span>01 / A connected ecosystem</span>
+                    <span>Connectivity — Growth — Intelligence</span>
+                    <span>Built with purpose ↘</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="ticker" aria-label="Nexora areas of focus">
+            <div class="ticker-track" aria-hidden="true">
+                <span>Ideas into impact</span><b>✳</b><span>Technology with purpose</span><b>✳</b><span>Business without borders</span><b>✳</b><span>Built for possibility</span><b>✳</b>
+                <span>Ideas into impact</span><b>✳</b><span>Technology with purpose</span><b>✳</b><span>Business without borders</span><b>✳</b><span>Built for possibility</span><b>✳</b>
             </div>
         </div>
-    </section>
-    <section id="companies" class="purpose">
+
+        <section class="section section-paper" id="story">
+            <div class="wrap">
+                <div class="intro-grid">
+                    <div>
+                        <div class="section-label">01 / The Nexora story</div>
+                        <h2 class="section-title">One vision.<br><em>Many ways</em> to move forward.</h2>
+                    </div>
+                    <div class="intro-copy">
+                        <p><strong>Nexora Group is the parent organisation behind a growing portfolio of technology ventures.</strong> We bring together entrepreneurship, practical innovation and long-term thinking to develop businesses that solve real problems.</p>
+                        <p>Each venture has its own focus and identity. Together, they share a belief that well-built technology can open doors, strengthen communities and create lasting value.</p>
+                    </div>
+                </div>
+                <div class="values">
+                    <article class="value">
+                        <span class="value-num">01 / PEOPLE FIRST</span>
+                        <h3>Start with people</h3>
+                        <p>Useful products begin with listening, understanding and solving genuine needs.</p>
+                    </article>
+                    <article class="value">
+                        <span class="value-num">02 / MAKE IT BETTER</span>
+                        <h3>Think differently</h3>
+                        <p>We question the ordinary and look for clearer, more effective ways forward.</p>
+                    </article>
+                    <article class="value">
+                        <span class="value-num">03 / EARN TRUST</span>
+                        <h3>Build responsibly</h3>
+                        <p>Security, accountability and transparency belong in the design from day one.</p>
+                    </article>
+                    <article class="value">
+                        <span class="value-num">04 / LOOK AHEAD</span>
+                        <h3>Grow with purpose</h3>
+                        <p>We create with durability in mind, not just the next milestone.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="ventures">
+            <div class="wrap">
+                <div class="ventures-head">
+                    <div>
+                        <div class="section-label">02 / The portfolio</div>
+                        <h2 class="section-title">Different missions.<br><em>Shared momentum.</em></h2>
+                    </div>
+                    <p class="ventures-note">A growing ecosystem of focused ventures, each built to take on a different opportunity in the digital world.</p>
+                </div>
+                <div class="venture-list">
+                    <article class="venture">
+                        <span class="venture-index">01</span>
+                        <div><span class="venture-type">Connectivity & ISP technology</span><div class="venture-name">NexISP</div></div>
+                        <p>Technology for internet service providers and connectivity businesses — helping manage customers, networks, service delivery and growth. NetPulse WiFi is the first operating business tenant.</p>
+                        <a class="venture-arrow" href="#contact" aria-label="Enquire about NexISP">↗</a>
+                    </article>
+                    <article class="venture">
+                        <span class="venture-index">02</span>
+                        <div><span class="venture-type">Marketing & business growth</span><div class="venture-name">Loopza</div></div>
+                        <p>A digital marketing platform being developed to help businesses plan, manage and amplify their advertising across the channels where their audiences spend time.</p>
+                        <a class="venture-arrow" href="#contact" aria-label="Enquire about Loopza">↗</a>
+                    </article>
+                    <article class="venture">
+                        <span class="venture-index">03</span>
+                        <div><span class="venture-type">Shared intelligence initiative</span><div class="venture-name">NexCore AI</div></div>
+                        <p>A shared intelligence foundation for the ecosystem, designed around useful assistance, responsible automation and clear human oversight.</p>
+                        <a class="venture-arrow" href="#intelligence" aria-label="Explore NexCore AI">↗</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section ai-feature" id="intelligence">
+            <div class="wrap ai-layout">
+                <div>
+                    <div class="section-label">03 / Intelligence, applied</div>
+                    <h2 class="section-title">Meet the thinking layer: <em>NexCore AI.</em></h2>
+                    <p class="ai-copy">We see artificial intelligence as a practical tool — one that should help people do better work, make sense of complex information and improve the services they rely on. NexCore AI is being developed as a shared foundation for the Nexora ecosystem, with permissions, privacy and human decisions at its centre.</p>
+                    <p class="ai-copy">The ambition is not technology for its own sake. It is intelligence that makes each venture more useful.</p>
+                </div>
+                <div class="ai-stamp" aria-label="NexCore AI abstract symbol">
+                    <span class="ai-glyph">✳</span>
+                    <small>HUMAN DIRECTION. INTELLIGENT TOOLS.</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="section future" id="future">
+            <div class="wrap future-layout">
+                <div>
+                    <div class="section-label">04 / Looking ahead</div>
+                    <h2 class="section-title">Built for the <em>long view.</em></h2>
+                </div>
+                <div class="future-copy">
+                    <p>Our ambition is to grow a globally relevant technology group, grounded in real customer needs and shaped by the opportunities of an increasingly connected world.</p>
+                    <p>That means building strong foundations, developing products with care, forming meaningful partnerships and entering new markets thoughtfully. We measure progress not only by how far we grow, but by the value our work creates.</p>
+                    <div class="future-quote">“The future isn’t something we wait for. It’s something we build — with intention.”</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact" id="contact">
+            <div class="wrap contact-inner">
+                <div>
+                    <div class="section-label">05 / Start a conversation</div>
+                    <h2 class="section-title">Have a big idea?<br><em>Let’s give it direction.</em></h2>
+                </div>
+                <div class="contact-copy">
+                    We welcome conversations with businesses, innovators, technology partners and people who see an opportunity to build something meaningful.
+                    <br>
+                    <a class="contact-button" href="mailto:netanywhere254@gmail.com?subject=Nexora%20Group%20Enquiry">CONTACT NEXORA <span>↗</span></a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
         <div class="wrap">
-            <div class="section-head"><div><div class="eyebrow">The Nexora ecosystem</div><h2>Distinct ventures.<br>Shared ambition.</h2></div><p>Explore the businesses and technology initiatives being developed within the Nexora ecosystem.</p></div>
-            <div class="grid">
-                <article class="card"><div class="card-icon">⌁</div><div class="sub">Connectivity & ISP technology</div><h3>NexISP</h3><p>Internet service provider management and connectivity technology, with NetPulse WiFi as the first operating business tenant.</p><a href="#contact">NetPulse / Net.Anywhere254 ↗</a></article>
-                <article class="card"><div class="card-icon">↗</div><div class="sub">Business growth technology</div><h3>Loopza</h3><p>A marketing technology platform designed to help businesses plan, manage and amplify their digital advertising.</p><a href="#contact">Explore Loopza ↗</a></article>
-                <article class="card"><div class="card-icon">✳</div><div class="sub">Shared intelligence layer</div><h3>NexCore AI</h3><p>A shared AI foundation intended to support products and teams with useful assistance under clear access and approval controls.</p><a href="#intelligence">Discover NexCore AI ↗</a></article>
+            <div class="footer-top">
+                <a class="brand" href="#home" aria-label="Nexora Group home">
+                    <span class="brand-mark">N</span>
+                    <span class="brand-name">NEXORA<small>GROUP</small></span>
+                </a>
+                <div class="footer-tag">Building technology. Connecting possibilities.</div>
+                <nav class="footer-links" aria-label="Footer navigation">
+                    <a href="#story">Our story</a>
+                    <a href="#ventures">Ventures</a>
+                    <a href="#intelligence">NexCore AI</a>
+                    <a href="#contact">Contact</a>
+                </nav>
+            </div>
+            <div class="footer-bottom">
+                <span>© {{ date('Y') }} Nexora Group. All rights reserved.</span>
+                <span>Independent thinking. Connected ambition.</span>
             </div>
         </div>
-    </section>
-    <section class="ai" id="intelligence">
-        <div class="wrap ai-panel">
-            <div><div class="eyebrow">Intelligence across the ecosystem</div><h2>Meet NexCore AI.</h2><p>A shared intelligence initiative for the Nexora ecosystem. Its direction is to make assistance more relevant to each business while respecting organisational boundaries, privacy and human oversight.</p></div>
-            <div class="ai-mark" aria-hidden="true">✳</div>
-        </div>
-    </section>
-    <section id="contact" class="contact">
-        <div class="wrap contact-inner"><div><div class="eyebrow">Start a conversation</div><h2>Let’s build what’s next.</h2><p>Interested in Nexora, our ventures or a potential collaboration?</p></div><a class="btn" href="mailto:netanywhere254@gmail.com?subject=Nexora%20Group%20Enquiry">Contact the group ↗</a></div>
-    </section>
-</main>
-<footer class="footer"><div class="wrap footer-inner"><span>© {{ date('Y') }} Nexora Group. All rights reserved.</span><div class="footer-links"><a href="#about">About</a><a href="#companies">Our companies</a><a href="#contact">Contact</a></div><span>Technology that moves possibility forward.</span></div></footer>
-<script>
-(() => {
-    const button=document.getElementById('menu'), links=document.getElementById('site-links');
-    button.addEventListener('click',()=>{const open=links.classList.toggle('open');button.setAttribute('aria-expanded',String(open));});
-    links.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>{links.classList.remove('open');button.setAttribute('aria-expanded','false');}));
-})();
-</script>
+    </footer>
+
+    <script>
+        (() => {
+            const button = document.getElementById('menu-toggle');
+            const links = document.getElementById('site-links');
+
+            button.addEventListener('click', () => {
+                const isOpen = links.classList.toggle('open');
+                button.setAttribute('aria-expanded', String(isOpen));
+                button.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+            });
+
+            links.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => {
+                    links.classList.remove('open');
+                    button.setAttribute('aria-expanded', 'false');
+                    button.setAttribute('aria-label', 'Open navigation');
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
