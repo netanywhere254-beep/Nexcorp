@@ -20,6 +20,7 @@ NexCore AI is the shared AI capability layer for Nexora Group. It serves approve
 - Input length validation (2–4,000 characters).
 - Provider timeout, bounded output tokens, and generic unavailable response.
 - Tenant/user/product/feature usage metering, token counts, latency, and request correlation ID.
+- Per-organization monthly request limits and output-token ceilings, enforced with a database row lock before calling the provider. Budgets fail closed unless explicitly enabled for that organization.
 - Prompts and completions are not written to the usage log.
 - System instructions prohibit disclosure of other tenants' data, requesting passwords/payment PINs/one-time codes, and claiming to perform privileged actions.
 - Automated service tests cover provider success, usage logging, unavailable configuration, and unsupported feature rejection.
@@ -58,7 +59,7 @@ The client must not send organization_id, provider credentials, model overrides,
 - AI output is untrusted text. Any future action-taking agent requires a separately authorized tool, narrow permissions, explicit human confirmation, and immutable audit records.
 - The system prompt is a safety instruction, not a security boundary. Authorization, data filtering, output handling, and rate limiting must remain enforced by application code.
 - Do not send sensitive personal, payment, authentication, or confidential customer data to an external provider without a documented lawful basis, privacy notice, retention review, and provider agreement.
-- Add organization-level budgets, per-user quotas, abuse monitoring, redaction, and retention policies before general customer rollout.
+- Per-user quotas, provider cost reconciliation, abuse monitoring, redaction, and retention policies remain launch requirements.
 
 ## Product roadmap
 
@@ -73,4 +74,4 @@ The client must not send organization_id, provider credentials, model overrides,
 
 ## Not yet implemented
 
-No chat UI, streaming, persistent conversation history, vector database/RAG, external tool calling, autonomous agents, multi-agent conferences, voice/image input, customer-facing deployment, budget enforcement, or NestJS standby implementation is included in this first foundation. CI and security review are required; this is not production deployment.
+No chat UI, streaming, persistent conversation history, vector database/RAG, external tool calling, autonomous agents, multi-agent conferences, voice/image input, provider cost reconciliation, per-user quotas, or NestJS standby implementation is included in this foundation. CI and security review are required; this is not production deployment.
