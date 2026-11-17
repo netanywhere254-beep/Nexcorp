@@ -1,0 +1,40 @@
+# OPTIONAL REFERENCE ONLY.
+# This MongoDB service is not connected to either active application stack.
+# It is not a replica, synchronized backup, or automatic failover target.
+name: nexora-mongodb-reference
+
+services:
+  mongodb:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in infra/.env.mongodb}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in infra/.env.mongodb}
+    ports:
+      - "127.0.0.1:${MONGO_HOST_PORT:-27018}:27017"
+    volumes:
+      - nexora_mongodb_reference_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet
+          --username "$$MONGO_INITDB_ROOT_USERNAME"
+          --password "$$MONGO_INITDB_ROOT_PASSWORD"
+          --authenticationDatabase admin
+          --eval "db.adminCommand({ ping: 1 }).ok"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - mongodb_reference_private
+
+volumes:
+  nexora_mongodb_reference_data:
+
+networks:
+  mongodb_reference_private:
+    driver: bridge
