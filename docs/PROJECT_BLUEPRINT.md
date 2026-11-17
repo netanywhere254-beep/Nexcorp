@@ -144,7 +144,7 @@ A supplied Compose draft proposes three separately deployed applications: Nexora
 
 The reference defines one API and one isolated PostgreSQL database per product/service. This could support independent deployment and scaling, but it also introduces separate authentication/authorization boundaries, database operations, backups, monitoring, deployments, and service-to-service API contracts. Nexora portfolio reporting would need authenticated APIs or a governed integration layer; it should not read directly from NexISP or Loopza databases.
 
-**No architecture switch has been approved.** The current initial technology direction remains Laravel modular monolith + MySQL. The three-service Compose file is a proposal only. Its expected `nexora/`, `nexisp/`, and `loopza/` build directories and Dockerfiles do not yet exist in the repository, so it is not currently buildable or deployable.
+**The three-service architecture has not been selected as the primary or standby.** The approved arrangement is Laravel + MySQL as primary and the separate Next.js + Node.js + PostgreSQL foundation as standby, as documented in section 15. The three-service Compose file remains an optional reference only. Its expected `nexora/`, `nexisp/`, and `loopza/` build directories and Dockerfiles do not yet exist in the repository, so it is not currently buildable or deployable.
 
 Before adopting this design, explicitly decide:
 1. Whether each name represents an independently deployed service, a product, or a legal subsidiary.
@@ -155,11 +155,9 @@ Before adopting this design, explicitly decide:
 
 ## 13. Continuous integration baseline
 
-A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It currently performs configuration validation only: all three Prisma reference schemas, the optional multi-service Compose model, and the Linux installer shell syntax.
+A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It now installs dependencies and tests the primary Laravel application, tests the standby Express API, builds the standby Next.js application, validates the retained Prisma schema references, validates both active Compose configurations, and builds both active Docker stacks. It also validates the retained historical Compose references and checks the Linux installer shell syntax.
 
-The workflow deliberately does not run npm installation/tests, database migrations, or Docker image builds. There is not yet a root or per-service package manifest and lockfile, a checked-in production migration set, a working application test suite, or the Nexora/NexISP/Loopza Docker build contexts and Dockerfiles. A CI check passing therefore validates the reference configuration only; it does not mean an application has compiled, tests have passed, a database has migrated, or services have deployed.
-
-Extend the workflow with real application-specific build and test jobs once those projects exist. Add a production deployment job only after selecting a deployment host, configuring protected GitHub environments and secrets, requiring appropriate approvals, and implementing health checks and rollback.
+This is build-and-test CI, not production deployment. A green run would verify the checked-in foundations build and pass their current tests; it would not certify business feature completeness, production security, disaster recovery, or deployment. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, backups, and rollback procedure are configured.
 
 ## 14. Alternative single-backend deployment proposal
 
