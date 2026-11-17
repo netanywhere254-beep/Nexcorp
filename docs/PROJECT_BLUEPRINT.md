@@ -153,3 +153,11 @@ Before adopting this design, explicitly decide:
 4. Who owns migrations, backups, monitoring, secrets, incident response, and releases for each service.
 5. Whether the additional infrastructure and operational cost is justified for the first release.
 
+## 13. Continuous integration baseline
+
+A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It currently performs configuration validation only: all three Prisma reference schemas, the optional multi-service Compose model, and the Linux installer shell syntax.
+
+The workflow deliberately does not run npm installation/tests, database migrations, or Docker image builds. There is not yet a root or per-service package manifest and lockfile, a checked-in production migration set, a working application test suite, or the Nexora/NexISP/Loopza Docker build contexts and Dockerfiles. A CI check passing therefore validates the reference configuration only; it does not mean an application has compiled, tests have passed, a database has migrated, or services have deployed.
+
+Extend the workflow with real application-specific build and test jobs once those projects exist. Add a production deployment job only after selecting a deployment host, configuring protected GitHub environments and secrets, requiring appropriate approvals, and implementing health checks and rollback.
+
