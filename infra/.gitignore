@@ -22,3 +22,8 @@
 .env.backup
 .env.backup.*
 !.env.backup.example
+
+# Optional isolated MongoDB reference environment
+.env.mongodb
+.env.mongodb.*
+!.env.mongodb.example
