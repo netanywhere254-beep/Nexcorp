@@ -62,3 +62,19 @@ A NestJS/TypeScript reference implementation is stored at [NEXISP_MIKROTIK_NESTJ
 - Avoiding raw error logging and documenting server-side credential handling.
 
 **Implementation boundary:** this is reference code, not an active NexISP endpoint. The repository's current application direction is Laravel + MySQL. Do not wire in a NestJS service unless a separate Node.js integration service is approved. Before production use, add tenant authorization, audit events, secret-manager integration, rate limits, RouterOS version compatibility tests, and lab-router tests. Restrict RouterOS API access to a private management network/VPN and firewall allowlist; never expose it publicly.
+
+
+## 9. M-Pesa Daraja STK Push service reference
+
+A NestJS/TypeScript reference implementation is stored at [NEXISP_MPESA_NESTJS_SERVICE_REFERENCE.ts](NEXISP_MPESA_NESTJS_SERVICE_REFERENCE.ts). It demonstrates:
+- Daraja OAuth access-token retrieval with short-lived in-memory token caching.
+- Sandbox/production base URL selection through configuration.
+- East Africa Time timestamp generation.
+- Kenyan phone-number normalization and validation.
+- Positive whole-KES amount and short account-reference validation.
+- STK Push initiation with a required HTTPS callback URL and request timeouts.
+- Safe error responses without logging credentials or raw provider payloads.
+
+**Implementation boundary:** this is reference code, not an active NexISP payment endpoint. The repository's current application direction remains Laravel + MySQL. Do not wire in a NestJS service unless a separate Node.js integration service is approved. Install and pin a supported Axios version and validate the service against the current Daraja API documentation and sandbox before production use.
+
+**Critical payment lifecycle:** the STK Push response only confirms that a request was accepted for processing. It does not confirm that money was received. The application must persist the pending transaction and Daraja request IDs, implement a callback endpoint, validate and reconcile callback results idempotently, and only then mark the payment successful and activate or renew the customer's service. Never put real credentials in Git or expose them to client applications.
