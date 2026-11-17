@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\SessionController;
+use App\Http\Middleware\RequireActiveOrganization;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'));
@@ -23,3 +25,11 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [SessionController::class, 'logout']);
     });
 });
+
+// All organization-scoped routes must use the server-verified tenant context.
+// Controllers must never trust an organization ID supplied in request data.
+Route::middleware(['auth', RequireActiveOrganization::class])
+    ->prefix('organization')
+    ->group(function () {
+        Route::get('/context', [OrganizationContextController::class, 'show']);
+    });
