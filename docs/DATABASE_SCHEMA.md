@@ -146,3 +146,17 @@ A separate reference schema is stored at [LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma]
 A parent-company reference schema is stored at [NEXORA_PRISMA_SCHEMA_REFERENCE.prisma](NEXORA_PRISMA_SCHEMA_REFERENCE.prisma). It models executive accounts and roles, subsidiary records, Decimal revenue summaries with currency codes, and corporate reports linked to an author and optionally to a subsidiary.
 
 **Important:** this is a design reference only. The proposed shared application architecture remains Laravel + MySQL. The Nexora schema is not wired into a live application and must not be migrated into a separate PostgreSQL database unless that architecture is explicitly approved. Executive roles require server-side authorization. The subsidiary revenue field is a summary, not a substitute for a proper financial ledger, payment reconciliation, or audited accounting records.
+
+## 12. Optional three-database Prisma deployment reference
+
+The alternative three-service deployment proposal is documented in [docker-compose.nexora-multiservice-reference.yml](../infra/docker-compose.nexora-multiservice-reference.yml). It provisions separate PostgreSQL databases and API containers for Nexora, NexISP, and Loopza. The example environment file is [infra/.env.nexora-stack.example](../infra/.env.nexora-stack.example).
+
+The database URL mapping is:
+- Nexora Prisma service: `NEXORA_DATABASE_URL`.
+- NexISP Prisma service: `DATABASE_URL` inside the container; Compose maps the host-side `NEXISP_DATABASE_URL` into it.
+- Loopza Prisma service: `LOOPZA_DATABASE_URL`.
+
+Each service has a separate database, credential set, persistent volume, and private network. This improves deployment separation but does not by itself provide shared login, cross-service transactions, consolidated finance, or corporate reporting. Those capabilities require explicit service APIs, identity federation or a shared identity provider, authorization contracts, and reconciliation rules.
+
+**Important:** this is an optional PostgreSQL/Prisma architecture reference only. The current schema decision remains Laravel + MySQL modular monolith. The three application build directories and Dockerfiles are not yet present, and no application container can be built from this Compose reference today. Do not run migrations or deploy the stack until the architecture is formally approved and each service implementation is complete and tested.
+
