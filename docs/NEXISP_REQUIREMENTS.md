@@ -78,3 +78,15 @@ A NestJS/TypeScript reference implementation is stored at [NEXISP_MPESA_NESTJS_S
 **Implementation boundary:** this is reference code, not an active NexISP payment endpoint. The repository's current application direction remains Laravel + MySQL. Do not wire in a NestJS service unless a separate Node.js integration service is approved. Install and pin a supported Axios version and validate the service against the current Daraja API documentation and sandbox before production use.
 
 **Critical payment lifecycle:** the STK Push response only confirms that a request was accepted for processing. It does not confirm that money was received. The application must persist the pending transaction and Daraja request IDs, implement a callback endpoint, validate and reconcile callback results idempotently, and only then mark the payment successful and activate or renew the customer's service. Never put real credentials in Git or expose them to client applications.
+
+
+## 10. Container infrastructure reference
+
+A Docker Compose reference stack is stored under `infra/`:
+- [docker-compose.nestjs-reference.yml](../infra/docker-compose.nestjs-reference.yml) defines PostgreSQL 15, Redis 7, and a NestJS API container.
+- [.env.nexisp.example](../infra/.env.nexisp.example) provides placeholders for local configuration; real secrets are excluded by `infra/.gitignore`.
+- [infra/README.md](../infra/README.md) documents configuration, startup, shutdown, and operational safeguards.
+
+The reference improves on the supplied draft by removing hard-coded credentials, requiring environment-provided secrets, adding PostgreSQL/Redis health checks and persistent volumes, requiring Redis authentication, avoiding published PostgreSQL/Redis host ports, binding the API to localhost by default, and waiting for healthy dependencies.
+
+**Implementation boundary:** this is an optional NestJS + PostgreSQL + Redis reference stack. It is not the active Laravel + MySQL deployment and is not ready to run until a compatible NestJS backend and `backend/Dockerfile` exist. Architecture selection must be resolved before production deployment. A Docker volume is not a backup; configure and test database backups, TLS reverse proxying, monitoring, restore procedures, and controlled migrations.
