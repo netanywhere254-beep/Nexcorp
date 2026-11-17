@@ -23,6 +23,7 @@ NexCore AI is the shared AI capability layer for Nexora Group. It serves approve
 - Prompts and completions are not written to the usage log.
 - System instructions prohibit disclosure of other tenants' data, requesting passwords/payment PINs/one-time codes, and claiming to perform privileged actions.
 - Automated service tests cover provider success, usage logging, unavailable configuration, and unsupported feature rejection.
+- Endpoint security tests verify unauthenticated requests are rejected and a client-supplied organization ID cannot bypass the server-verified session tenant context.
 
 ## Configuration
 
