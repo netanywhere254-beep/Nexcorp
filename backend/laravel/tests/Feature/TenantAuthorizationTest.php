@@ -116,6 +116,39 @@ class TenantAuthorizationTest extends TestCase
         $this->assertFalse($policy->update($user, $organization));
     }
 
+
+    public function test_real_organization_context_endpoint_returns_only_server_verified_tenant_and_permissions(): void
+    {
+        $user = $this->makeUser();
+        $organization = $this->makeOrganization();
+        $user->organizations()->attach($organization->id, [
+            'role' => 'billing',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_organization_id' => $organization->id])
+            ->getJson('/auth/organization/context')
+            ->assertOk()
+            ->assertJsonPath('organization.id', $organization->id)
+            ->assertJsonPath('membership.role', 'billing')
+            ->assertJsonPath('permissions.view', true)
+            ->assertJsonPath('permissions.manage_billing', true)
+            ->assertJsonPath('permissions.manage_members', false);
+    }
+
+    public function test_real_organization_context_endpoint_rejects_a_client_selected_non_member_tenant(): void
+    {
+        $user = $this->makeUser();
+        $organization = $this->makeOrganization();
+
+        $this->actingAs($user)
+            ->withSession(['active_organization_id' => $organization->id])
+            ->getJson('/auth/organization/context')
+            ->assertForbidden();
+    }
+
     private function makeUser(array $overrides = []): User
     {
         return User::create(array_merge([
