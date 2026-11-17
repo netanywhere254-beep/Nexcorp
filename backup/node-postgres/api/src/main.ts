@@ -11,7 +11,6 @@ async function bootstrap(): Promise<void> {
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-  app.setGlobalPrefix('api', { exclude: ['health/live', 'health/ready'] });
 
   const port = Number(process.env.PORT || 4000);
   await app.listen(port, '0.0.0.0');
