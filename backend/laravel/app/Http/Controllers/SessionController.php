@@ -3,15 +3,68 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class SessionController
 {
+
+    /**
+     * Public registration creates a basic account only.
+     *
+     * Privileged roles and organization memberships are never accepted from
+     * public input. Membership and role assignment must use authorized,
+     * auditable invitation or administration workflows.
+     */
+    public function register(Request $request, RateLimiter $limiter): JsonResponse
+    {
+        $key = 'nexora-register:'.$request->ip();
+
+        if ($limiter->tooManyAttempts($key, 5)) {
+            return response()->json([
+                'message' => 'Too many registration attempts. Please wait before trying again.',
+                'retry_after_seconds' => $limiter->availableIn($key),
+            ], 429);
+        }
+
+        $limiter->hit($key, 60);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'string', 'email', 'max:254', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'password' => ['required', 'string', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => Str::lower($validated['email']),
+            'phone' => $validated['phone'] ?? null,
+            'password' => $validated['password'],
+            'status' => 'active',
+        ]);
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $user->id,
+            'action' => 'user.registered',
+            'subject_type' => User::class,
+            'subject_id' => (string) $user->id,
+            'metadata' => ['source' => 'public_registration'],
+        ]);
+
+        return response()->json([
+            'message' => 'Account created. Organization access requires an invitation or authorized administrator onboarding.',
+            'user' => $this->userPayload($user),
+        ], 201);
+    }
+
     public function login(Request $request, RateLimiter $limiter): JsonResponse
     {
         $validated = $request->validate([
@@ -46,14 +99,14 @@ class SessionController
 
         return response()->json([
             'message' => 'Signed in successfully.',
-            'user' => $this->userPayload($request),
+            'user' => $this->userPayload($request->user()),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => $this->userPayload($request),
+            'user' => $this->userPayload($request->user()),
             'active_organization_id' => $request->session()->get('active_organization_id'),
         ]);
     }
@@ -109,9 +162,8 @@ class SessionController
         return response()->json(['message' => 'Signed out successfully.']);
     }
 
-    private function userPayload(Request $request): array
+    private function userPayload(User $user): array
     {
-        $user = $request->user();
 
         return [
             'id' => $user->id,

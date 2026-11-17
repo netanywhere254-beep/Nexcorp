@@ -13,6 +13,77 @@ class SessionAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+
+    public function test_public_registration_ignores_privilege_and_organization_fields(): void
+    {
+        RateLimiter::clear('nexora-register:127.0.0.1');
+
+        $this->postJson('/auth/register', [
+            'name' => 'New Customer',
+            'email' => 'new-customer@example.test',
+            'phone' => '+254700000000',
+            'password' => 'VerySecurePassphrase42!',
+            'password_confirmation' => 'VerySecurePassphrase42!',
+            'role' => 'admin',
+            'is_admin' => true,
+            'organization_id' => 999999,
+            'status' => 'suspended',
+        ])->assertCreated()
+            ->assertJsonPath('user.email', 'new-customer@example.test')
+            ->assertJsonMissingPath('user.role')
+            ->assertJsonMissingPath('user.password');
+
+        $user = User::where('email', 'new-customer@example.test')->firstOrFail();
+
+        $this->assertSame('active', $user->status);
+        $this->assertSame(0, $user->organizations()->count());
+        $this->assertGuest();
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => null,
+            'actor_user_id' => $user->id,
+            'action' => 'user.registered',
+        ]);
+    }
+
+    public function test_public_registration_rejects_weak_or_unconfirmed_passwords(): void
+    {
+        RateLimiter::clear('nexora-register:127.0.0.1');
+
+        $this->postJson('/auth/register', [
+            'name' => 'Weak Password User',
+            'email' => 'weak-password@example.test',
+            'password' => 'weak123',
+            'password_confirmation' => 'different123',
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'weak-password@example.test',
+        ]);
+    }
+
+    public function test_public_registration_is_rate_limited(): void
+    {
+        RateLimiter::clear('nexora-register:127.0.0.1');
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $email = 'registration-'.$attempt.'@example.test';
+
+            $this->postJson('/auth/register', [
+                'name' => 'Rate Limited User',
+                'email' => $email,
+                'password' => 'VerySecurePassphrase42!',
+                'password_confirmation' => 'VerySecurePassphrase42!',
+            ])->assertCreated();
+        }
+
+        $this->postJson('/auth/register', [
+            'name' => 'Sixth User',
+            'email' => 'registration-six@example.test',
+            'password' => 'VerySecurePassphrase42!',
+            'password_confirmation' => 'VerySecurePassphrase42!',
+        ])->assertStatus(429);
+    }
+
     public function test_authenticated_profile_requires_a_session(): void
     {
         $this->getJson('/auth/me')->assertUnauthorized();

@@ -16,6 +16,7 @@ Route::get('/health', function () {
 
 // Cookie-based session authentication uses Laravel's web middleware and CSRF protection.
 Route::prefix('auth')->group(function () {
+    Route::post('/register', [SessionController::class, 'register']);
     Route::post('/login', [SessionController::class, 'login']);
 
     Route::middleware('auth')->group(function () {

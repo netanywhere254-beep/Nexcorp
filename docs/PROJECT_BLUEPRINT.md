@@ -197,3 +197,12 @@ Account cleanup must be configurable independently for each customer tenant/clie
 - **Enforcement:** enforce policy server-side with scheduled jobs, idempotent processing, tenant-scoped queries, and tests for tenant isolation, warnings, grace-period reactivation, approval, exclusions, and retention. UI switches alone are not security controls.
 
 This policy is a requirement, not yet an implemented or legally validated deletion service. Retention periods and deletion rules must be reviewed for the countries and industries in which each tenant operates before enabling permanent deletion.
+
+
+## 17. Public registration and privileged-role boundary
+
+Public registration creates a basic user account only. It must not accept or honor client-supplied role, is_admin, organization_id, organization membership, account status, executive role, or permission fields. The server assigns the account's safe default status and stores only explicitly validated identity fields.
+
+A newly registered account receives no organization membership and no product or group-administrator privileges. Organization access is granted only through a separate, authenticated and authorized invitation/onboarding workflow. Role changes, especially owner, administrator, executive, finance, and other privileged assignments, must be performed by an already authorized actor, checked against the target organization and role policy, and recorded in the audit log.
+
+Registration must use strong password validation, unique normalized email addresses, request throttling, safe response serialization, and security tests that submit forged privilege fields. Registration must not automatically authenticate the new account until the product's email-verification and account-activation policy is implemented. The initial implementation creates the account and requires a separate login; email verification remains a production hardening task before public launch.
