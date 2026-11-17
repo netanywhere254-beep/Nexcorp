@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiOrganizationBudget;
 use App\Models\AiUsageLog;
 use App\Models\Organization;
 use App\Models\User;
@@ -38,6 +39,14 @@ class NexCoreAiServiceTest extends TestCase
     public function test_it_calls_configured_provider_and_logs_usage_without_storing_prompt(): void
     {
         [$organization, $user] = $this->context();
+        AiOrganizationBudget::create([
+            'organization_id' => $organization->id,
+            'monthly_request_limit' => 10,
+            'requests_used' => 0,
+            'max_output_tokens' => 100,
+            'period_start' => now()->startOfMonth()->toDateString(),
+            'is_enabled' => true,
+        ]);
         config([
             'nexcore_ai.enabled' => true,
             'nexcore_ai.api_key' => 'test-secret',
@@ -92,4 +101,37 @@ class NexCoreAiServiceTest extends TestCase
 
         app(NexCoreAiService::class)->assist($organization, $user, 'finance.transfer', 'Move funds');
     }
+
+    public function test_it_blocks_requests_when_the_tenant_monthly_budget_is_exhausted(): void
+    {
+        [$organization, $user] = $this->context();
+        AiOrganizationBudget::create([
+            'organization_id' => $organization->id,
+            'monthly_request_limit' => 1,
+            'requests_used' => 1,
+            'max_output_tokens' => 100,
+            'period_start' => now()->startOfMonth()->toDateString(),
+            'is_enabled' => true,
+        ]);
+        config(['nexcore_ai.enabled' => true, 'nexcore_ai.api_key' => 'test-secret']);
+        Http::fake();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('NexCore AI monthly request budget reached.');
+
+        app(NexCoreAiService::class)->assist($organization, $user, 'general', 'Help me plan a task');
+    }
+
+    public function test_it_fails_closed_when_no_tenant_budget_is_enabled(): void
+    {
+        [$organization, $user] = $this->context();
+        config(['nexcore_ai.enabled' => true, 'nexcore_ai.api_key' => 'test-secret']);
+        Http::fake();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('NexCore AI budget is not enabled for this organization.');
+
+        app(NexCoreAiService::class)->assist($organization, $user, 'general', 'Help me plan a task');
+    }
+
 }
