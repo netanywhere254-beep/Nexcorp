@@ -1,3 +1,20 @@
+# Primary and standby deployment paths
+
+The repository now has two separate, buildable application foundations:
+
+| Role | Stack | Compose file | Local URL |
+|---|---|---|---|
+| Primary | Laravel + MySQL | docker-compose.primary.yml | http://localhost:8080 |
+| Standby alternative | Next.js + Node.js + PostgreSQL | docker-compose.backup.yml | http://localhost:3100 |
+
+Use the matching environment template: .env.primary.example or .env.backup.example. Copy it to the matching local file without the .example suffix, replace placeholder passwords, and never commit the local environment file.
+
+**Important:** the Laravel/MySQL application is the canonical primary. The Next.js/Node/PostgreSQL stack is a separate technical standby shell, not a synchronized replica and not automatic failover. Do not use it to replace production records until schema mapping, export/import, reconciliation, feature parity, authentication, and a full recovery drill are implemented and tested.
+
+For complete Windows PowerShell and macOS/Linux commands, see [the repository README](../README.md) and [the architecture decision](../docs/ARCHITECTURE_DECISION.md).
+
+---
+
 # NexISP infrastructure references
 
 ## NestJS + PostgreSQL + Redis reference stack
