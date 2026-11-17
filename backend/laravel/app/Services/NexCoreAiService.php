@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\AiOrganizationBudget;
 use App\Models\AiUsageLog;
 use App\Models\Organization;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -33,6 +35,8 @@ class NexCoreAiService
         if (! array_key_exists($feature, self::FEATURES)) {
             throw new RuntimeException('Unsupported AI feature.');
         }
+
+        $maxOutputTokens = $this->reserveBudget($organization);
 
         try {
             $response = Http::acceptJson()
@@ -70,6 +74,39 @@ class NexCoreAiService
             $this->record($organization, $user, $requestId, $feature, $provider, $model, 'failed', $startedAt);
             throw new RuntimeException('NexCore AI could not complete the request.', previous: $exception);
         }
+    }
+
+    private function reserveBudget(Organization $organization): int
+    {
+        return DB::transaction(function () use ($organization): int {
+            $budget = AiOrganizationBudget::query()
+                ->where('organization_id', $organization->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $budget || ! $budget->is_enabled) {
+                throw new RuntimeException('NexCore AI budget is not enabled for this organization.');
+            }
+
+            $periodStart = now()->startOfMonth()->toDateString();
+
+            if ($budget->period_start?->toDateString() !== $periodStart) {
+                $budget->period_start = $periodStart;
+                $budget->requests_used = 0;
+            }
+
+            if ($budget->requests_used >= $budget->monthly_request_limit) {
+                throw new RuntimeException('NexCore AI monthly request budget reached.');
+            }
+
+            $budget->requests_used++;
+            $budget->save();
+
+            return max(1, min(
+                (int) config('nexcore_ai.max_tokens', 800),
+                (int) $budget->max_output_tokens
+            ));
+        });
     }
 
     private function record(
