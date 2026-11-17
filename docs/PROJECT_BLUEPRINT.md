@@ -10,7 +10,7 @@ Nexcorp is the working repository for a group of related digital products. The r
 
 ## 2. Company and product structure
 
-- **Parent company — Nexora (working name):** intended umbrella organization for the products. Confirm the final legal and public-facing name before launch.
+- **Parent company — Nexora Group:** official umbrella organization for Nexora, NexISP, and Loopza.
 - **NexISP:** a commercial ISP operations and billing platform. NetPulse WiFi is the intended first tenant and real-world pilot.
 - **Loopza:** a SaaS platform for businesses to plan, manage, and amplify advertising across supported digital channels.
 
@@ -89,7 +89,7 @@ Do not promise automatic publishing or campaign control until the relevant platf
 The project now has an explicit primary/standby decision:
 
 - **Primary:** Laravel 13 (PHP 8.3+) modular monolith with MySQL 8.4. NexISP and Loopza are planned as isolated modules with server-side tenant and permission enforcement.
-- **Standby alternative:** Next.js web + Node.js 22 Express API + PostgreSQL 16, maintained in a separate source tree and database.
+- **Standby alternative:** Next.js web + NestJS API + PostgreSQL 16, maintained in a separate source tree and database.
 - **Primary UI direction:** Laravel Blade and lightweight JavaScript for the initial application. Product-specific frontend components may be integrated when the build pipeline and authenticated API contracts are ready.
 - **External services:** adapters for M-Pesa, router management, messaging, and advertising providers, with provider permissions and regional availability checked before activation.
 
@@ -124,7 +124,7 @@ Phases may overlap only where dependencies and available resources allow. Do not
 ## 9. Naming and decision notes
 
 - **Nexcorp** is the current GitHub repository name; it does not by itself establish the legal parent-company name.
-- **Nexora** is recorded as a working parent-company name, pending confirmation.
+- **Nexora Group** is the confirmed official parent-company name.
 - **NexISP** and **Loopza** are the current product names.
 - Do not rename the repository or change product branding until the naming decision is confirmed.
 
@@ -135,7 +135,7 @@ A feature is not complete merely because files exist. It must have an agreed req
 
 ## 11. Nexora parent-company management scope
 
-Nexora is the working parent-company name in this blueprint. Its corporate layer is intended to provide oversight of subsidiaries and shared executive reporting; it is not a replacement for the operational workspaces inside NexISP or Loopza.
+Nexora Group is the confirmed parent-company name in this blueprint. Its corporate layer is intended to provide oversight of subsidiaries and shared executive reporting; it is not a replacement for the operational workspaces inside NexISP or Loopza.
 
 The proposed corporate data model is documented separately in [NEXORA_PRISMA_SCHEMA_REFERENCE.prisma](NEXORA_PRISMA_SCHEMA_REFERENCE.prisma). It covers executive accounts and roles, subsidiary records, subsidiary revenue summaries with explicit currency, and corporate reports linked to their author and optionally to a subsidiary.
 
