@@ -77,6 +77,11 @@ The standby remains a technical foundation only. It does not currently provide f
 6. Bring the NestJS standby to a documented compatible schema and recovery export/import process.
 7. Add security review, backup/restore drills, monitoring, deployment, rollback, and controlled pilot acceptance.
 
+
+## CI issues discovered during audit
+
+The most recent pre-audit run on `main` failed in two jobs. The Laravel dependency installation failed because `laravel/tinker ^2.10.1` does not declare compatibility with Laravel 13; this unused dependency has been removed from the implementation branch. The Laravel Docker image failed at the same Composer install step for the same dependency conflict. The new pull-request workflow run must confirm the correction and the NestJS conversion; until it completes, the branch is not considered build-verified.
+
 ## Completion standard
 
 A feature is complete only when implementation, migrations, authorization, tests, documentation, and a verified runtime result are present. A successful static-site commit, schema reference, Compose file, or CI configuration alone does not satisfy this standard.
