@@ -1,0 +1,58 @@
+# CI validation only. This workflow does not deploy production services.
+# Add app-specific build, tests, migrations, and deployment only after the
+# corresponding application projects, lockfiles, migrations, and Dockerfiles exist.
+
+name: Master Project CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-reference-configurations:
+    name: Validate Prisma, Docker Compose, and shell configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Nexora Prisma schema
+        env:
+          NEXORA_DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/nexora?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/NEXORA_PRISMA_SCHEMA_REFERENCE.prisma
+
+      - name: Validate NexISP Prisma schema
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/nexisp?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/NEXISP_PRISMA_SCHEMA_REFERENCE.prisma
+
+      - name: Validate Loopza Prisma schema
+        env:
+          LOOPZA_DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/loopza?schema=public
+        run: npx --yes prisma@6.19.0 validate --schema docs/LOOPZA_PRISMA_SCHEMA_REFERENCE.prisma
+
+      - name: Validate multi-service Docker Compose configuration
+        run: >-
+          docker compose
+          --env-file infra/.env.nexora-stack.example
+          --file infra/docker-compose.nexora-multiservice-reference.yml
+          config --quiet
+
+      - name: Check Linux installer shell syntax
+        run: bash -n infra/install-nexisp.sh
