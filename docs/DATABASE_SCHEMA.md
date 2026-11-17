@@ -160,3 +160,8 @@ Each service has a separate database, credential set, persistent volume, and pri
 
 **Important:** this is an optional PostgreSQL/Prisma architecture reference only. The current schema decision remains Laravel + MySQL modular monolith. The three application build directories and Dockerfiles are not yet present, and no application container can be built from this Compose reference today. Do not run migrations or deploy the stack until the architecture is formally approved and each service implementation is complete and tested.
 
+## 13. Alternative single PostgreSQL database deployment reference
+
+The optional [single-backend Compose reference](../infra/docker-compose.master-ecosystem-reference.yml) defines one PostgreSQL 15 database for a backend API and Next.js frontend. It is a deployment proposal only and is not wired to active migrations or an application.
+
+**Important:** the current database design remains a Laravel modular monolith + MySQL. The PostgreSQL Compose reference, the three-database Prisma proposal, and the MySQL schema in this document are alternatives, not components to run together by default. Do not create or migrate a production database until the backend and database architecture is explicitly selected and its migration strategy is implemented and tested.
