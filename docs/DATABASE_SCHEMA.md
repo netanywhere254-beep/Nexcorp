@@ -125,3 +125,10 @@ Prefer Laravel migrations, Eloquent models, Form Requests, Policies, service cla
 ## 8. Important implementation boundary
 
 This is a proposed schema, not a claim that tables or Laravel migrations already exist. It must be reviewed, translated into migrations, and tested before production use.
+
+
+## 9. Prisma/PostgreSQL reference supplied for NexISP
+
+A separate reference implementation is stored at [NEXISP_PRISMA_SCHEMA_REFERENCE.prisma](NEXISP_PRISMA_SCHEMA_REFERENCE.prisma). It is based on the Prisma schema supplied during project development and includes tenant-scoped relations, decimal money fields, explicit transaction/subscription statuses, and safer credential handling.
+
+**Important:** this is an alternative design reference only. The current repository direction remains Laravel + MySQL. The Prisma file is not wired into the application, and no Prisma migrations or generated client should be used unless the project explicitly approves changing its backend/database stack. Before production use, validate the schema with the selected Prisma version and add automated tenant-isolation tests.
