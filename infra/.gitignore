@@ -8,3 +8,7 @@
 .env.nexora-stack.*
 !.env.nexora-stack.example
 
+# Optional single-backend / frontend / PostgreSQL environment file
+.env.master-ecosystem
+.env.master-ecosystem.*
+!.env.master-ecosystem.example
