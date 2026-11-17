@@ -97,3 +97,12 @@ The reference improves on the supplied draft by removing hard-coded credentials,
 A Debian/Ubuntu server preparation script is stored at [infra/install-nexisp.sh](../infra/install-nexisp.sh), with usage and security notes in [infra/README.md](../infra/README.md). It installs Docker Engine, Git, and an available Docker Compose package, then enables and starts Docker. It intentionally does not perform an unattended full operating-system upgrade or deploy the application.
 
 This is host preparation only. It does not mean NexISP is deployed or production-ready. The optional NestJS/PostgreSQL/Redis reference stack still requires an approved architecture decision, a working NestJS backend, a Dockerfile, configured secrets, TLS, backups, monitoring, and deployment testing.
+
+## 12. Alternative three-service deployment proposal
+
+The repository includes an optional Compose reference for separate Nexora, NexISP, and Loopza APIs with independent PostgreSQL databases: [docker-compose.nexora-multiservice-reference.yml](../infra/docker-compose.nexora-multiservice-reference.yml). It is a deployment proposal only and does not replace the current Laravel + MySQL direction or the NexISP-only NestJS/PostgreSQL/Redis reference.
+
+The NexISP Prisma schema expects `DATABASE_URL`; the Compose proposal maps `NEXISP_DATABASE_URL` from the host environment into that container variable. The NexISP API and database use their own private network and persistent volume.
+
+The service build directory and Dockerfile are not yet present. This reference is not currently buildable, and it must not be treated as a running or tested NexISP deployment. Architecture approval, implementation, migration review, tenant-isolation tests, backup/restore tests, and security review are required before use.
+
