@@ -1,7 +1,7 @@
 # Nexora Group — Change and Replacement Register
 
 Last updated: 2026-11-17  
-Working branch: `implementation/nexora-group-audit`  
+Working branch: `implementation/nexora-commerce-foundation`  
 Pull request: [#1](https://github.com/netanywhere254-beep/Nexcorp/pull/1)
 
 This register distinguishes a committed source update from a verified build or working production feature.
@@ -22,6 +22,7 @@ This register distinguishes a committed source update from a verified build or w
 | CHG-010 | Older tenant-route implementation on `feature/tenant-route-enforcement` | Superseded by the newer organization context endpoint and authorization implementation on `implementation/nexora-group-audit` | DO NOT MERGE — stale branch | PR #3 is 15 commits behind and diverged from the current implementation branch. Its older route/controller must not overwrite the newer `/auth/organization/context` implementation. Review warning added to PR #3; keep it unmerged pending reconciliation. |
 | CHG-013 | Governance database schema without executable approval workflow | Transactional Laravel governance approval service with trusted approval-plan input, assigned-approver and exact-scope authority checks, sequential multi-stage approvals, expiry/rejection handling, final authority activation, audit events, and feature tests | UPDATED — CI pending | Added `GovernanceApprovalService` and `GovernanceApprovalServiceTest`. No HTTP route exposes this service; caller must be trusted server-side workflow code. CI verification is pending. |
 | CHG-012 | Public registration and privileged-role boundary | Server-validated account-only registration; ignores submitted privilege/tenant fields; no automatic organization membership; throttling, strong password validation, audit event, and regression tests | UPDATED — CI pending | Added /auth/register to the Laravel session API. New users receive no organization membership or administrator role. Prior route/controller/test files are preserved under archive/replaced-code/2026-11-17/auth-registration-hardening/. |
+| CHG-014 | No tenant-aware commercial domain tables | Added organization-owned NexISP plans/subscriptions, Loopza products/orders/order-item snapshots, and shared polymorphic payment transaction records; added Eloquent models and schema feature tests | UPDATED — CI pending | Added `2026_11_17_000003_create_nexisp_loopza_commerce_tables.php`, six models, `CommerceSchemaTest`, and `docs/NEXORA_COMMERCE_FOUNDATION.md`. No checkout routes, provider verification, stock deduction, subscription activation, or provisioning are implemented yet. |
 | CHG-011 | Optional MongoDB/Mongoose archive on `feature/mongodb-reference-archive` | Isolated reference-only archive and localhost-only Compose file | REVIEW REQUIRED — stale branch | PR #2 is 16 commits behind and diverged. Its `infra/.gitignore` change must be reconciled with the current branch, then Compose validation and a local reference-service check must pass. Review warning added to PR #2. MongoDB is not an active application database, replica, backup, or failover target. |
 
 ## Architecture status
