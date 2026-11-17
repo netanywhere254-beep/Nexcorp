@@ -95,7 +95,6 @@ The project now has an explicit primary/standby decision:
 
 Laravel/MySQL is the canonical source of truth. The standby PostgreSQL system is not synchronized and does not have feature parity; switching requires tested data conversion, reconciliation, and a recovery drill. See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
 
-
 ## 7. Delivery roadmap
 
 | Phase | Outcome |
@@ -183,3 +182,18 @@ The project will retain two isolated application foundations:
 The corresponding Compose files and environment templates are `infra/docker-compose.primary.yml` / `infra/.env.primary.example` and `infra/docker-compose.backup.yml` / `infra/.env.backup.example`. Their ports, networks, secrets, and database volumes are separate.
 
 This decision does not mean automatic failover or database replication. MySQL and PostgreSQL require a designed and tested migration/reconciliation process. The backup application currently has only a starter web screen and API health/readiness endpoints; it does not have feature parity or production business data. See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for setup commands and the cutover requirements.
+
+## 16. Configurable inactive-account lifecycle and permanent deletion
+
+Account cleanup must be configurable independently for each customer tenant/client and product. Permanent deletion is an optional policy, not a mandatory platform-wide behavior.
+
+- **Default policy:** notify an inactive account, suspend it after the configured inactivity threshold, and allow reactivation during a configured grace period. Suspension is reversible and does not erase account history.
+- **Optional permanent-deletion switch:** a tenant administrator may enable or disable permanent deletion for that tenant, subject to the platform's legal and contractual controls. It must be off by default.
+- **Policy configuration:** inactivity threshold, notification schedule, suspension behavior, grace period, final deletion delay, and exempt account categories must be configurable within platform limits.
+- **Notice and approval:** issue advance notices through available verified contact channels, record delivery attempts, and provide an administrator review/approval step before irreversible deletion. A tenant must not be able to bypass platform-level legal holds or retention requirements.
+- **Protected records:** invoices, receipts, payment transactions, tax/accounting records, disputes, security/audit events, and other records subject to legal or contractual retention must be retained or pseudonymized as appropriate. Deleting a login/account must not silently cascade-delete financial history.
+- **Recovery and evidence:** preserve an auditable lifecycle history, record who enabled the policy and approved deletion, and maintain a documented recovery/export window before irreversible purge where technically and legally permitted.
+- **Safety controls:** exclude active subscriptions, unpaid balances, unresolved disputes, legal holds, privileged owner accounts, and accounts required for operational continuity until explicitly resolved.
+- **Enforcement:** enforce policy server-side with scheduled jobs, idempotent processing, tenant-scoped queries, and tests for tenant isolation, warnings, grace-period reactivation, approval, exclusions, and retention. UI switches alone are not security controls.
+
+This policy is a requirement, not yet an implemented or legally validated deletion service. Retention periods and deletion rules must be reviewed for the countries and industries in which each tenant operates before enabling permanent deletion.
