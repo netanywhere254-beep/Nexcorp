@@ -126,3 +126,14 @@ Phases may overlap only where dependencies and available resources allow. Do not
 ## 10. Definition of done
 
 A feature is not complete merely because files exist. It must have an agreed requirement, implementation, relevant automated or manual tests, security considerations, documentation, and a verified result in the intended environment.
+
+
+## 11. Nexora parent-company management scope
+
+Nexora is the working parent-company name in this blueprint. Its corporate layer is intended to provide oversight of subsidiaries and shared executive reporting; it is not a replacement for the operational workspaces inside NexISP or Loopza.
+
+The proposed corporate data model is documented separately in [NEXORA_PRISMA_SCHEMA_REFERENCE.prisma](NEXORA_PRISMA_SCHEMA_REFERENCE.prisma). It covers executive accounts and roles, subsidiary records, subsidiary revenue summaries with explicit currency, and corporate reports linked to their author and optionally to a subsidiary.
+
+The corporate layer should provide portfolio-level visibility while preserving product-level access boundaries. Executive roles must be enforced server-side. Finance users should receive only the financial permissions required for their work, and report access should be auditable.
+
+This schema is a reference only. It does not establish a deployed Nexora admin portal, finance ledger, or live subsidiary integrations. Revenue summaries must eventually be calculated from reconciled financial records rather than treated as the accounting ledger itself.
