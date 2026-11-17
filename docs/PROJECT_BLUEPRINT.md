@@ -16,28 +16,30 @@ Nexcorp is the working repository for a group of related digital products. The r
 
 The products are related through shared ownership and reusable platform capabilities, but they are separate products with distinct users, interfaces, business rules, and roadmaps.
 
-## 3. Initial repository structure
+## 3. Current repository structure
 
 ```text
 Nexcorp/
 ├── README.md
-├── docs/
-│   ├── .gitkeep
-│   └── PROJECT_BLUEPRINT.md
 ├── backend/
-│   └── .gitkeep
+│   └── laravel/                 # Primary Laravel 13 application
+├── backup/
+│   └── node-postgres/
+│       ├── api/                 # Standby Express API
+│       └── web/                 # Standby Next.js app
 ├── frontend/
-│   └── .gitkeep
-└── infra/
-    └── .gitkeep
+│   └── components/              # Product UI components
+├── docs/                        # Requirements, architecture, schemas
+└── infra/                       # Primary/standby Compose and env templates
 ```
 
-- `docs/`: product requirements, architecture, decisions, setup guides, and delivery plans.
-- `backend/`: server-side applications and APIs, organized by product or service.
-- `frontend/`: web interfaces and shared design-system components.
-- `infra/`: deployment, environments, automation, monitoring, and operational configuration.
+- backend/laravel: canonical primary application and MySQL migration source.
+- backup/node-postgres: isolated standby application foundation and PostgreSQL connection.
+- frontend/: product interface components; they must be wired to authenticated backend endpoints before being treated as working features.
+- docs/: product requirements, architecture decisions, database references, and delivery notes.
+- infra/: separate Compose files, environment templates, and operational instructions.
 
-Git does not retain empty directories, so each planned directory currently contains a `.gitkeep` placeholder.
+The old root-level Compose proposals and Prisma/NestJS files remain reference material; they are not part of the active primary runtime.
 
 ## 4. Product scope
 
@@ -82,15 +84,17 @@ Do not promise automatic publishing or campaign control until the relevant platf
 - Prefer small, reviewable changes with clear commit messages.
 - Document decisions rather than relying on chat history.
 
-## 6. Initial technology direction
+## 6. Selected technology arrangement
 
-The proposed starting stack is:
-- **Backend:** Laravel (PHP), organized as a modular monolith.
-- **Database:** MySQL.
-- **Frontend:** Laravel Blade templates with lightweight JavaScript initially.
-- **Payments and external services:** adapter/service interfaces so providers can be added or replaced without coupling core billing logic to one vendor.
+The project now has an explicit primary/standby decision:
 
-This is the working direction, not yet a deployed application or a completed technical decision record. Confirm compatible versions, hosting, authentication, queues, and deployment approach before implementation. Avoid infrastructure that creates unavoidable recurring costs before the project has a working budget.
+- **Primary:** Laravel 13 (PHP 8.3+) modular monolith with MySQL 8.4. NexISP and Loopza are planned as isolated modules with server-side tenant and permission enforcement.
+- **Standby alternative:** Next.js web + Node.js 22 Express API + PostgreSQL 16, maintained in a separate source tree and database.
+- **Primary UI direction:** Laravel Blade and lightweight JavaScript for the initial application. Product-specific frontend components may be integrated when the build pipeline and authenticated API contracts are ready.
+- **External services:** adapters for M-Pesa, router management, messaging, and advertising providers, with provider permissions and regional availability checked before activation.
+
+Laravel/MySQL is the canonical source of truth. The standby PostgreSQL system is not synchronized and does not have feature parity; switching requires tested data conversion, reconciliation, and a recovery drill. See [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md).
+
 
 ## 7. Delivery roadmap
 
@@ -109,12 +113,13 @@ Phases may overlap only where dependencies and available resources allow. Do not
 
 ## 8. Immediate next tasks
 
-- [ ] Confirm the parent-company name and public product naming.
-- [ ] Write separate detailed requirements for NexISP and Loopza.
-- [ ] Decide whether the products will share one backend or use separately deployable services.
-- [ ] Compare and select the initial technology stack.
-- [ ] Define development, testing, and production environments.
-- [ ] Create a prioritized MVP backlog with acceptance criteria.
+- [ ] Add authentication, registration, password reset, and verified account recovery.
+- [ ] Implement server-side organization membership, roles, permissions, and tenant isolation.
+- [ ] Add NexISP customer, plan, subscription, invoice, payment, and provisioning migrations.
+- [ ] Add Loopza workspace, channel connection, campaign, approval, and reporting migrations.
+- [ ] Add automated tests for financial calculations, tenant boundaries, and privileged actions.
+- [ ] Implement tested backup/restore and cross-database export/import procedures before treating the standby as disaster recovery.
+- [ ] Add production TLS, monitoring, rate limits, secret management, and rollback procedures.
 
 ## 9. Naming and decision notes
 
