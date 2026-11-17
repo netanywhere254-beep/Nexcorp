@@ -1,0 +1,5 @@
+.env.nexisp
+.env.nexisp.*
+!.env.nexisp.example
+*.pem
+*.key
