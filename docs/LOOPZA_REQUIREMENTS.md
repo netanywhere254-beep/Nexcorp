@@ -84,3 +84,14 @@ A NestJS/Prisma service example is stored at [LOOPZA_AMPLIFY_NESTJS_SERVICE_REFE
 **Important:** the service is a reference and is not integrated into the active application. It expects a generated Prisma client and a project-specific `PrismaService`. The current shared application direction remains Laravel + MySQL unless a separate NestJS/Prisma Loopza service is formally approved.
 
 Before production use, add controller guards and role-based authorization for business membership, DTO validation, rate limits, audit events for campaign creation/status changes, tests for cross-business access, and verified provider integrations. Marking a campaign ACTIVE in this service changes only the internal record; it does not publish an advertisement to Meta, Google, TikTok, or YouTube. Publishing requires approved provider credentials, supported API permissions, user confirmation, and a separate integration workflow.
+
+## 11. React Amplify campaign builder reference
+
+The UI component is stored at [frontend/components/CampaignBuilder.tsx](../frontend/components/CampaignBuilder.tsx). It provides a campaign-name field, an advertising-channel selector, a positive numeric budget, submission/loading feedback, and error/success states.
+
+The selector uses the existing Prisma reference enum values: `FACEBOOK`, `INSTAGRAM`, `GOOGLE`, `TIKTOK`, and `YOUTUBE`. SMS, WhatsApp, and Email were not included because they are not members of the current `AdChannel` enum; they would need a separately designed messaging-campaign model or an approved schema extension.
+
+**Implementation boundary:** the component requires an `onCreateCampaign` callback supplied by the application. It does not make a network request by itself. Connect that callback to an authenticated backend endpoint that derives the business workspace from the user's trusted session, checks membership and campaign permissions, validates the payload again, records an audit event, and creates the campaign as `DRAFT`. The component's success message means only that the callback completed; it does not mean an advertisement was published. Publishing requires a connected provider account, approved API permissions, user confirmation, and a separate provider-publishing workflow.
+
+This is source code only. The repository does not yet contain a configured frontend package/build pipeline, so this component has not been compiled or browser-tested.
+
