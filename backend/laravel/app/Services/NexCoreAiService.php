@@ -41,7 +41,7 @@ class NexCoreAiService
                 ->timeout((int) config('nexcore_ai.timeout', 30))
                 ->post(rtrim((string) config('nexcore_ai.base_url'), '/').'/chat/completions', [
                     'model' => $model,
-                    'max_tokens' => (int) config('nexcore_ai.max_tokens', 800),
+                    'max_tokens' => $maxOutputTokens,
                     'messages' => [
                         [
                             'role' => 'system',
