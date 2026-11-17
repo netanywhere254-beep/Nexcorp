@@ -68,7 +68,7 @@ Do not add -v unless you intentionally want to delete that stack's database volu
 
 ## What is implemented in this foundation
 
-- Laravel 12 application shell and Apache/PHP Docker image.
+- Laravel 13 application shell and Apache/PHP Docker image.
 - MySQL 8.4 primary Compose service with a persistent volume and health check.
 - Initial users, organizations, organization-membership, and audit-log migration/models.
 - Primary /health endpoint and automated feature test.
