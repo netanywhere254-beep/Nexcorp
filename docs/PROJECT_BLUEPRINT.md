@@ -159,15 +159,13 @@ A GitHub Actions workflow is stored at [../.github/workflows/deploy.yml](../.git
 
 This is build-and-test CI, not production deployment. A green run would verify the checked-in foundations build and pass their current tests; it would not certify business feature completeness, production security, disaster recovery, or deployment. Add a protected deployment job only after a deployment target, environment secrets, approvals, health checks, backups, and rollback procedure are configured.
 
-## 14. Alternative single-backend deployment proposal
+## 14. Historical single-backend deployment proposal
 
-A supplied Docker Compose design proposes one backend API, one Next.js frontend, and one PostgreSQL 15 database. Its hardened configuration reference is [docker-compose.master-ecosystem-reference.yml](../infra/docker-compose.master-ecosystem-reference.yml), with [infra/.env.master-ecosystem.example](../infra/.env.master-ecosystem.example) as a placeholder-only environment template.
+The earlier supplied root-level Compose proposal is retained at [docker-compose.master-ecosystem-reference.yml](../infra/docker-compose.master-ecosystem-reference.yml), with [infra/.env.master-ecosystem.example](../infra/.env.master-ecosystem.example), for historical reference. It expected root-level Dockerfiles and application files that were not present.
 
-This is a different option from the separate Nexora/NexISP/Loopza service proposal in section 12. It also conflicts with the current initial Laravel modular monolith + MySQL direction. No architecture switch has been approved.
+The approved standby alternative is now maintained separately under [backup/node-postgres](../backup/node-postgres), with its own Next.js web application, Express API, PostgreSQL service, Dockerfiles, and environment template. Use the dedicated [docker-compose.backup.yml](../infra/docker-compose.backup.yml) rather than the historical master-ecosystem reference.
 
-The Compose reference expects a root backend `Dockerfile` and a root `Dockerfile.frontend`, plus compatible backend and Next.js application code. Those build files and complete applications are not currently present, so the reference is not yet buildable or deployable. The frontend `NEXT_PUBLIC_API_URL` is passed at build time; localhost is suitable only for local development. Production requires a real HTTPS endpoint or same-origin reverse proxy, protected secrets, database backups, migrations, health checks, monitoring, and a rollback plan.
-
-Before using this alternative, decide whether the project should be a single Node/Next.js + PostgreSQL application, three independently deployed services, or the existing Laravel + MySQL modular monolith. Do not mix the three approaches into one deployment without a reviewed architecture and migration plan.
+The standby remains a starter foundation. It does not have feature parity with the primary Laravel application and does not synchronize production data. See section 15 and [ARCHITECTURE_DECISION.md](ARCHITECTURE_DECISION.md) for the approved arrangement and cutover requirements.
 
 
 ## 15. Approved dual-architecture arrangement
