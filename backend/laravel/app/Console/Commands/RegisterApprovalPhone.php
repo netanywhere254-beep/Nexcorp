@@ -81,7 +81,7 @@ class RegisterApprovalPhone extends Command
             'action' => 'governance.approval_phone_registered',
             'subject_type' => AuthorizedApprovalPhone::class,
             'subject_id' => (string) AuthorizedApprovalPhone::where('phone_hash', hash_hmac('sha256', $phone, (string) config('app.key')))->value('id'),
-            'metadata' => ['assigned_user_id' => $user->id, 'phone_last_four' => substr($phone, -4)],
+            'metadata' => ['assigned_user_id' => $user->id],
         ]);
 
         $this->info('Pre-approved phone registered. It is available only to the assigned approver.');
