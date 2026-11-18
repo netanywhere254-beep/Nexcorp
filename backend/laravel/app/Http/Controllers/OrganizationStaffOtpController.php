@@ -1,18 +1,18 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\AuditLog;
-use App\\Models\\Organization;
-use App\\Models\\OrganizationStaffApprovedPhone;
-use App\\Models\\OrganizationStaffOtpChallenge;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\AuditLog;
+use App\Models\Organization;
+use App\Models\OrganizationStaffApprovedPhone;
+use App\Models\OrganizationStaffOtpChallenge;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class OrganizationStaffOtpController
 {
@@ -31,7 +31,7 @@ class OrganizationStaffOtpController
 
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
-            'phone' => ['required', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],
+            'phone' => ['required', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'],
         ]);
 
         $staff = $organization->users()
