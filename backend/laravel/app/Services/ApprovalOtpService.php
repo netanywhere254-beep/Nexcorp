@@ -80,7 +80,7 @@ class ApprovalOtpService
         string $decision,
         ?string $comment = null
     ): void {
-        DB::transaction(function () use ($approval, $actor, $code, $decision, $comment) {
+        $error = DB::transaction(function () use ($approval, $actor, $code, $decision, $comment) {
             $lockedApproval = GovernanceApproval::query()->lockForUpdate()->findOrFail($approval->id);
             $this->assertAssignedApprover($lockedApproval, $actor);
 
@@ -93,12 +93,12 @@ class ApprovalOtpService
                 ->first();
 
             if (! $challenge || $challenge->expires_at->isPast()) {
-                throw new RuntimeException('The approval OTP is missing or has expired.');
+                return 'The approval OTP is missing or has expired.';
             }
 
             if ($challenge->attempts >= 5) {
                 $challenge->forceFill(['consumed_at' => now()])->save();
-                throw new RuntimeException('The approval OTP attempt limit has been reached.');
+                return 'The approval OTP attempt limit has been reached.';
             }
 
             if (! Hash::check($code, $challenge->otp_hash)) {
@@ -106,12 +106,12 @@ class ApprovalOtpService
                 if ($challenge->fresh()->attempts >= 5) {
                     $challenge->forceFill(['consumed_at' => now()])->save();
                 }
-                throw new RuntimeException('The approval OTP is incorrect.');
+                return 'The approval OTP is incorrect.';
             }
 
             $phone = $challenge->phone;
             if (! $phone || $phone->status !== 'active' || $phone->revoked_at || ! $phone->verified_at) {
-                throw new RuntimeException('The registered approval phone is no longer authorized.');
+                return 'The registered approval phone is no longer authorized.';
             }
 
             $challenge->forceFill(['consumed_at' => now()])->save();
@@ -127,7 +127,13 @@ class ApprovalOtpService
             } elseif (! $request->approvals()->where('decision', 'pending')->exists()) {
                 $request->forceFill(['status' => 'approved', 'completed_at' => now()])->save();
             }
+
+            return null;
         });
+
+        if ($error !== null) {
+            throw new RuntimeException($error);
+        }
     }
 
     private function assertAssignedApprover(GovernanceApproval $approval, User $actor): void
