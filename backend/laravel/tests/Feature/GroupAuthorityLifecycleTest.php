@@ -106,23 +106,42 @@ class GroupAuthorityLifecycleTest extends TestCase
         ]);
     }
 
-    public function test_last_active_ceo_cannot_be_revoked_even_with_otp(): void
+    public function test_ceo_cannot_revoke_their_own_appointment(): void
     {
         $ceo = $this->user('Group CEO');
-        $target = $this->user('Other CEO');
-        $this->authority($ceo, 'GROUP_CEO');
-        $targetAuthority = $this->authority($target, 'GROUP_CEO');
-        $purpose = 'group.authority.revoke.'.$targetAuthority->id;
-        [, $session] = $this->verifiedOtp($ceo, $purpose);
+        $ceoAuthority = $this->authority($ceo, 'GROUP_CEO');
 
-        $this->actingAs($ceo)->withSession(['nexora_group_staff_otp' => $session])
-            ->deleteJson('/group/governance/authorities/'.$targetAuthority->id)
-            ->assertStatus(409);
+        $this->actingAs($ceo)
+            ->deleteJson('/group/governance/authorities/'.$ceoAuthority->id)
+            ->assertStatus(422);
 
         $this->assertDatabaseHas('group_authorities', [
-            'id' => $targetAuthority->id,
+            'id' => $ceoAuthority->id,
             'status' => 'active',
         ]);
+    }
+
+    public function test_ceo_can_revoke_another_ceo_without_removing_their_own_authority(): void
+    {
+        $ceo = $this->user('Group CEO');
+        $otherCeo = $this->user('Other CEO');
+        $this->authority($ceo, 'GROUP_CEO');
+        $otherAuthority = $this->authority($otherCeo, 'GROUP_CEO');
+        $purpose = 'group.authority.revoke.'.$otherAuthority->id;
+        [$challenge, $session] = $this->verifiedOtp($ceo, $purpose);
+
+        $this->actingAs($ceo)->withSession(['nexora_group_staff_otp' => $session])
+            ->deleteJson('/group/governance/authorities/'.$otherAuthority->id)
+            ->assertOk();
+
+        $this->assertDatabaseHas('group_authorities', [
+            'id' => $otherAuthority->id,
+            'status' => 'revoked',
+        ]);
+        $this->assertSame(1, GroupAuthority::where('authority', 'GROUP_CEO')
+            ->where('scope_type', 'group')->where('scope_key', 'nexora')
+            ->where('status', 'active')->count());
+        $this->assertNotNull($challenge->fresh()->consumed_at);
     }
 
     public function test_one_time_cli_bootstrap_requires_secret_and_never_repeats(): void
