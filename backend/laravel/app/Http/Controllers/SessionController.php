@@ -176,7 +176,7 @@ class SessionController
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
-            'email_verified' => $user->hasVerifiedEmail(),\n            'email_verified' => $user->hasVerifiedEmail(),
+            'email_verified' => $user->hasVerifiedEmail(),
             'organizations' => $user->organizations()
                 ->wherePivot('status', 'active')
                 ->where('organizations.status', 'active')
