@@ -262,3 +262,14 @@ Country-by-country rollout, authority and NGO integrations, partner camera netwo
 ---
 
 **Implementation note:** This document is the approved product and architecture baseline. It does not claim that the listed application features, external search integrations, authority partnerships, or compliance reviews are already implemented. Each delivery phase must be built, tested, and verified before being marked complete.
+
+## 14. Phone OTP delivery configuration
+
+The first implementation sends OTP requests to a configurable HTTPS SMS-provider adapter. Configure these Laravel environment variables in the deployment secret store (never commit live credentials):
+
+- `TRACE_FIND_SMS_URL`: HTTPS endpoint accepting a JSON POST body with `to` (E.164 phone number) and `message` (OTP message).
+- `TRACE_FIND_SMS_TOKEN`: optional bearer token for the provider endpoint.
+
+The provider must return a successful 2xx response only after accepting the message for delivery. The application does not include a live SMS-provider account or credentials; without configuration, the endpoint deliberately returns HTTP 503. Test delivery with the selected provider before enabling production registration. Provider-specific payload/signature requirements may require a small adapter change.
+
+A new OTP request for a different number resets the profile's phone-verification status to pending only after the SMS provider accepts the message. The previously verified number is not silently treated as verified for the replacement number. Resend throttling uses a fixed 60-second window from the last send timestamp.
