@@ -72,6 +72,20 @@ class GroupAuthorityLifecycleTest extends TestCase
         $targetAuthority = $this->authority($target, 'DEPARTMENT_HEAD');
         $purpose = 'group.authority.revoke.'.$targetAuthority->id;
         [$challenge, $session] = $this->verifiedOtp($ceo, $purpose);
+        $targetPhone = GroupStaffApprovedPhone::create([
+            'user_id' => $target->id,
+            'phone_e164' => '+254722345678',
+            'approved_by' => $ceo->id,
+            'approved_at' => now(),
+            'status' => 'active',
+        ]);
+        $targetChallenge = GroupStaffOtpChallenge::create([
+            'user_id' => $target->id,
+            'approved_phone_id' => $targetPhone->id,
+            'purpose' => 'governance.approval.decide.99',
+            'code_hash' => Hash::make('654321'),
+            'expires_at' => now()->addMinutes(5),
+        ]);
 
         $this->actingAs($ceo)->withSession(['nexora_group_staff_otp' => $session])
             ->deleteJson('/group/governance/authorities/'.$targetAuthority->id)
@@ -82,6 +96,8 @@ class GroupAuthorityLifecycleTest extends TestCase
             'status' => 'revoked',
         ]);
         $this->assertNotNull($challenge->fresh()->consumed_at);
+        $this->assertSame('revoked', $targetPhone->fresh()->status);
+        $this->assertNotNull($targetChallenge->fresh()->consumed_at);
         $this->assertDatabaseHas('audit_logs', ['action' => 'group.authority.revoked']);
         $this->assertDatabaseHas('group_authorities', [
             'id' => $ceoAuthority->id,
