@@ -22,7 +22,7 @@ class GovernanceApprovalController extends Controller
                 'action' => 'governance.approval_otp_sent',
                 'subject_type' => GovernanceApproval::class,
                 'subject_id' => (string) $approval->id,
-                'metadata' => ['phone' => $maskedPhone],
+                'metadata' => ['delivery_method' => 'sms'],
             ]);
 
             return response()->json([
