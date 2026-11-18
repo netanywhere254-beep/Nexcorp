@@ -291,12 +291,15 @@ class GovernanceApprovalOtpTest extends TestCase
         static $counter = 0;
         $counter++;
 
-        return User::create([
+        $user = User::create([
             'name' => ucfirst($prefix),
             'email' => $prefix.'-'.$counter.'@example.test',
             'password' => 'Correct-Horse-42!',
             'status' => 'active',
-            'email_verified_at' => now(),
         ]);
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 }
