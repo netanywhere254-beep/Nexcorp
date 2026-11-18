@@ -28,11 +28,13 @@ Route::prefix('auth')->group(function () {
             ->middleware('organization.active');
         Route::post('/logout', [SessionController::class, 'logout']);
 
-        Route::prefix('/governance/approvals')->group(function () {
-            Route::post('/{approval}/otp', [GovernanceApprovalController::class, 'sendOtp'])->middleware('throttle:3,1');
-            Route::post('/{approval}/confirm', [GovernanceApprovalController::class, 'confirm'])->middleware('throttle:5,1');
-        });
     });
+});
+
+// Governance approvals require an authenticated, specifically assigned approver.
+Route::middleware('auth')->prefix('governance/approvals')->group(function () {
+    Route::post('/{approval}/otp', [GovernanceApprovalController::class, 'sendOtp'])->middleware('throttle:3,1');
+    Route::post('/{approval}/confirm', [GovernanceApprovalController::class, 'confirm'])->middleware('throttle:5,1');
 });
 
 // Authenticated NexCore AI workspace; tenant identity is verified by middleware.
