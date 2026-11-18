@@ -45,3 +45,4 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth', 'verified', 'organization.active'])->get('/ai', fn () => view('ai.chat'));
 Route::middleware(['auth', 'verified', 'organization.active', 'throttle:10,1'])
     ->post('/ai/assist', [NexCoreAiController::class, 'assist']);
+\n// Loopza Trace & Find: authenticated family reports remain private until reviewed.\nRoute::middleware(['auth', 'verified'])->prefix('trace-find')->group(function () {\n    Route::post('/cases', [TraceCaseController::class, 'store'])->middleware('throttle:5,1');\n});\n
