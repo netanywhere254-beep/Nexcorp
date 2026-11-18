@@ -48,7 +48,7 @@ class PasswordRecoveryController extends Controller
                 'email' => Str::lower($validated['email']),
                 'token' => $validated['token'],
                 'password' => $validated['password'],
-                'password_confirmation' => $validated['password_confirmation'],
+                'password_confirmation' => $request->input('password_confirmation'),
             ],
             function (User $user, string $password): void {
                 $user->forceFill([
