@@ -17,4 +17,5 @@ return [
         'url' => env('NEXORA_GROUP_SMS_URL'),
         'token' => env('NEXORA_GROUP_SMS_TOKEN'),
     ],
+    'nexora_group_ceo_bootstrap_key' => env('NEXORA_GROUP_CEO_BOOTSTRAP_KEY'),
 ];
