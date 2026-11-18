@@ -7,7 +7,6 @@ use App\Models\GovernanceApproval;
 use App\Services\ApprovalOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class GovernanceApprovalController extends Controller
@@ -53,24 +52,22 @@ class GovernanceApprovalController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $approval, $otp, $validated) {
-                $otp->confirm(
-                    $approval,
-                    $request->user(),
-                    $validated['otp'],
-                    $validated['decision'],
-                    $validated['comment'] ?? null,
-                );
+            $otp->confirm(
+                $approval,
+                $request->user(),
+                $validated['otp'],
+                $validated['decision'],
+                $validated['comment'] ?? null,
+            );
 
-                AuditLog::create([
-                    'organization_id' => null,
-                    'actor_user_id' => $request->user()->id,
-                    'action' => 'governance.approval_'.$validated['decision'],
-                    'subject_type' => GovernanceApproval::class,
-                    'subject_id' => (string) $approval->id,
-                    'metadata' => ['approval_level' => $approval->approval_level],
-                ]);
-            });
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'governance.approval_'.$validated['decision'],
+                'subject_type' => GovernanceApproval::class,
+                'subject_id' => (string) $approval->id,
+                'metadata' => ['approval_level' => $approval->approval_level],
+            ]);
 
             return response()->json([
                 'status' => $validated['decision'],
