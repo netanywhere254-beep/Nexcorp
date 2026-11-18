@@ -8,6 +8,7 @@ use App\Services\ApprovalOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class GovernanceApprovalController extends Controller
 {
@@ -31,6 +32,8 @@ class GovernanceApprovalController extends Controller
                 'destination' => $maskedPhone,
                 'expires_in_seconds' => (int) config('services.approval_sms.ttl_minutes', 5) * 60,
             ], 202);
+        } catch (HttpExceptionInterface $exception) {
+            throw $exception;
         } catch (RuntimeException $exception) {
             $status = match ($exception->getMessage()) {
                 str_starts_with($exception->getMessage(), 'Approval SMS delivery is not configured') => 503,
@@ -66,6 +69,8 @@ class GovernanceApprovalController extends Controller
                     ? 'Approval confirmed successfully.'
                     : 'Request rejection recorded successfully.',
             ]);
+        } catch (HttpExceptionInterface $exception) {
+            throw $exception;
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
