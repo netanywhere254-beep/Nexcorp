@@ -17,13 +17,15 @@ class GroupAuthorityLifecycleTest extends TestCase
 
     private function user(string $name): User
     {
-        return User::create([
+        $user = User::create([
             'name' => $name,
             'email' => strtolower(str_replace(' ', '-', $name)).'-'.uniqid().'@example.test',
             'password' => 'Correct-Horse-42!',
             'status' => 'active',
-            'email_verified_at' => now(),
         ]);
+        $user->markEmailAsVerified();
+
+        return $user;
     }
 
     private function authority(User $user, string $authority, string $status = 'active'): GroupAuthority
