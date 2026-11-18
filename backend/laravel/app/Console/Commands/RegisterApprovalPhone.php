@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\AuthorizedApprovalPhone;
+use App\Models\GroupAuthority;
+use App\Models\User;
+use Illuminate\Console\Command;
+
+class RegisterApprovalPhone extends Command
+{
+    protected $signature = 'nexora:approval-phone:add {user_id} {phone} {--approved-by=}';
+
+    protected $description = 'Provision a pre-verified phone for a governance approver (trusted server operators only).';
+
+    public function handle(): int
+    {
+        $user = User::find($this->argument('user_id'));
+        $approver = User::find($this->option('approved-by'));
+
+        if (! $user || ! $approver) {
+            $this->error('The approver and target user must both exist.');
+            return self::FAILURE;
+        }
+
+        $authorized = GroupAuthority::query()
+            ->where('user_id', $approver->id)
+            ->whereIn('authority', ['CEO', 'SECURITY_ADMIN'])
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        if (! $authorized) {
+            $this->error('Only an active Nexora CEO or Security Administrator may provision approval numbers.');
+            return self::FAILURE;
+        }
+
+        $phone = $this->argument('phone');
+        if (! preg_match('/^\+[1-9][0-9]{7,14}$/', $phone)) {
+            $this->error('Use an E.164 number, for example +2547XXXXXXXX.');
+            return self::FAILURE;
+        }
+
+        if (! $this->confirm('Confirm this number has been independently verified and approved for this person?')) {
+            $this->warn('No number was registered.');
+            return self::SUCCESS;
+        }
+
+        AuthorizedApprovalPhone::updateOrCreate(
+            ['phone_hash' => hash('sha256', $phone)],
+            [
+                'user_id' => $user->id,
+                'phone_e164' => $phone,
+                'status' => 'active',
+                'verified_at' => now(),
+                'approved_by' => $approver->id,
+                'revoked_at' => null,
+            ],
+        );
+
+        $this->info('Pre-approved phone registered. It is available only to the assigned approver.');
+        return self::SUCCESS;
+    }
+}
