@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\\Feature;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Tests\TestCase;
+use App\\Models\\User;
+use Illuminate\\Foundation\\Testing\\RefreshDatabase;
+use Illuminate\\Http\\UploadedFile;
+use Tests\\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
 {
@@ -13,14 +13,18 @@ class LoopzaTraceFindFoundationTest extends TestCase
 
     private function verifiedUser(): User
     {
-        return User::create([
+        $user = User::create([
             'name' => 'Trace Reporter',
             'email' => 'reporter@example.test',
             'phone' => '+254700000001',
             'password' => 'Strong-test-password-123',
             'status' => 'active',
-            'email_verified_at' => now(),
         ]);
+
+        // email_verified_at is intentionally not mass assignable on User.
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 
     public function test_public_onboarding_only_creates_a_pending_family_profile(): void
