@@ -118,7 +118,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
         $user = $this->verifiedUser();
         $user->traceProfile()->create([
             'country_code' => 'KE', 'region_code' => 'KE-17', 'account_type' => 'family',
-            'verification_status' => 'pending', 'phone_verification_status' => 'pending',
+            'verification_status' => 'pending', 'phone_verification_status' => 'verified',
             'location_verification_status' => 'pending', 'selfie_verification_status' => 'pending',
         ]);
 
@@ -134,6 +134,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
         $this->assertDatabaseHas('trace_phone_verifications', [
             'user_id' => $user->id, 'phone' => '+254700000009', 'attempts' => 0,
         ]);
+        $this->assertSame('pending', $user->fresh()->traceProfile->phone_verification_status);
         $this->assertMatchesRegularExpression('/[0-9]{6}/', $sentMessage);
         preg_match('/([0-9]{6})/', $sentMessage, $matches);
 
