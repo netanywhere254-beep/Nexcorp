@@ -7,11 +7,20 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Tests\TestCase;
 
 class SessionAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Notification::fake();
+    }
 
 
     public function test_public_registration_ignores_privilege_and_organization_fields(): void
@@ -35,7 +44,8 @@ class SessionAuthenticationTest extends TestCase
 
         $user = User::where('email', 'new-customer@example.test')->firstOrFail();
 
-        $this->assertSame('active', $user->status);\n        Notification::assertSentTo($user, VerifyEmail::class);
+        $this->assertSame('active', $user->status);
+        Notification::assertSentTo($user, VerifyEmail::class);\n        Notification::assertSentTo($user, VerifyEmail::class);
         $this->assertSame(0, $user->organizations()->count());
         $this->assertGuest();
         $this->assertDatabaseHas('audit_logs', [
@@ -207,6 +217,7 @@ class SessionAuthenticationTest extends TestCase
             'email' => 'user-'.uniqid().'@example.test',
             'password' => 'Correct-Horse-42!',
             'status' => 'active',
+            'email_verified_at' => now(),
         ], $overrides));
     }
 
