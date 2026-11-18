@@ -6,6 +6,7 @@ use App\Models\ApprovalOtpChallenge;
 use App\Models\AuditLog;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GovernanceApproval;
+use App\Models\GroupAuthority;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -166,6 +167,29 @@ class ApprovalOtpService
         abort_unless($request && $request->status === 'pending', 409, 'This governance request is not pending.');
         abort_unless(! $request->expires_at || $request->expires_at->isFuture(), 410, 'This governance request has expired.');
         abort_unless((int) $request->requested_by !== (int) $actor->id, 403, 'A requester cannot approve their own request.');
+
+        $hasAuthority = GroupAuthority::query()
+            ->where('user_id', $actor->id)
+            ->where('authority', $approval->required_authority)
+            ->where('scope_type', $request->scope_type)
+            ->where('scope_key', $request->scope_key)
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+
+        abort_unless($hasAuthority, 403, 'The assigned approver authority is not active.');
+
+        $earlierLevelPending = $request->approvals()
+            ->where('approval_level', '<', $approval->approval_level)
+            ->where('decision', '!=', 'approved')
+            ->exists();
+
+        abort_unless(! $earlierLevelPending, 409, 'Earlier approval levels must be completed first.');
     }
 
     private function maskPhone(string $phone): string
