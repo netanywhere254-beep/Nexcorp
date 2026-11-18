@@ -51,6 +51,10 @@ class TracePhoneVerificationController extends Controller
             return response()->json(['message' => 'We could not deliver the verification code. Please try again later.'], 502);
         }
 
+        if ($user->phone !== $phone) {
+            $user->traceProfile()->update(['phone_verification_status' => 'pending']);
+        }
+
         \DB::table('trace_phone_verifications')->insert([
             'user_id' => $user->id,
             'phone' => $phone,
