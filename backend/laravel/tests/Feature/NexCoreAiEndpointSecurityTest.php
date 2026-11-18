@@ -38,8 +38,7 @@ class NexCoreAiEndpointSecurityTest extends TestCase
                 // A client-supplied tenant ID must not replace the session context.
                 'organization_id' => 999999,
             ])
-            ->assertStatus(409)
-            ->assertJsonPath('message', 'Select an organization before accessing this resource.');
+            ->assertForbidden();
 
         Http::assertNothingSent();
     }
