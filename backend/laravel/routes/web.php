@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\SessionController;
@@ -26,6 +27,11 @@ Route::prefix('auth')->group(function () {
         Route::get('/organization/context', [OrganizationContextController::class, 'show'])
             ->middleware('organization.active');
         Route::post('/logout', [SessionController::class, 'logout']);
+
+        Route::prefix('/governance/approvals')->group(function () {
+            Route::post('/{approval}/otp', [GovernanceApprovalController::class, 'sendOtp'])->middleware('throttle:3,1');
+            Route::post('/{approval}/confirm', [GovernanceApprovalController::class, 'confirm'])->middleware('throttle:5,1');
+        });
     });
 });
 
