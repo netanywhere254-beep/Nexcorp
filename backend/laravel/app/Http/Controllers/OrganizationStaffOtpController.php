@@ -18,7 +18,7 @@ class OrganizationStaffOtpController {
   $staff=$o->users()->wherePivot('status','active')->where('users.id',$v['user_id'])->first();
   abort_unless($staff,422,'Staff user must already be an active member of this organisation.');
   $phone=$v['phone']; $old=OrganizationStaffApprovedPhone::where('organization_id',$o->id)->where('phone_e164',$phone)->first();
-  abort_if($old&&$old->user_id!==$staff->id&&$old->status==='active',409,'Number already belongs to another staff member.');
+  abort_if($old&&$old->user_id!==$staff->id,409,'This number was previously assigned in this organisation and requires a controlled reassignment review.');
   $p=OrganizationStaffApprovedPhone::updateOrCreate(['organization_id'=>$o->id,'user_id'=>$staff->id],['phone_e164'=>$phone,'status'=>'active','approved_by'=>$r->user()->id,'approved_at'=>now(),'revoked_at'=>null]);
   AuditLog::create(['organization_id'=>$o->id,'actor_user_id'=>$r->user()->id,'action'=>'organization.staff_phone.approved','subject_type'=>OrganizationStaffApprovedPhone::class,'subject_id'=>(string)$p->id,'metadata'=>['staff_user_id'=>$staff->id,'phone_last_four'=>substr($phone,-4)]]);
   return response()->json(['message'=>'Staff phone approved.','id'=>$p->id,'user_id'=>$staff->id,'phone_last_four'=>substr($phone,-4)],201);
