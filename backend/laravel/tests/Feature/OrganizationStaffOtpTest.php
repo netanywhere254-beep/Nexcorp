@@ -21,7 +21,7 @@ class OrganizationStaffOtpTest extends TestCase {
   [$admin,$staff,$org]=$this->setupOrg();
   $this->actingAs($admin)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/approved-phones',['user_id'=>$staff->id,'phone'=>'+254712345678'])
-   ->assertCreated()->assertJsonPath('phone_last_four','5678');
+   ->dump()->assertCreated()->assertJsonPath('phone_last_four','5678');
   $this->assertDatabaseHas('organization_staff_approved_phones',['organization_id'=>$org->id,'user_id'=>$staff->id,'phone_e164'=>'+254712345678','status'=>'active']);
  }
  public function test_staff_cannot_self_register_an_approved_phone(): void {
@@ -43,6 +43,6 @@ class OrganizationStaffOtpTest extends TestCase {
   config(['services.nexora_staff_sms.url'=>'http://insecure.example.test/send']);
   $this->actingAs($staff)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/otp/send',['purpose'=>'billing.approve'])
-   ->assertStatus(503);
+   ->dump()->assertStatus(503);
  }
 }
