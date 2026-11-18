@@ -35,7 +35,7 @@ class SessionAuthenticationTest extends TestCase
 
         $user = User::where('email', 'new-customer@example.test')->firstOrFail();
 
-        $this->assertSame('active', $user->status);
+        $this->assertSame('active', $user->status);\n        Notification::assertSentTo($user, VerifyEmail::class);
         $this->assertSame(0, $user->organizations()->count());
         $this->assertGuest();
         $this->assertDatabaseHas('audit_logs', [
