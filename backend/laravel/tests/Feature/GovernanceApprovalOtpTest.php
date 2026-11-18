@@ -190,7 +190,7 @@ class GovernanceApprovalOtpTest extends TestCase
     {
         return AuthorizedApprovalPhone::create([
             'user_id' => $user->id,
-            'phone_hash' => hash('sha256', '+2547000001234'),
+            'phone_hash' => hash_hmac('sha256', '+2547000001234', (string) config('app.key')),
             'phone_e164' => '+2547000001234',
             'status' => 'active',
             'verified_at' => now(),
