@@ -57,6 +57,23 @@ class GovernanceApprovalOtpTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_staff_contact_phone_alone_is_not_an_approval_phone(): void
+    {
+        Http::fake();
+        [, $approval, $approver] = $this->approvalFixture();
+        $approver->forceFill(['phone' => '+254711111111'])->save();
+
+        $this->assertDatabaseMissing('authorized_approval_phones', [
+            'user_id' => $approver->id,
+        ]);
+
+        $this->actingAs($approver)
+            ->postJson('/governance/approvals/'.$approval->id.'/otp')
+            ->assertForbidden();
+
+        Http::assertNothingSent();
+    }
+
     public function test_another_user_cannot_send_or_confirm_an_approval(): void
     {
         Http::fake();
@@ -260,13 +277,23 @@ class GovernanceApprovalOtpTest extends TestCase
 
     private function registerPhone(User $user): AuthorizedApprovalPhone
     {
+        $securityAdmin = $this->makeUser('security-admin');
+        GroupAuthority::create([
+            'user_id' => $securityAdmin->id,
+            'authority' => 'SECURITY_ADMIN',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+
         return AuthorizedApprovalPhone::create([
             'user_id' => $user->id,
             'phone_hash' => hash_hmac('sha256', '+2547000001234', (string) config('app.key')),
             'phone_e164' => '+2547000001234',
             'status' => 'active',
             'verified_at' => now(),
-            'approved_by' => $user->id,
+            'approved_by' => $securityAdmin->id,
         ]);
     }
 
