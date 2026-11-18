@@ -24,7 +24,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [PasswordRecoveryController::class, 'sendLink'])->middleware('throttle:3,1');
     Route::get('/reset-password/{token}', [PasswordRecoveryController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:5,1');
-    Route::get('/email/verification-required', fn () => response()->json([\n        'message' => 'Verify your email address to access your workspace.',\n    ]))->middleware('auth')->name('verification.notice');\n    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    Route::get('/email/verification-required', fn () => response()->json([
+        'message' => 'Verify your email address to access your workspace.',
+    ]))->middleware('auth')->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
         ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
 
     Route::middleware('auth')->group(function () {
