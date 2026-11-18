@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\TraceProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -28,22 +27,20 @@ class LoopzaTraceFindFoundationTest extends TestCase
     {
         $user = $this->verifiedUser();
 
-        $response = $this->actingAs($user)->post('/trace-find/profile', [
+        $response = $this->actingAs($user)->withHeader('Accept', 'application/json')->post('/trace-find/profile', [
             'country_code' => 'KE',
             'region_code' => 'KE-17',
             'locality' => 'Kisii',
             'latitude' => '-0.6817',
             'longitude' => '34.7667',
-            'selfie' => UploadedFile::fake()->createWithContent('selfie.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKk0AAAAASUVORK5CYII=')),
+            'selfie' => UploadedFile::fake()->createWithContent('selfie.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')),
             'location_consent' => '1',
             'biometric_processing_consent' => '1',
             'account_type' => 'authority',
             'verification_status' => 'verified',
         ]);
 
-        $response->assertCreated()
-            ->assertJsonPath('profile.verification_status', 'pending');
-
+        $response->assertCreated()->assertJsonPath('profile.verification_status', 'pending');
         $this->assertDatabaseHas('trace_profiles', [
             'user_id' => $user->id,
             'account_type' => 'family',
@@ -56,8 +53,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
     public function test_cross_region_case_is_accepted_for_review_but_not_published(): void
     {
         $user = $this->verifiedUser();
-        TraceProfile::create([
-            'user_id' => $user->id,
+        $user->traceProfile()->create([
             'country_code' => 'KE',
             'region_code' => 'KE-17',
             'account_type' => 'family',
@@ -91,8 +87,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
     public function test_unverified_location_and_selfie_do_not_receive_local_posting_status(): void
     {
         $user = $this->verifiedUser();
-        TraceProfile::create([
-            'user_id' => $user->id,
+        $user->traceProfile()->create([
             'country_code' => 'KE',
             'region_code' => 'KE-17',
             'account_type' => 'family',
