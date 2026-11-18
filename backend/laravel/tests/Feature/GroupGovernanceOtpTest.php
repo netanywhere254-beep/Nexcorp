@@ -66,7 +66,7 @@ class GroupGovernanceOtpTest extends TestCase
     public function test_group_staff_cannot_self_approve_their_phone(): void
     {
         $staff = $this->user('Group Staff');
-        $this->authority($staff, 'GROUP_DIRECTOR');
+        $this->authority($staff, 'GROUP_SECURITY_OFFICER');
 
         $this->actingAs($staff)
             ->postJson('/group/staff-security/approved-phones', [
