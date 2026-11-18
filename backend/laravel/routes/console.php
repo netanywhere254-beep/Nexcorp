@@ -12,7 +12,7 @@ Artisan::command('nexora:about', function () {
     $this->comment('Nexora primary Laravel application foundation.');
 })->purpose('Display basic Nexora application information.');
 
-Artisan::command('nexora:bootstrap-group-ceo {email} {phone}', function (string $email, string $phone) {
+Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) {
     $expectedKey = (string) config('services.nexora_group_ceo_bootstrap_key');
     if ($expectedKey === '') {
         $this->error('NEXORA_GROUP_CEO_BOOTSTRAP_KEY is not configured.');
@@ -27,6 +27,12 @@ Artisan::command('nexora:bootstrap-group-ceo {email} {phone}', function (string 
     $providedKey = (string) $this->secret('One-time bootstrap key');
     if (! hash_equals($expectedKey, $providedKey)) {
         $this->error('Invalid bootstrap key.');
+        return 1;
+    }
+
+    $phone = (string) $this->secret('Initial CEO phone in E.164 format');
+    if (! preg_match('/^\\+[1-9][0-9]{7,14}$/', $phone)) {
+        $this->error('Provide the CEO phone in E.164 format, for example +2547XXXXXXXX.');
         return 1;
     }
 
