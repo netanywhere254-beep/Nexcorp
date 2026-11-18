@@ -50,6 +50,8 @@ class SessionController
             'status' => 'active',
         ]);
 
+        $user->sendEmailVerificationNotification();
+
         AuditLog::create([
             'organization_id' => null,
             'actor_user_id' => $user->id,
@@ -92,6 +94,17 @@ class SessionController
             throw ValidationException::withMessages([
                 'email' => ['The supplied credentials are incorrect.'],
             ]);
+        }
+
+        if (! $request->user()->hasVerifiedEmail()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'message' => 'Verify your email address before signing in.',
+                'email_verification_required' => true,
+            ], 403);
         }
 
         $limiter->clear($key);
@@ -169,7 +182,8 @@ class SessionController
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'phone' => $user->phone,\n            'email_verified' => $user->hasVerifiedEmail(),
+            'phone' => $user->phone,
+            'email_verified' => $user->hasVerifiedEmail(),\n            'email_verified' => $user->hasVerifiedEmail(),
             'organizations' => $user->organizations()
                 ->wherePivot('status', 'active')
                 ->where('organizations.status', 'active')
