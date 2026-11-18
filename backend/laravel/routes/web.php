@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -39,6 +40,12 @@ Route::prefix('auth')->group(function () {
             ->middleware('organization.active');
         Route::post('/logout', [SessionController::class, 'logout']);
     });
+});
+
+// Governance approvals require an authenticated, specifically assigned approver.
+Route::middleware('auth')->prefix('governance/approvals')->group(function () {
+    Route::post('/{approval}/otp', [GovernanceApprovalController::class, 'sendOtp'])->middleware('throttle:3,1');
+    Route::post('/{approval}/confirm', [GovernanceApprovalController::class, 'confirm'])->middleware('throttle:5,1');
 });
 
 // NexCore AI requires both a verified account and a server-verified tenant context.
