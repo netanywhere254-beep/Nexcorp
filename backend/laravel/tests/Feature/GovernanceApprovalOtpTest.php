@@ -90,7 +90,7 @@ class GovernanceApprovalOtpTest extends TestCase
             ->postJson('/governance/approvals/'.$approval->id.'/confirm', [
                 'otp' => $code,
                 'decision' => 'approved',
-            ])->assertUnprocessable();
+            ])->assertStatus(409);
     }
 
     public function test_wrong_otp_increments_attempts_and_never_approves(): void
@@ -117,6 +117,45 @@ class GovernanceApprovalOtpTest extends TestCase
         $this->actingAs($requester)
             ->postJson('/governance/approvals/'.$approval->id.'/otp')
             ->assertForbidden();
+    }
+
+
+    public function test_expired_otp_cannot_decide_a_request(): void
+    {
+        [$request, $approval, $approver] = $this->approvalFixture();
+        $phone = $this->registerPhone($approver);
+        $challenge = $this->createChallenge($approval, $approver, $phone, '481205');
+        $challenge->forceFill(['expires_at' => now()->subMinute()])->save();
+
+        $this->actingAs($approver)
+            ->postJson('/governance/approvals/'.$approval->id.'/confirm', [
+                'otp' => '481205',
+                'decision' => 'approved',
+            ])->assertUnprocessable();
+
+        $this->assertSame('pending', $approval->fresh()->decision);
+        $this->assertSame('pending', $request->fresh()->status);
+    }
+
+    public function test_rejection_with_valid_otp_closes_the_governance_request(): void
+    {
+        [$request, $approval, $approver] = $this->approvalFixture();
+        $phone = $this->registerPhone($approver);
+        $this->createChallenge($approval, $approver, $phone, '481205');
+
+        $this->actingAs($approver)
+            ->postJson('/governance/approvals/'.$approval->id.'/confirm', [
+                'otp' => '481205',
+                'decision' => 'rejected',
+                'comment' => 'Insufficient justification.',
+            ])->assertOk()->assertJsonPath('status', 'rejected');
+
+        $this->assertSame('rejected', $approval->fresh()->decision);
+        $this->assertSame('rejected', $request->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $approver->id,
+            'action' => 'governance.approval_rejected',
+        ]);
     }
 
     private function approvalFixture(bool $requesterIsApprover = false): array
