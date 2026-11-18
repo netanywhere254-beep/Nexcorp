@@ -133,4 +133,27 @@ class UserPhoneVerificationTest extends TestCase
             'phone' => '+254712345682',
         ])->assertStatus(503);
     }
+
+    public function test_incorrect_public_phone_otp_attempts_are_persisted(): void
+    {
+        $user = $this->verifiedUser('phone-attempts@example.test');
+        config(['services.nexora_public_sms.url' => 'https://sms.example.test/send']);
+        Http::fake(['*' => Http::response(['accepted' => true], 200)]);
+
+        $this->actingAs($user)->postJson('/account/phone/send-code', [
+            'phone' => '+254712345683',
+        ])->assertOk();
+
+        $this->actingAs($user)->postJson('/account/phone/verify-code', [
+            'phone' => '+254712345683',
+            'code' => '000000',
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseHas('user_phone_otp_challenges', [
+            'user_id' => $user->id,
+            'phone_e164' => '+254712345683',
+            'attempts' => 1,
+        ]);
+    }
+
 }
