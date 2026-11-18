@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\GovernanceApproval;
 use App\Services\ApprovalOtpService;
 use Illuminate\Http\JsonResponse;
