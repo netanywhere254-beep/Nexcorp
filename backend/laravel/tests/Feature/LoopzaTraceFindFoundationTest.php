@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
@@ -108,8 +109,39 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'last_seen_details' => 'Last seen in the locality.',
         ]);
 
-        $response->assertCreated()
-            ->assertJsonPath('case.status', 'cross_region_review')
-            ->assertJsonPath('case.publication_status', 'private');
+        $response->assertForbidden()
+            ->assertJsonPath('message', 'Verify your contact phone number by OTP before registering a case.');
+    }
+
+    public function test_phone_otp_is_sent_and_verified_before_case_registration(): void
+    {
+        $user = $this->verifiedUser();
+        $user->traceProfile()->create([
+            'country_code' => 'KE', 'region_code' => 'KE-17', 'account_type' => 'family',
+            'verification_status' => 'pending', 'phone_verification_status' => 'pending',
+            'location_verification_status' => 'pending', 'selfie_verification_status' => 'pending',
+        ]);
+
+        config(['services.trace_find_sms.url' => 'https://sms.example.test/send']);
+        $sentMessage = '';
+        Http::fake(function ($request) use (&$sentMessage) {
+            $sentMessage = $request['message'];
+            return Http::response(['accepted' => true], 200);
+        });
+
+        $this->actingAs($user)->postJson('/trace-find/phone/send-code', ['phone' => '+254700000009'])
+            ->assertOk();
+        $this->assertDatabaseHas('trace_phone_verifications', [
+            'user_id' => $user->id, 'phone' => '+254700000009', 'attempts' => 0,
+        ]);
+        $this->assertMatchesRegularExpression('/[0-9]{6}/', $sentMessage);
+        preg_match('/([0-9]{6})/', $sentMessage, $matches);
+
+        $this->actingAs($user)->postJson('/trace-find/phone/verify-code', [
+            'phone' => '+254700000009', 'code' => $matches[1],
+        ])->assertOk();
+
+        $this->assertSame('+254700000009', $user->fresh()->phone);
+        $this->assertSame('verified', $user->fresh()->traceProfile->phone_verification_status);
     }
 }
