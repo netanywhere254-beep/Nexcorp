@@ -91,3 +91,20 @@ Group OTP codes are six digits, hashed at rest, expire after five minutes, allow
 Tenant organisation staff OTP remains a different flow under `/organization/staff-security`. Trace & Find family OTP and public Nexora account phone verification remain separate again. None of these verifications grants authority in another domain.
 
 The approval API exposes decisions only. Request creation and approval-plan selection remain trusted server-side workflows; clients cannot submit their own approver list or authority chain. A decision requires both assignment to the current approver and the current active authority/scope check performed by `GovernanceApprovalService`.
+
+
+## Initial CEO bootstrap and authority revocation
+
+The initial \`GROUP_CEO\` appointment is not a public registration flow and cannot be created through the ordinary governance request service. The first appointment is performed once by an authorised deployment operator using the Laravel CLI:
+
+1. Create the intended CEO user account through the controlled account-provisioning process; verify its email and set its account status to \`active\`.
+2. Set a temporary high-entropy \`NEXORA_GROUP_CEO_BOOTSTRAP_KEY\` in the protected Laravel runtime environment.
+3. From the primary Laravel application directory, run \`php artisan nexora:bootstrap-group-ceo ceo@example.com\` and enter the key at the hidden prompt.
+4. Confirm the \`group.ceo.initial_bootstrap\` audit event and active \`GROUP_CEO\` appointment.
+5. Remove the bootstrap key from the runtime environment and rebuild/clear cached Laravel configuration. Never keep the bootstrap secret as a permanent application credential.
+
+The command refuses unverified or inactive accounts and refuses to run if any \`GROUP_CEO\` appointment already exists, including a revoked historical appointment. The bootstrap is therefore intentionally non-repeatable; CEO succession requires a separately reviewed, controlled workflow and must not reuse this initial bootstrap command.
+
+Only the active group CEO can revoke a group authority through \`DELETE /group/governance/authorities/{id}\`. The request requires a fresh group OTP whose exact purpose is \`group.authority.revoke.{id}\`. The CEO cannot revoke their own appointment. CEO appointment rows are locked in a stable order during revocation so concurrent requests cannot race the final authority check. Revoking a user's final active group authority also revokes their group-approved phone and invalidates outstanding group OTP challenges. Every successful revocation is audited.
+
+This implementation is part of the Laravel primary. It does not establish NestJS standby parity; the standby must implement and test the same one-time bootstrap, OTP-bound revocation, locking, and audit contract before failover can be considered equivalent.
