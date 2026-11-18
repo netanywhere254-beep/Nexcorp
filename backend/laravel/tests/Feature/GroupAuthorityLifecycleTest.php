@@ -45,7 +45,8 @@ class GroupAuthorityLifecycleTest extends TestCase
         $phone = GroupStaffApprovedPhone::create([
             'user_id' => $ceo->id,
             'phone_e164' => '+254712345678',
-            'approved_by' => $ceo->id,
+            'approved_by' => null,
+            'approval_method' => 'one_time_bootstrap',
             'approved_at' => now(),
             'status' => 'active',
         ]);
@@ -78,6 +79,7 @@ class GroupAuthorityLifecycleTest extends TestCase
             'user_id' => $target->id,
             'phone_e164' => '+254722345678',
             'approved_by' => $ceo->id,
+            'approval_method' => 'staff_approval',
             'approved_at' => now(),
             'status' => 'active',
         ]);
@@ -180,13 +182,15 @@ class GroupAuthorityLifecycleTest extends TestCase
         $this->assertNotNull($challenge->fresh()->consumed_at);
     }
 
-    public function test_one_time_cli_bootstrap_requires_secret_and_never_repeats(): void
+    public function test_one_time_cli_bootstrap_requires_secret_and_registers_phone_without_self_approval(): void
     {
         $user = $this->user('Founding CEO');
         config(['services.nexora_group_ceo_bootstrap_key' => 'one-time-secret']);
 
-        $this->artisan('nexora:bootstrap-group-ceo', ['email' => $user->email])
-            ->expectsQuestion('One-time bootstrap key', 'one-time-secret')
+        $this->artisan('nexora:bootstrap-group-ceo', [
+            'email' => $user->email,
+            'phone' => '+254712345678',
+        ])->expectsQuestion('One-time bootstrap key', 'one-time-secret')
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('group_authorities', [
@@ -196,15 +200,40 @@ class GroupAuthorityLifecycleTest extends TestCase
             'scope_key' => 'nexora',
             'status' => 'active',
         ]);
+        $this->assertDatabaseHas('group_staff_approved_phones', [
+            'user_id' => $user->id,
+            'phone_e164' => '+254712345678',
+            'approved_by' => null,
+            'approval_method' => 'one_time_bootstrap',
+            'status' => 'active',
+        ]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'group.ceo.initial_bootstrap']);
 
         $another = $this->user('Second CEO Attempt');
-        $this->artisan('nexora:bootstrap-group-ceo', ['email' => $another->email])
-            ->expectsQuestion('One-time bootstrap key', 'one-time-secret')
+        $this->artisan('nexora:bootstrap-group-ceo', [
+            'email' => $another->email,
+            'phone' => '+254722345678',
+        ])->expectsQuestion('One-time bootstrap key', 'one-time-secret')
             ->assertExitCode(1);
 
         $this->assertDatabaseMissing('group_authorities', [
             'user_id' => $another->id,
+            'authority' => 'GROUP_CEO',
+        ]);
+    }
+
+    public function test_one_time_bootstrap_rejects_invalid_phone_format(): void
+    {
+        $user = $this->user('Invalid Phone CEO');
+        config(['services.nexora_group_ceo_bootstrap_key' => 'one-time-secret']);
+
+        $this->artisan('nexora:bootstrap-group-ceo', [
+            'email' => $user->email,
+            'phone' => '0712345678',
+        ])->assertExitCode(1);
+
+        $this->assertDatabaseMissing('group_authorities', [
+            'user_id' => $user->id,
             'authority' => 'GROUP_CEO',
         ]);
     }
