@@ -46,7 +46,7 @@ class OrganizationStaffOtpController {
   abort_if($c->verified_at,409,'Code already verified.'); abort_if($c->expires_at->isPast()||$c->attempts>=5,422,'Code expired or attempt limit reached.');
   if(!Hash::check($v['code'],$c->code_hash)){ $c->increment('attempts'); throw ValidationException::withMessages(['code'=>'Incorrect confirmation code.']); }
   abort_unless(OrganizationStaffApprovedPhone::whereKey($c->approved_phone_id)->where('status','active')->exists(),403,'Approved staff number was revoked.');
-  $c->update(['verified_at'=>now()]); $r->session()->put('nexora_staff_otp',['challenge_id'=>$c->id,'organization_id'=>$o->id,'purpose'=>$c->purpose,'verified_at'=>now()->timestamp]);
+  $c->update(['verified_at'=>now()]); $r->session()->put('nexora_staff_otp',['challenge_id'=>$c->id,'organization_id'=>$o->id,'user_id'=>$r->user()->id,'purpose'=>$c->purpose,'verified_at'=>now()->timestamp]);
   return response()->json(['message'=>'Staff confirmation verified.','purpose'=>$c->purpose,'valid_for_seconds'=>300]);
  }
 }
