@@ -1,5 +1,7 @@
 <?php
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\GovernanceApprovalController;
+use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
