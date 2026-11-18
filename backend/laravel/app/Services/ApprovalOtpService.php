@@ -61,7 +61,7 @@ class ApprovalOtpService
                 ->post($endpoint, [
                     'to' => $phone->phone_e164,
                     'message' => 'Nexora approval code: '.$code.'. It expires in '
-                        .(int) config('services.approval_sms.ttl_minutes', 5)
+                        .$this->otpTtlMinutes()
                         .' minutes. Never share this code.',
                     'reference' => 'NEXORA-APPROVAL-'.$challenge->id,
                     'sender_id' => config('services.approval_sms.sender_id'),
