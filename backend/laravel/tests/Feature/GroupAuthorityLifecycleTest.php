@@ -189,8 +189,8 @@ class GroupAuthorityLifecycleTest extends TestCase
 
         $this->artisan('nexora:bootstrap-group-ceo', [
             'email' => $user->email,
-            'phone' => '+254712345678',
         ])->expectsQuestion('One-time bootstrap key', 'one-time-secret')
+            ->expectsQuestion('Initial CEO phone in E.164 format', '+254712345678')
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('group_authorities', [
@@ -212,8 +212,8 @@ class GroupAuthorityLifecycleTest extends TestCase
         $another = $this->user('Second CEO Attempt');
         $this->artisan('nexora:bootstrap-group-ceo', [
             'email' => $another->email,
-            'phone' => '+254722345678',
         ])->expectsQuestion('One-time bootstrap key', 'one-time-secret')
+            ->expectsQuestion('Initial CEO phone in E.164 format', '+254722345678')
             ->assertExitCode(1);
 
         $this->assertDatabaseMissing('group_authorities', [
@@ -229,8 +229,9 @@ class GroupAuthorityLifecycleTest extends TestCase
 
         $this->artisan('nexora:bootstrap-group-ceo', [
             'email' => $user->email,
-            'phone' => '0712345678',
-        ])->assertExitCode(1);
+        ])->expectsQuestion('One-time bootstrap key', 'one-time-secret')
+            ->expectsQuestion('Initial CEO phone in E.164 format', '0712345678')
+            ->assertExitCode(1);
 
         $this->assertDatabaseMissing('group_authorities', [
             'user_id' => $user->id,
