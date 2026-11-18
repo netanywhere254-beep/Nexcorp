@@ -38,6 +38,16 @@ class GroupAuthorityController
         $otp->consume($request, 'group.authority.revoke.'.$authority->id);
 
         DB::transaction(function () use ($authority, $actor) {
+            // Lock CEO appointments in a stable order so concurrent revocations cannot remove the final authority.
+            GroupAuthority::query()
+                ->where('authority', 'GROUP_CEO')
+                ->where('scope_type', 'group')
+                ->where('scope_key', 'nexora')
+                ->where('status', 'active')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
             $locked = GroupAuthority::query()->whereKey($authority->id)->lockForUpdate()->firstOrFail();
             if ($locked->status !== 'active') {
                 abort(409, 'This group authority is no longer active.');
