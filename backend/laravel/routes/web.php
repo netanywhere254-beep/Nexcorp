@@ -8,6 +8,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
 use App\Http\Controllers\TraceProfileController;
 use App\Http\Controllers\TracePhoneVerificationController;
+use App\Http\Controllers\UserPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 Route::get('/',fn()=>view('welcome'));
 Route::get('/health',fn()=>response()->json(['status'=>'ok','application'=>'Nexora primary platform','architecture'=>'laravel-mysql']));
