@@ -20,7 +20,7 @@ Phone provisioning is intentionally not exposed as a public or ordinary user API
 
     php artisan nexora:approval-phone:add USER_ID +2547XXXXXXXX --approved-by=CEO_USER_ID
 
-The command requires the approved-by account to hold an active Nexora CEO or SECURITY_ADMIN group authority. The operator must confirm that the number has been independently verified and approved for the named person. The number is stored encrypted; a SHA-256 digest supports uniqueness checks. Revocation should be performed by a trusted database/operator workflow until a dedicated dual-control management screen is implemented.
+The command requires the approved-by account to hold an active Nexora CEO or SECURITY_ADMIN group authority. The operator must confirm that the number has been independently verified and approved for the named person. The number is stored encrypted; an HMAC-SHA-256 digest keyed with the application key supports uniqueness checks. Revocation should be performed by a trusted database/operator workflow until a dedicated dual-control management screen is implemented.
 
 ## SMS gateway configuration
 
