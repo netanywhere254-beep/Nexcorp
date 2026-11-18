@@ -95,6 +95,27 @@ class SessionAuthenticationTest extends TestCase
         ])->assertStatus(429);
     }
 
+    public function test_user_can_add_a_contact_phone_during_onboarding_without_creating_an_approval_phone(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->patchJson('/auth/profile/contact-phone', [
+                'phone' => '+254712345678',
+            ])->assertOk()
+            ->assertJsonPath('user.phone', '+254712345678')
+            ->assertJsonPath('message', 'Account contact number updated. This number is not an approval credential.');
+
+        $this->assertSame('+254712345678', $user->fresh()->phone);
+        $this->assertDatabaseMissing('authorized_approval_phones', [
+            'user_id' => $user->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $user->id,
+            'action' => 'user.contact_phone_updated',
+        ]);
+    }
+
     public function test_authenticated_profile_requires_a_session(): void
     {
         $this->getJson('/auth/me')->assertUnauthorized();
