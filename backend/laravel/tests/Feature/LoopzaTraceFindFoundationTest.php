@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\TraceCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
@@ -86,6 +88,11 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'status' => 'cross_region_review',
             'publication_status' => 'private',
         ]);
+
+        $case = TraceCase::query()->where('reporter_user_id', $user->id)->firstOrFail();
+        $this->assertSame($user->phone, $case->reporter_phone);
+        $storedPhone = DB::table('trace_cases')->where('id', $case->id)->value('reporter_phone');
+        $this->assertNotSame($user->phone, $storedPhone, 'Reporter phone must be encrypted at rest.');
     }
 
     public function test_unverified_location_and_selfie_do_not_receive_local_posting_status(): void
