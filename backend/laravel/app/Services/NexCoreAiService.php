@@ -81,6 +81,26 @@ class NexCoreAiService
         }
     }
 
+    private function assertFeatureEntitled(Organization $organization, string $feature): void
+    {
+        $productKey = match ($feature) {
+            'nexisp.support' => 'nexisp',
+            'loopza.marketing' => 'loopza',
+            default => 'nexora',
+        };
+
+        $entitled = AiFeatureEntitlement::query()
+            ->where('organization_id', $organization->id)
+            ->where('product_key', $productKey)
+            ->where('feature_key', $feature)
+            ->where('is_enabled', true)
+            ->exists();
+
+        if (! $entitled) {
+            throw new RuntimeException('NexCore AI feature is not enabled for this organization.');
+        }
+    }
+
     private function reserveBudget(Organization $organization): int
     {
         return DB::transaction(function () use ($organization): int {
