@@ -28,7 +28,7 @@ class TracePhoneVerificationController extends Controller
             ->where('user_id', $user->id)->where('phone', $phone)
             ->latest('id')->first();
 
-        if ($latest && now()->diffInSeconds($latest->last_sent_at) < 60) {
+        if ($latest && $latest->last_sent_at && \Illuminate\Support\Carbon::parse($latest->last_sent_at)->greaterThan(now()->subSeconds(60))) {
             return response()->json(['message' => 'Please wait before requesting another code.'], 429);
         }
 
