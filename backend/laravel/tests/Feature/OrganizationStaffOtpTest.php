@@ -51,7 +51,7 @@ class OrganizationStaffOtpTest extends TestCase {
   $this->actingAs($admin)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/approved-phones',['user_id'=>$staff->id,'phone'=>'+254712345678'])->assertCreated();
   $phone=OrganizationStaffApprovedPhone::where('organization_id',$org->id)->where('user_id',$staff->id)->firstOrFail();
-  $challenge=\\App\\Models\\OrganizationStaffOtpChallenge::create(['organization_id'=>$org->id,'user_id'=>$staff->id,'approved_phone_id'=>$phone->id,'purpose'=>'billing.approve','code_hash'=>\\Illuminate\\Support\\Facades\\Hash::make('123456'),'expires_at'=>now()->addMinutes(5)]);
+  $challenge=\App\Models\OrganizationStaffOtpChallenge::create(['organization_id'=>$org->id,'user_id'=>$staff->id,'approved_phone_id'=>$phone->id,'purpose'=>'billing.approve','code_hash'=>\Illuminate\Support\Facades\Hash::make('123456'),'expires_at'=>now()->addMinutes(5)]);
   $this->actingAs($admin)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/approved-phones',['user_id'=>$staff->id,'phone'=>'+254798765432'])->assertCreated();
   $this->assertDatabaseHas('organization_staff_otp_challenges',['id'=>$challenge->id]);
