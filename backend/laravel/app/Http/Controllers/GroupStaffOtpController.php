@@ -67,6 +67,7 @@ class GroupStaffOtpController
                 [
                     'phone_e164' => $phone,
                     'approved_by' => $request->user()->id,
+                    'approval_method' => 'staff_approval',
                     'approved_at' => now(),
                     'status' => 'active',
                     'revoked_at' => null,
