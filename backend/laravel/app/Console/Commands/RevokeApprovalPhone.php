@@ -50,7 +50,8 @@ class RevokeApprovalPhone extends Command
             return self::FAILURE;
         }
 
-        if (! $this->confirm('Revoke this approval number ending '.$record->phone_last_four.'?')) {
+        $lastFour = substr($record->phone_e164, -4);
+        if (! $this->confirm('Revoke this approval number ending '.$lastFour.'?')) {
             $this->warn('No number was revoked.');
             return self::SUCCESS;
         }
