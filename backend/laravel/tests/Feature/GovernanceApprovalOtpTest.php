@@ -158,6 +158,38 @@ class GovernanceApprovalOtpTest extends TestCase
         ]);
     }
 
+
+    public function test_fifth_wrong_attempt_consumes_the_challenge(): void
+    {
+        [, $approval, $approver] = $this->approvalFixture();
+        $phone = $this->registerPhone($approver);
+        $challenge = $this->createChallenge($approval, $approver, $phone, '481205');
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->actingAs($approver)
+                ->postJson('/governance/approvals/'.$approval->id.'/confirm', [
+                    'otp' => '000000',
+                    'decision' => 'approved',
+                ])->assertUnprocessable();
+        }
+
+        $this->assertSame(5, $challenge->fresh()->attempts);
+        $this->assertNotNull($challenge->fresh()->consumed_at);
+        $this->assertSame('pending', $approval->fresh()->decision);
+    }
+
+    public function test_registered_phone_is_encrypted_at_rest(): void
+    {
+        $user = $this->makeUser('encrypted-phone');
+        $phone = $this->registerPhone($user);
+        $stored = \Illuminate\Support\Facades\DB::table('authorized_approval_phones')
+            ->where('id', $phone->id)
+            ->value('phone_e164');
+
+        $this->assertNotSame('+2547000001234', $stored);
+        $this->assertSame('+2547000001234', $phone->fresh()->phone_e164);
+    }
+
     private function approvalFixture(bool $requesterIsApprover = false): array
     {
         $requester = $this->makeUser('requester');
