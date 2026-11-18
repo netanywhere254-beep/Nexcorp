@@ -105,6 +105,24 @@ class GroupAuthorityLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_revocation_otp_must_match_the_exact_authority_id(): void
+    {
+        $ceo = $this->user('Group CEO');
+        $target = $this->user('Department Head');
+        $this->authority($ceo, 'GROUP_CEO');
+        $targetAuthority = $this->authority($target, 'DEPARTMENT_HEAD');
+        [, $session] = $this->verifiedOtp($ceo, 'group.authority.revoke.'.($targetAuthority->id + 1));
+
+        $this->actingAs($ceo)->withSession(['nexora_group_staff_otp' => $session])
+            ->deleteJson('/group/governance/authorities/'.$targetAuthority->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('group_authorities', [
+            'id' => $targetAuthority->id,
+            'status' => 'active',
+        ]);
+    }
+
     public function test_non_ceo_cannot_revoke_group_authority(): void
     {
         $director = $this->user('Director');
