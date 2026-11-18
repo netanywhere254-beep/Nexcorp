@@ -122,7 +122,7 @@ class UserPhoneVerificationController extends Controller
             if (! Hash::check($data['code'], $challenge->code_hash)) {
                 DB::table('user_phone_otp_challenges')->where('id', $challenge->id)
                     ->increment('attempts');
-                throw ValidationException::withMessages(['code' => 'The code is invalid or expired.']);
+                return false;
             }
 
             $claimed = DB::table('user_phone_verifications')
@@ -158,6 +158,10 @@ class UserPhoneVerificationController extends Controller
             return true;
         });
 
-        return response()->json(['message' => 'Account phone number verified successfully.', 'verified' => $result]);
+        if (! $result) {
+            throw ValidationException::withMessages(['code' => 'The code is invalid or expired.']);
+        }
+
+        return response()->json(['message' => 'Account phone number verified successfully.', 'verified' => true]);
     }
 }
