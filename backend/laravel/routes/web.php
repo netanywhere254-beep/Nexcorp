@@ -33,6 +33,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::get('/me', [SessionController::class, 'me']);
+        Route::patch('/profile/contact-phone', [SessionController::class, 'updateContactPhone'])->middleware('throttle:5,1');
         Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
             ->middleware('throttle:6,1')->name('verification.send');
         Route::post('/organization', [SessionController::class, 'selectOrganization']);
