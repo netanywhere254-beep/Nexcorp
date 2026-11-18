@@ -37,7 +37,7 @@ class StaffOtpConfirmation
 
             if (! $challenge || ! $challenge->verified_at || $challenge->consumed_at
                 || $challenge->expires_at->isPast()
-                || $challenge->verified_at->isPast() === false && $challenge->verified_at->gt(now())
+                || $challenge->verified_at->gt(now())
                 || $challenge->verified_at->lt(now()->subMinutes(5))
                 || $challenge->verified_at->timestamp !== (int) $session['verified_at']) {
                 throw new AuthorizationException('Staff OTP is invalid, expired, or already used.');
