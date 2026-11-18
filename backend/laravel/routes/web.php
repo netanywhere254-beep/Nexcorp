@@ -5,6 +5,8 @@ use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\TraceCaseController;
+use App\Http\Controllers\TraceProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'));
@@ -45,3 +47,10 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth', 'verified', 'organization.active'])->get('/ai', fn () => view('ai.chat'));
 Route::middleware(['auth', 'verified', 'organization.active', 'throttle:10,1'])
     ->post('/ai/assist', [NexCoreAiController::class, 'assist']);
+
+
+// Loopza Trace & Find: authenticated reports stay private until reviewed.
+Route::middleware(['auth', 'verified'])->prefix('trace-find')->group(function () {
+    Route::post('/profile', [TraceProfileController::class, 'store'])->middleware('throttle:3,1');
+    Route::post('/cases', [TraceCaseController::class, 'store'])->middleware('throttle:5,1');
+});
