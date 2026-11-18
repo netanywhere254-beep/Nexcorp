@@ -43,7 +43,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // Governance approvals require an authenticated, specifically assigned approver.
-Route::middleware('auth')->prefix('governance/approvals')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('governance/approvals')->group(function () {
     Route::post('/{approval}/otp', [GovernanceApprovalController::class, 'sendOtp'])->middleware('throttle:3,1');
     Route::post('/{approval}/confirm', [GovernanceApprovalController::class, 'confirm'])->middleware('throttle:5,1');
 });
