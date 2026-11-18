@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - 'implementation/**'
+      - 'security/**'
   pull_request:
     branches:
       - main
