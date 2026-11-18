@@ -109,6 +109,35 @@ class SessionController
         ]);
     }
 
+    /**
+     * Self-service contact number for the user's account profile.
+     * This field is deliberately separate from organisation-approved
+     * governance approval phone credentials.
+     */
+    public function updateContactPhone(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => ['nullable', 'string', 'max:32', 'regex:/^\\+?[0-9][0-9\\s()-]{6,30}$/'],
+        ]);
+
+        $user = $request->user();
+        $user->forceFill(['phone' => $validated['phone'] ?? null])->save();
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $user->id,
+            'action' => 'user.contact_phone_updated',
+            'subject_type' => User::class,
+            'subject_id' => (string) $user->id,
+            'metadata' => ['has_contact_phone' => filled($validated['phone'] ?? null)],
+        ]);
+
+        return response()->json([
+            'message' => 'Account contact number updated. This number is not an approval credential.',
+            'user' => $this->userPayload($user->fresh()),
+        ]);
+    }
+
     public function me(Request $request): JsonResponse
     {
         return response()->json([
