@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiFeatureEntitlement;
 use App\Models\AiOrganizationBudget;
 use App\Models\AiUsageLog;
 use App\Models\Organization;
@@ -27,13 +28,17 @@ class NexCoreAiService
         $provider = (string) config('nexcore_ai.provider');
         $model = (string) config('nexcore_ai.model');
 
+        if (! array_key_exists($feature, self::FEATURES)) {
+            throw new RuntimeException('Unsupported AI feature.');
+        }
+
+        // Product access is independent of the shared AI budget. A tenant must
+        // receive an explicit, auditable grant for each feature before use.
+        $this->assertFeatureEntitled($organization, $feature);
+
         if (! config('nexcore_ai.enabled') || ! config('nexcore_ai.api_key')) {
             $this->record($organization, $user, $requestId, $feature, $provider, $model, 'unavailable', $startedAt);
             throw new RuntimeException('NexCore AI is not configured.');
-        }
-
-        if (! array_key_exists($feature, self::FEATURES)) {
-            throw new RuntimeException('Unsupported AI feature.');
         }
 
         $maxOutputTokens = $this->reserveBudget($organization);
@@ -73,6 +78,26 @@ class NexCoreAiService
         } catch (Throwable $exception) {
             $this->record($organization, $user, $requestId, $feature, $provider, $model, 'failed', $startedAt);
             throw new RuntimeException('NexCore AI could not complete the request.', previous: $exception);
+        }
+    }
+
+    private function assertFeatureEntitled(Organization $organization, string $feature): void
+    {
+        $productKey = match ($feature) {
+            'nexisp.support' => 'nexisp',
+            'loopza.marketing' => 'loopza',
+            default => 'nexora',
+        };
+
+        $entitled = AiFeatureEntitlement::query()
+            ->where('organization_id', $organization->id)
+            ->where('product_key', $productKey)
+            ->where('feature_key', $feature)
+            ->where('is_enabled', true)
+            ->exists();
+
+        if (! $entitled) {
+            throw new RuntimeException('NexCore AI feature is not enabled for this organization.');
         }
     }
 
