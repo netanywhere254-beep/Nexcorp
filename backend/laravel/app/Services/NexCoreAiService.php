@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AiFeatureEntitlement;
 use App\Models\AiOrganizationBudget;
 use App\Models\AiUsageLog;
 use App\Models\Organization;
