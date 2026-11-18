@@ -117,7 +117,7 @@ class ApprovalOtpService
             }
 
             $phone = $challenge->phone;
-            if (! $phone || $phone->status !== 'active' || $phone->revoked_at || ! $phone->verified_at) {
+            if (! $phone || (int) $phone->user_id !== (int) $actor->id || $phone->status !== 'active' || $phone->revoked_at || ! $phone->verified_at) {
                 return 'The registered approval phone is no longer authorized.';
             }
 
