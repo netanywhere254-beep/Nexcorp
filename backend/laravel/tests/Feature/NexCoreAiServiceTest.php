@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiFeatureEntitlement;
 use App\Models\AiOrganizationBudget;
 use App\Models\AiUsageLog;
 use App\Models\Organization;
@@ -32,6 +33,19 @@ class NexCoreAiServiceTest extends TestCase
             'password' => 'A-Strong-Test-Password-123!',
             'status' => 'active',
         ]);
+
+        foreach ([
+            ['product_key' => 'nexora', 'feature_key' => 'general'],
+            ['product_key' => 'nexisp', 'feature_key' => 'nexisp.support'],
+        ] as $entitlement) {
+            AiFeatureEntitlement::create([
+                'organization_id' => $organization->id,
+                ...$entitlement,
+                'is_enabled' => true,
+                'granted_by_user_id' => $user->id,
+                'enabled_at' => now(),
+            ]);
+        }
 
         return [$organization, $user];
     }
