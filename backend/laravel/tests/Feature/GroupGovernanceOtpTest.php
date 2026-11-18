@@ -46,6 +46,7 @@ class GroupGovernanceOtpTest extends TestCase
         $securityOfficer = $this->user('Security Officer');
         $staff = $this->user('Group Staff');
         $this->authority($securityOfficer, 'GROUP_SECURITY_OFFICER');
+        $this->authority($staff, 'GROUP_AUDITOR');
 
         $this->actingAs($securityOfficer)
             ->postJson('/group/staff-security/approved-phones', [
@@ -156,7 +157,7 @@ class GroupGovernanceOtpTest extends TestCase
 
         $this->postJson('/group/governance/approvals/'.$approvalId.'/decision', [
             'decision' => 'approved',
-        ])->assertForbidden();
+        ])->assertNotFound();
     }
 
     public function test_group_otp_requires_https_provider_and_active_group_authority(): void
