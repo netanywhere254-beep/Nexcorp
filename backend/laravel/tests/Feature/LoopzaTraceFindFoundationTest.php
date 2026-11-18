@@ -34,7 +34,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'locality' => 'Kisii',
             'latitude' => '-0.6817',
             'longitude' => '34.7667',
-            'selfie' => UploadedFile::fake()->image('selfie.jpg'),
+            'selfie' => UploadedFile::fake()->createWithContent('selfie.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKk0AAAAASUVORK5CYII=')),
             'location_consent' => '1',
             'biometric_processing_consent' => '1',
             'account_type' => 'authority',
