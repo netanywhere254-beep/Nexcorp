@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class GroupStaffApprovedPhone extends Model
 {
     protected $fillable = [
-        'user_id', 'phone_e164', 'approved_by', 'approved_at', 'status', 'revoked_at',
+        'user_id', 'phone_e164', 'approved_by', 'approval_method',
+        'approved_at', 'status', 'revoked_at',
     ];
 
     protected function casts(): array
