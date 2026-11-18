@@ -43,9 +43,9 @@ class GovernanceApprovalController
 
     public function decide(
         Request $request,
-        int $approvalId,
         GroupStaffOtpConfirmation $otp,
         GovernanceApprovalService $governance,
+        int $approvalId,
     ): JsonResponse {
         $data = $request->validate([
             'decision' => ['required', 'in:approved,rejected'],
