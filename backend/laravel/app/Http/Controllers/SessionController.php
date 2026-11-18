@@ -50,6 +50,8 @@ class SessionController
             'status' => 'active',
         ]);
 
+        $user->sendEmailVerificationNotification();
+
         AuditLog::create([
             'organization_id' => null,
             'actor_user_id' => $user->id,
@@ -97,9 +99,13 @@ class SessionController
         $limiter->clear($key);
         $request->session()->regenerate();
 
+        $user = $request->user();
+        $verified = $user->hasVerifiedEmail();
+
         return response()->json([
-            'message' => 'Signed in successfully.',
-            'user' => $this->userPayload($request->user()),
+            'message' => $verified ? 'Signed in successfully.' : 'Signed in. Verify your email address to unlock your workspace.',
+            'email_verification_required' => ! $verified,
+            'user' => $this->userPayload($user),
         ]);
     }
 
@@ -170,6 +176,7 @@ class SessionController
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
+            'email_verified' => $user->hasVerifiedEmail(),
             'organizations' => $user->organizations()
                 ->wherePivot('status', 'active')
                 ->where('organizations.status', 'active')
