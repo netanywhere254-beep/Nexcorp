@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ApprovalOtpChallenge;
+use App\Models\AuditLog;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GovernanceApproval;
 use App\Models\User;
@@ -127,6 +128,15 @@ class ApprovalOtpService
             } elseif (! $request->approvals()->where('decision', 'pending')->exists()) {
                 $request->forceFill(['status' => 'approved', 'completed_at' => now()])->save();
             }
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $actor->id,
+                'action' => 'governance.approval_'.$decision,
+                'subject_type' => GovernanceApproval::class,
+                'subject_id' => (string) $lockedApproval->id,
+                'metadata' => ['approval_level' => $lockedApproval->approval_level],
+            ]);
 
             return null;
         });
