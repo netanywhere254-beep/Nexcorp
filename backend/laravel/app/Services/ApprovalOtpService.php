@@ -119,6 +119,7 @@ class ApprovalOtpService
 
             $phone = $challenge->phone;
             if (! $phone || (int) $phone->user_id !== (int) $actor->id || $phone->status !== 'active' || $phone->revoked_at || ! $phone->verified_at) {
+                $challenge->forceFill(['consumed_at' => now()])->save();
                 return 'The registered approval phone is no longer authorized.';
             }
 
