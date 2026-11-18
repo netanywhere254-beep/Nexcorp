@@ -34,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         ];
     }
 
-    public function organizations(): BelongsToMany
+    public function traceProfile(): HasOne\n    {\n        return $this->hasOne(TraceProfile::class);\n    }\n\n    public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class, 'organization_members')
             ->withPivot(['role', 'status', 'joined_at'])
