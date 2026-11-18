@@ -96,23 +96,16 @@ class SessionController
             ]);
         }
 
-        if (! $request->user()->hasVerifiedEmail()) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            return response()->json([
-                'message' => 'Verify your email address before signing in.',
-                'email_verification_required' => true,
-            ], 403);
-        }
-
         $limiter->clear($key);
         $request->session()->regenerate();
 
+        $user = $request->user();
+        $verified = $user->hasVerifiedEmail();
+
         return response()->json([
-            'message' => 'Signed in successfully.',
-            'user' => $this->userPayload($request->user()),
+            'message' => $verified ? 'Signed in successfully.' : 'Signed in. Verify your email address to unlock your workspace.',
+            'email_verification_required' => ! $verified,
+            'user' => $this->userPayload($user),
         ]);
     }
 
