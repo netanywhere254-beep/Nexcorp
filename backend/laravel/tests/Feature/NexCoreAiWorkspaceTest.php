@@ -8,6 +8,8 @@ class NexCoreAiWorkspaceTest extends TestCase
 {
     public function test_ai_workspace_requires_an_authenticated_session(): void
     {
-        $this->get('/ai')->assertRedirect('/login');
+        $this->withHeader('Accept', 'application/json')
+            ->get('/ai')
+            ->assertUnauthorized();
     }
 }
