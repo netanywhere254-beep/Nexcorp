@@ -14,6 +14,15 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class PasswordRecoveryController extends Controller
 {
+    public function showResetForm(Request $request, string $token): JsonResponse
+    {
+        return response()->json([
+            'token' => $token,
+            'email' => $request->query('email'),
+            'message' => 'Submit this token, email address, and a new confirmed password to POST /auth/reset-password.',
+        ]);
+    }
+
     public function sendLink(Request $request): JsonResponse
     {
         $validated = $request->validate(['email' => ['required', 'email', 'max:254']]);
