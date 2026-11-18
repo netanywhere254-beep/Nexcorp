@@ -6,6 +6,7 @@ use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
+use App\Http\Controllers\TraceProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'));
@@ -49,5 +50,6 @@ Route::middleware(['auth', 'verified', 'organization.active', 'throttle:10,1'])
 
 // Loopza Trace & Find: reports are authenticated and remain private until reviewed.
 Route::middleware(['auth', 'verified'])->prefix('trace-find')->group(function () {
+    Route::post('/profile', [TraceProfileController::class, 'store'])->middleware('throttle:3,1');
     Route::post('/cases', [TraceCaseController::class, 'store'])->middleware('throttle:5,1');
 });
