@@ -256,6 +256,7 @@ class GovernanceApprovalOtpTest extends TestCase
             'email' => $prefix.'-'.$counter.'@example.test',
             'password' => 'Correct-Horse-42!',
             'status' => 'active',
+            'email_verified_at' => now(),
         ]);
     }
 }
