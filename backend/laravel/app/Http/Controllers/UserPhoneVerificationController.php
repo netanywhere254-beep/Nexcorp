@@ -1,15 +1,15 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\AuditLog;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\AuditLog;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UserPhoneVerificationController extends Controller
 {
@@ -31,7 +31,7 @@ class UserPhoneVerificationController extends Controller
     public function send(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'phone' => ['required', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],
+            'phone' => ['required', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'],
         ]);
         $user = $request->user();
         $phone = $data['phone'];
@@ -49,7 +49,7 @@ class UserPhoneVerificationController extends Controller
 
         $latest = DB::table('user_phone_otp_challenges')
             ->where('user_id', $user->id)->latest('id')->first();
-        if ($latest && now()->lessThan(\\Illuminate\\Support\\Carbon::parse($latest->last_sent_at)->addSeconds(60))) {
+        if ($latest && now()->lessThan(\Illuminate\Support\Carbon::parse($latest->last_sent_at)->addSeconds(60))) {
             return response()->json(['message' => 'Please wait before requesting another code.'], 429);
         }
 
@@ -70,7 +70,7 @@ class UserPhoneVerificationController extends Controller
                 'to' => $phone,
                 'message' => 'Your Nexora account verification code is '.$code.'. It expires in 5 minutes.',
             ]);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
             return response()->json(['message' => 'We could not deliver the verification code. Please try again later.'], 502);
         }
@@ -100,7 +100,7 @@ class UserPhoneVerificationController extends Controller
     public function verify(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'phone' => ['required', 'string', 'regex:/^\\+[1-9][0-9]{7,14}$/'],
+            'phone' => ['required', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'],
             'code' => ['required', 'digits:6'],
         ]);
         $user = $request->user();
