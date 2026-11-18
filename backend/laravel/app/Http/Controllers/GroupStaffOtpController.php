@@ -43,6 +43,7 @@ class GroupStaffOtpController
         ]);
 
         $staff = User::whereKey($data['user_id'])->where('status', 'active')->firstOrFail();
+        abort_if($request->user()->is($staff), 403, 'A staff member cannot approve their own group phone number.');
         abort_unless($this->hasGroupAuthority($staff->id, [
             'GROUP_CEO', 'GROUP_DIRECTOR', 'DEPARTMENT_HEAD',
             'GROUP_SECURITY_OFFICER', 'GROUP_FINANCE_OFFICER', 'GROUP_AUDITOR',
