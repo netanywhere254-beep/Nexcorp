@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\GovernanceApprovalController;
+use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
@@ -48,6 +49,9 @@ Route::middleware(['auth','verified'])->prefix('group/staff-security')->group(fu
 Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->group(function(){
  Route::get('/',[GovernanceApprovalController::class,'index']);
  Route::post('/{approvalId}/decision',[GovernanceApprovalController::class,'decide'])->middleware('throttle:10,1');
+});
+Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->group(function(){
+ Route::delete('/{id}',[GroupAuthorityController::class,'revoke'])->middleware('throttle:5,1');
 });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
