@@ -53,6 +53,15 @@ class RegisterApprovalPhone extends Command
             return self::SUCCESS;
         }
 
+        $existingPhone = AuthorizedApprovalPhone::query()
+            ->where('phone_hash', hash('sha256', $phone))
+            ->first();
+
+        if ($existingPhone && (int) $existingPhone->user_id !== (int) $user->id) {
+            $this->error('This number is already assigned to another account. Revoke it through the approved security process before reassignment.');
+            return self::FAILURE;
+        }
+
         AuthorizedApprovalPhone::updateOrCreate(
             ['phone_hash' => hash('sha256', $phone)],
             [
