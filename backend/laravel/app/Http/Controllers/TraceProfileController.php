@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class TraceProfileController extends Controller
 {
@@ -45,7 +43,8 @@ class TraceProfileController extends Controller
             'location_verification_status' => 'pending',
             'selfie_verification_status' => 'pending',
             'selfie_path' => $selfiePath,
-            // Submitted coordinates are evidence for review, not verified coordinates.
+            'submitted_latitude' => $data['latitude'],
+            'submitted_longitude' => $data['longitude'],
         ]);
 
         return response()->json([
