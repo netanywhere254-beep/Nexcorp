@@ -22,6 +22,9 @@ Initial controlled authority identifiers:
 - GROUP_SECURITY_OFFICER
 - GROUP_FINANCE_OFFICER
 - GROUP_AUDITOR
+- GROUP_IT_MANAGER
+
+`GROUP_IT_MANAGER` is a formal Nexora Group technical-management appointment, not a generic product-admin or executive override. Its group remit covers IT operations and coordination for shared technology, infrastructure, identity and access administration, platform reliability, security implementation, backups, integrations, and technical change control. Access to NexISP or Loopza production systems must still be explicitly granted and scoped; the title alone does not grant unrestricted tenant data access, financial authority, appointment/approval powers, or the ability to bypass security controls. Sensitive actions remain subject to independent approval, audit logging, and step-up verification.
 
 Product and organization permissions remain separately scoped, for example nexisp.operator, nexisp.network.manage, loopza.campaign.manage, and organization.billing.manage. These are permission identifiers, not public registration roles.
 
