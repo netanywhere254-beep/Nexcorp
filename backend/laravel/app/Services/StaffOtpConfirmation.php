@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Models\\OrganizationStaffApprovedPhone;
-use App\\Models\\OrganizationStaffOtpChallenge;
-use Illuminate\\Auth\\Access\\AuthorizationException;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
+use App\Models\OrganizationStaffApprovedPhone;
+use App\Models\OrganizationStaffOtpChallenge;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StaffOtpConfirmation
 {
