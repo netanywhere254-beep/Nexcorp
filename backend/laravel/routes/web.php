@@ -1,5 +1,7 @@
 <?php
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\GovernanceApprovalController;
+use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
@@ -34,6 +36,18 @@ Route::middleware(['auth', 'verified'])->prefix('account/phone')->group(function
     Route::get('/status', [UserPhoneVerificationController::class, 'status']);
     Route::post('/send-code', [UserPhoneVerificationController::class, 'send'])->middleware('throttle:3,1');
     Route::post('/verify-code', [UserPhoneVerificationController::class, 'verify'])->middleware('throttle:6,1');
+});
+
+// Nexora Group governance staff security is group-scoped, not tenant-scoped.
+Route::middleware(['auth','verified'])->prefix('group/staff-security')->group(function(){
+ Route::post('/approved-phones',[GroupStaffOtpController::class,'approveNumber'])->middleware('throttle:10,1');
+ Route::delete('/approved-phones/{id}',[GroupStaffOtpController::class,'revokeNumber'])->middleware('throttle:10,1');
+ Route::post('/otp/send',[GroupStaffOtpController::class,'sendCode'])->middleware('throttle:3,1');
+ Route::post('/otp/verify',[GroupStaffOtpController::class,'verifyCode'])->middleware('throttle:6,1');
+});
+Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->group(function(){
+ Route::get('/',[GovernanceApprovalController::class,'index']);
+ Route::post('/{approvalId}/decision',[GovernanceApprovalController::class,'decide'])->middleware('throttle:10,1');
 });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.

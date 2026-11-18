@@ -13,4 +13,8 @@ return [
         'url' => env('NEXORA_PUBLIC_SMS_URL'),
         'token' => env('NEXORA_PUBLIC_SMS_TOKEN'),
     ],
+    'nexora_group_sms' => [
+        'url' => env('NEXORA_GROUP_SMS_URL'),
+        'token' => env('NEXORA_GROUP_SMS_TOKEN'),
+    ],
 ];

@@ -73,3 +73,21 @@ Before enabling privileged administration in production:
 5. Confirm MySQL production migration and backup/restore procedure.
 6. Implement and test the same contract in an active NestJS standby before claiming failover parity.
 7. Obtain security review and an independently controlled CEO bootstrap runbook.
+
+
+## Group governance staff OTP and approval API
+
+Group-level governance uses a separate allow-list and OTP challenge store; it does not reuse a tenant organisation's staff phone or OTP session. The group allow-list can be managed only by an active `GROUP_CEO` or `GROUP_SECURITY_OFFICER` with group scope `group:nexora`. The target must already hold an active group appointment. Staff cannot add or replace their own group phone.
+
+- `POST /group/staff-security/approved-phones`: pre-register a group appointee's E.164 phone.
+- `DELETE /group/staff-security/approved-phones/{id}`: revoke a pre-approved group phone and invalidate outstanding challenges.
+- `POST /group/staff-security/otp/send`: send a purpose-bound code to the active approved group phone.
+- `POST /group/staff-security/otp/verify`: verify the code and establish a five-minute, user-bound session confirmation.
+- `GET /group/governance/approvals`: list only pending approval stages assigned to the signed-in user.
+- `POST /group/governance/approvals/{approvalId}/decision`: require the exact purpose `governance.approval.decide.{approvalId}` and consume the verified group OTP before recording a decision.
+
+Group OTP codes are six digits, hashed at rest, expire after five minutes, allow at most five attempts, and are subject to a 60-second resend cooldown. The group SMS provider is configured separately with `NEXORA_GROUP_SMS_URL` and `NEXORA_GROUP_SMS_TOKEN`; HTTPS is mandatory. The primary Docker stack forwards these settings into Laravel.
+
+Tenant organisation staff OTP remains a different flow under `/organization/staff-security`. Trace & Find family OTP and public Nexora account phone verification remain separate again. None of these verifications grants authority in another domain.
+
+The approval API exposes decisions only. Request creation and approval-plan selection remain trusted server-side workflows; clients cannot submit their own approver list or authority chain. A decision requires both assignment to the current approver and the current active authority/scope check performed by `GovernanceApprovalService`.
