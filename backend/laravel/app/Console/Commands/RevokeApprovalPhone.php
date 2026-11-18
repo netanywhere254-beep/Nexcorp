@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ApprovalOtpChallenge;
 use App\Models\AuditLog;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GroupAuthority;
@@ -56,6 +57,10 @@ class RevokeApprovalPhone extends Command
         }
 
         $record->forceFill(['status' => 'revoked', 'revoked_at' => now()])->save();
+        ApprovalOtpChallenge::query()
+            ->where('authorized_approval_phone_id', $record->id)
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => now(), 'updated_at' => now()]);
 
         AuditLog::create([
             'organization_id' => null,
