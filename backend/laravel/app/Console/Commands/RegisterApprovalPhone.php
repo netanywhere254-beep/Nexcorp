@@ -44,6 +44,11 @@ class RegisterApprovalPhone extends Command
             return self::FAILURE;
         }
 
+        if ((int) $approver->id === (int) $user->id) {
+            $this->error('A staff member cannot approve their own approval-phone registration. Use a separate authorised organisation administrator.');
+            return self::FAILURE;
+        }
+
         $phone = $this->argument('phone');
         if (! preg_match('/^\+[1-9][0-9]{7,14}$/', $phone)) {
             $this->error('Use an E.164 number, for example +2547XXXXXXXX.');
