@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Governance approvals require a second confirmation factor delivered only to a phone number that has been pre-registered, independently verified, and approved for the assigned approver. The ordinary account contact phone (`users.phone`) may be entered during public registration or normal onboarding. It is not an approval factor and is never used for governance OTP delivery. Staff and management approval phones are a separate credential: they must be pre-registered, independently verified, and approved by the organisation. Staff cannot self-enrol or replace this approval phone.
+Governance approvals require a second confirmation factor delivered only to a phone number that has been pre-registered, independently verified, and approved for the assigned approver. The ordinary account contact phone (`users.phone`) may be entered during public registration or normal onboarding, or updated by the signed-in user through `PATCH /auth/profile/contact-phone`. It is not an approval factor and is never used for governance OTP delivery. This self-service endpoint only updates the account contact field and writes an audit event; it cannot create or modify an authorised approval-phone record. Staff and management approval phones are a separate credential: they must be pre-registered, independently verified, and approved by the organisation. Staff cannot self-enrol or replace this approval phone.
 
 ## Approval flow
 
