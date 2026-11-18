@@ -13,7 +13,7 @@ return new class extends Migration {
    $t->string('location_verification_status',24)->default('pending');
    $t->string('selfie_verification_status',24)->default('pending');
    $t->string('selfie_path')->nullable(); $t->decimal('verified_latitude',10,7)->nullable();
-   $t->decimal('verified_longitude',10,7)->nullable(); $t->timestamp('verified_at')->nullable(); $t->timestamps();
+   $t->decimal('verified_longitude',10,7)->nullable(); $t->decimal('submitted_latitude',10,7)->nullable();\n   $t->decimal('submitted_longitude',10,7)->nullable(); $t->timestamp('verified_at')->nullable(); $t->timestamps();
   });
   Schema::create('trace_cases', function(Blueprint $t) {
    $t->id(); $t->uuid('public_id')->unique(); $t->string('case_reference',40)->unique();
