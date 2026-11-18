@@ -50,8 +50,7 @@ class RevokeApprovalPhone extends Command
             return self::FAILURE;
         }
 
-        $lastFour = substr($record->phone_e164, -4);
-        if (! $this->confirm('Revoke this approval number ending '.$lastFour.'?')) {
+        if (! $this->confirm('Revoke the selected pre-approved phone number?')) {
             $this->warn('No number was revoked.');
             return self::SUCCESS;
         }
@@ -64,7 +63,7 @@ class RevokeApprovalPhone extends Command
             'action' => 'governance.approval_phone_revoked',
             'subject_type' => AuthorizedApprovalPhone::class,
             'subject_id' => (string) $record->id,
-            'metadata' => ['assigned_user_id' => $record->user_id, 'phone_last_four' => substr($phone, -4)],
+            'metadata' => ['assigned_user_id' => $record->user_id],
         ]);
 
         $this->info('Approval number revoked.');
