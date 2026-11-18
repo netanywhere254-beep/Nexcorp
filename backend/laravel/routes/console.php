@@ -5,7 +5,6 @@ use App\Models\GroupAuthority;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 Artisan::command('nexora:about', function () {
