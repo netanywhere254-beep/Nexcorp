@@ -27,8 +27,9 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
 
     try {
         DB::transaction(function () use ($email) {
-            // Lock an existing user row to serialize simultaneous first-CEO attempts.
-            $user = User::query()->where('email', $email)->lockForUpdate()->first();
+            // A stable global row lock serializes simultaneous first-CEO attempts, even for different emails.
+            User::query()->orderBy('id')->lockForUpdate()->first();
+            $user = User::query()->where('email', $email)->first();
             if (! $user || $user->status !== 'active' || ! $user->email_verified_at) {
                 throw ValidationException::withMessages([
                     'email' => 'The CEO account must already exist, be active, and have a verified email.',
