@@ -22,6 +22,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [SessionController::class, 'register']);
     Route::post('/login', [SessionController::class, 'login']);
     Route::post('/forgot-password', [PasswordRecoveryController::class, 'sendLink'])->middleware('throttle:3,1');
+    Route::get('/reset-password/{token}', [PasswordRecoveryController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:5,1');
     Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
         ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
