@@ -1,10 +1,13 @@
 <?php
-namespace App\Services;
-use App\Models\OrganizationStaffApprovedPhone;
-use App\Models\OrganizationStaffOtpChallenge;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Auth\Access\AuthorizationException;
+
+namespace App\\Services;
+
+use App\\Models\\OrganizationStaffApprovedPhone;
+use App\\Models\\OrganizationStaffOtpChallenge;
+use Illuminate\\Auth\\Access\\AuthorizationException;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\DB;
+
 class StaffOtpConfirmation
 {
     public function consume(Request $request, string $purpose): void
@@ -17,12 +20,15 @@ class StaffOtpConfirmation
             || ($session['purpose'] ?? null) !== $purpose
             || (int) ($session['organization_id'] ?? 0) !== $organizationId
             || (int) ($session['user_id'] ?? 0) !== $userId
-            || (int) ($session['verified_at'] ?? 0) < now()->subMinutes(5)->timestamp) {
+            || (int) ($session['challenge_id'] ?? 0) < 1
+            || (int) ($session['verified_at'] ?? 0) < now()->subMinutes(5)->timestamp
+            || (int) ($session['verified_at'] ?? 0) > now()->timestamp) {
             throw new AuthorizationException('A fresh organisation-approved staff OTP is required.');
         }
 
         DB::transaction(function () use ($session, $organizationId, $userId, $purpose) {
-            $challenge = OrganizationStaffOtpChallenge::whereKey($session['challenge_id'] ?? 0)
+            $challenge = OrganizationStaffOtpChallenge::query()
+                ->whereKey((int) $session['challenge_id'])
                 ->where('organization_id', $organizationId)
                 ->where('user_id', $userId)
                 ->where('purpose', $purpose)
@@ -30,11 +36,15 @@ class StaffOtpConfirmation
                 ->first();
 
             if (! $challenge || ! $challenge->verified_at || $challenge->consumed_at
-                || $challenge->expires_at->isPast()) {
+                || $challenge->expires_at->isPast()
+                || $challenge->verified_at->isPast() === false && $challenge->verified_at->gt(now())
+                || $challenge->verified_at->lt(now()->subMinutes(5))
+                || $challenge->verified_at->timestamp !== (int) $session['verified_at']) {
                 throw new AuthorizationException('Staff OTP is invalid, expired, or already used.');
             }
 
-            $approvedPhone = OrganizationStaffApprovedPhone::whereKey($challenge->approved_phone_id)
+            $approvedPhone = OrganizationStaffApprovedPhone::query()
+                ->whereKey($challenge->approved_phone_id)
                 ->where('organization_id', $organizationId)
                 ->where('user_id', $userId)
                 ->where('status', 'active')
