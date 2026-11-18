@@ -6,6 +6,7 @@ use App\Models\ApprovalOtpChallenge;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GovernanceApproval;
 use App\Models\GovernanceRequest;
+use App\Models\GroupAuthority;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -190,6 +191,36 @@ class GovernanceApprovalOtpTest extends TestCase
         $this->assertSame('+2547000001234', $phone->fresh()->phone_e164);
     }
 
+
+    public function test_higher_approval_level_waits_for_earlier_levels(): void
+    {
+        [$request, $firstApproval, $firstApprover] = $this->approvalFixture();
+        $senior = $this->makeUser('senior-approver');
+        GroupAuthority::create([
+            'user_id' => $senior->id,
+            'authority' => 'CEO',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        $seniorApproval = GovernanceApproval::create([
+            'governance_request_id' => $request->id,
+            'approver_user_id' => $senior->id,
+            'approval_level' => 2,
+            'required_authority' => 'CEO',
+            'decision' => 'pending',
+        ]);
+        $this->registerPhone($senior);
+
+        $this->actingAs($senior)
+            ->postJson('/governance/approvals/'.$seniorApproval->id.'/otp')
+            ->assertStatus(409);
+
+        $this->assertSame('pending', $firstApproval->fresh()->decision);
+        $this->assertSame('pending', $request->fresh()->status);
+    }
+
     private function approvalFixture(bool $requesterIsApprover = false): array
     {
         $requester = $this->makeUser('requester');
@@ -205,6 +236,15 @@ class GovernanceApprovalOtpTest extends TestCase
             'status' => 'pending',
             'business_reason' => 'Test governance approval.',
             'expires_at' => now()->addDay(),
+        ]);
+
+        GroupAuthority::create([
+            'user_id' => $approver->id,
+            'authority' => 'DEPARTMENT_HEAD',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
         ]);
 
         $approval = GovernanceApproval::create([
