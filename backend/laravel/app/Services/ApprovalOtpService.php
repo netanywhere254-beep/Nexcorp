@@ -50,7 +50,7 @@ class ApprovalOtpService
                 'approver_user_id' => $actor->id,
                 'otp_hash' => Hash::make($code),
                 'attempts' => 0,
-                'expires_at' => now()->addMinutes((int) config('services.approval_sms.ttl_minutes', 5)),
+                'expires_at' => now()->addMinutes($this->otpTtlMinutes()),
             ]);
         });
 
@@ -149,6 +149,11 @@ class ApprovalOtpService
         if ($error !== null) {
             throw new RuntimeException($error);
         }
+    }
+
+    private function otpTtlMinutes(): int
+    {
+        return max(1, min(15, (int) config('services.approval_sms.ttl_minutes', 5)));
     }
 
     private function assertAssignedApprover(GovernanceApproval $approval, User $actor): void
