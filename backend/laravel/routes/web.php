@@ -28,6 +28,13 @@ Route::prefix('auth')->group(function(){
 });
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));
 Route::middleware(['auth','verified','organization.active','throttle:10,1'])->post('/ai/assist',[NexCoreAiController::class,'assist']);
+// Public account phone verification is independent of staff and Trace & Find OTP.
+Route::middleware(['auth', 'verified'])->prefix('account/phone')->group(function () {
+    Route::get('/status', [UserPhoneVerificationController::class, 'status']);
+    Route::post('/send-code', [UserPhoneVerificationController::class, 'send'])->middleware('throttle:3,1');
+    Route::post('/verify-code', [UserPhoneVerificationController::class, 'verify'])->middleware('throttle:6,1');
+});
+
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
 Route::middleware(['auth','verified','organization.active'])->prefix('organization/staff-security')->group(function(){
  Route::post('/approved-phones',[OrganizationStaffOtpController::class,'approveNumber'])->middleware('throttle:10,1');
