@@ -20,7 +20,8 @@ class ApprovalOtpService
 
         $endpoint = config('services.approval_sms.url');
         $token = config('services.approval_sms.token');
-        if (! is_string($endpoint) || $endpoint === '' || ! is_string($token) || $token === '') {
+        $endpointParts = is_string($endpoint) ? parse_url($endpoint) : false;
+        if (! is_array($endpointParts) || ($endpointParts['scheme'] ?? null) !== 'https' || empty($endpointParts['host']) || ! is_string($token) || $token === '') {
             throw new RuntimeException('Approval SMS delivery is not configured.');
         }
 
