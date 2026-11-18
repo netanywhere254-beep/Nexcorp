@@ -68,6 +68,25 @@ class GroupAuthorityController
 
             $locked->update(['status' => 'revoked', 'expires_at' => now()]);
 
+            $hasOtherActiveAuthority = GroupAuthority::query()
+                ->where('user_id', $locked->user_id)
+                ->where('scope_type', 'group')
+                ->where('scope_key', 'nexora')
+                ->where('status', 'active')
+                ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->exists();
+
+            if (! $hasOtherActiveAuthority) {
+                $approvedPhone = GroupStaffApprovedPhone::where('user_id', $locked->user_id)
+                    ->where('status', 'active')->first();
+                if ($approvedPhone) {
+                    $approvedPhone->update(['status' => 'revoked', 'revoked_at' => now()]);
+                    GroupStaffOtpChallenge::where('approved_phone_id', $approvedPhone->id)
+                        ->whereNull('consumed_at')->update(['consumed_at' => now()]);
+                }
+            }
+
             AuditLog::create([
                 'organization_id' => null,
                 'actor_user_id' => $actor->id,
