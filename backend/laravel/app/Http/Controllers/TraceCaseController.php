@@ -10,6 +10,9 @@ class TraceCaseController extends Controller {
  public function store(Request $request): JsonResponse {
   $user=$request->user(); $profile=$user->traceProfile;
   if (!$profile || $profile->account_type!=='family') return response()->json(['message'=>'An individual family profile is required.'],403);
+  if ($profile->phone_verification_status !== 'verified' || !filled($user->phone)) {
+   return response()->json(['message'=>'Verify your contact phone number by OTP before registering a case.'], 403);
+  }
   $v=$request->validate([
    'incident_country_code'=>['required','string','size:2'],'incident_region_code'=>['nullable','string','max:64'],
    'incident_locality'=>['nullable','string','max:120'],'case_type'=>['sometimes',Rule::in(['missing_person','unidentified_person'])],
@@ -29,7 +32,7 @@ class TraceCaseController extends Controller {
   $urgent=(bool)($v['urgent']??false);
   $case=TraceCase::create([
    'public_id'=>(string)Str::uuid(),'case_reference'=>'LTF-'.strtoupper(Str::random(10)),
-   'reporter_user_id'=>$user->id,'reporter_country_code'=>strtoupper($profile->country_code),
+   'reporter_user_id'=>$user->id,'reporter_phone'=>$user->phone,'reporter_country_code'=>strtoupper($profile->country_code),
    'reporter_region_code'=>$profile->region_code,'incident_country_code'=>strtoupper($v['incident_country_code']),
    'incident_region_code'=>$v['incident_region_code']??null,'incident_locality'=>$v['incident_locality']??null,
    'case_type'=>$v['case_type']??'missing_person','subject_name'=>$v['subject_name'],'subject_age'=>$v['subject_age']??null,
