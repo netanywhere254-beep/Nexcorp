@@ -2,6 +2,7 @@
 
 use App\Models\AuditLog;
 use App\Models\GroupAuthority;
+use App\Models\GroupStaffApprovedPhone;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -24,8 +25,14 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
         return 1;
     }
 
+    $phone = (string) $this->secret('Initial CEO phone in E.164 format');
+    if (! preg_match('/^\\+[1-9][0-9]{7,14}$/', $phone)) {
+        $this->error('Provide the CEO phone in E.164 format, for example +2547XXXXXXXX.');
+        return 1;
+    }
+
     try {
-        DB::transaction(function () use ($email) {
+        DB::transaction(function () use ($email, $phone) {
             // A stable global row lock serializes simultaneous first-CEO attempts, even for different emails.
             User::query()->orderBy('id')->lockForUpdate()->first();
             $user = User::query()->where('email', $email)->first();
@@ -47,6 +54,12 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
                 ]);
             }
 
+            if (GroupStaffApprovedPhone::where('phone_e164', $phone)->exists()) {
+                throw ValidationException::withMessages([
+                    'phone' => 'This phone number is already assigned to a group staff account.',
+                ]);
+            }
+
             $authority = GroupAuthority::create([
                 'user_id' => $user->id,
                 'authority' => 'GROUP_CEO',
@@ -55,6 +68,17 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
                 'status' => 'active',
                 'appointed_by' => null,
                 'starts_at' => now(),
+            ]);
+
+            // This is a one-time, operator-controlled initial enrollment, not a self-service approval.
+            // The CEO must still prove possession through the normal SMS OTP before sensitive actions.
+            $approvedPhone = GroupStaffApprovedPhone::create([
+                'user_id' => $user->id,
+                'phone_e164' => $phone,
+                'approved_by' => null,
+                'approval_method' => 'one_time_bootstrap',
+                'approved_at' => now(),
+                'status' => 'active',
             ]);
 
             AuditLog::create([
@@ -66,6 +90,8 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
                 'metadata' => [
                     'user_id' => $user->id,
                     'method' => 'one_time_cli_bootstrap',
+                    'approved_phone_id' => $approvedPhone->id,
+                    'phone_last_four' => substr($phone, -4),
                 ],
             ]);
         });
@@ -74,6 +100,8 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
         return 1;
     }
 
-    $this->info('Initial Nexora Group CEO authority created. Remove NEXORA_GROUP_CEO_BOOTSTRAP_KEY from the runtime environment now.');
+    $this->info('Initial Nexora Group CEO authority and bootstrap phone enrollment created.');
+    $this->warn('Verify phone possession with the normal group staff OTP before any sensitive governance action.');
+    $this->info('Remove NEXORA_GROUP_CEO_BOOTSTRAP_KEY from the runtime environment now.');
     return 0;
-})->purpose('Perform the one-time, secret-protected initial Nexora Group CEO bootstrap.');
+})->purpose('Perform the one-time, secret-protected initial Nexora Group CEO and phone bootstrap.');

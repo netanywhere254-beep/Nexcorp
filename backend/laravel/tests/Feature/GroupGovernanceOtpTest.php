@@ -59,6 +59,7 @@ class GroupGovernanceOtpTest extends TestCase
         $this->assertDatabaseHas('group_staff_approved_phones', [
             'user_id' => $staff->id,
             'phone_e164' => '+254712345678',
+            'approval_method' => 'staff_approval',
             'status' => 'active',
         ]);
     }
