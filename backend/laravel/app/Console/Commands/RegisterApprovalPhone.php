@@ -64,7 +64,7 @@ class RegisterApprovalPhone extends Command
         }
 
         AuthorizedApprovalPhone::updateOrCreate(
-            ['phone_hash' => hash('sha256', $phone)],
+            ['phone_hash' => hash_hmac('sha256', $phone, (string) config('app.key'))],
             [
                 'user_id' => $user->id,
                 'phone_e164' => $phone,
