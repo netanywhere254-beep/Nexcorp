@@ -54,17 +54,22 @@ class ApprovalOtpService
             ]);
         });
 
-        $response = Http::withToken($token)
-            ->acceptJson()
-            ->timeout(10)
-            ->post($endpoint, [
-                'to' => $phone->phone_e164,
-                'message' => 'Nexora approval code: '.$code.'. It expires in '
-                    .(int) config('services.approval_sms.ttl_minutes', 5)
-                    .' minutes. Never share this code.',
-                'reference' => 'NEXORA-APPROVAL-'.$challenge->id,
-                'sender_id' => config('services.approval_sms.sender_id'),
-            ]);
+        try {
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(10)
+                ->post($endpoint, [
+                    'to' => $phone->phone_e164,
+                    'message' => 'Nexora approval code: '.$code.'. It expires in '
+                        .(int) config('services.approval_sms.ttl_minutes', 5)
+                        .' minutes. Never share this code.',
+                    'reference' => 'NEXORA-APPROVAL-'.$challenge->id,
+                    'sender_id' => config('services.approval_sms.sender_id'),
+                ]);
+        } catch (\Throwable $exception) {
+            $challenge->forceFill(['consumed_at' => now()])->save();
+            throw new RuntimeException('The approval OTP could not be delivered.', previous: $exception);
+        }
 
         if (! $response->successful()) {
             $challenge->forceFill(['consumed_at' => now()])->save();
