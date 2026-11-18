@@ -51,17 +51,18 @@ class AccountVerificationAndRecoveryTest extends TestCase
         $this->assertNull($user->fresh()->email_verified_at);
     }
 
-    public function test_unverified_account_cannot_sign_in(): void
+    public function test_unverified_account_can_sign_in_only_to_complete_verification(): void
     {
         $user = $this->user(['email_verified_at' => null]);
 
         $this->postJson('/auth/login', [
             'email' => $user->email,
             'password' => 'Correct-Horse-42!',
-        ])->assertForbidden()
-            ->assertJsonPath('email_verification_required', true);
+        ])->assertOk()
+            ->assertJsonPath('email_verification_required', true)
+            ->assertJsonPath('user.email_verified', false);
 
-        $this->assertGuest();
+        $this->actingAs($user)->getJson('/ai')->assertStatus(403);
     }
 
     public function test_unverified_account_cannot_open_ai_even_with_an_active_organization(): void
