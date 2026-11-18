@@ -28,6 +28,7 @@ class NexCoreAiEndpointSecurityTest extends TestCase
             'email' => 'ai-endpoint@example.test',
             'password' => 'A-Strong-Test-Password-123!',
             'status' => 'active',
+            'email_verified_at' => now(),
         ]);
 
         $this->actingAs($user)
