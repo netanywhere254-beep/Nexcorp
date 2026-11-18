@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ApprovalOtpChallenge;
 use App\Models\AuditLog;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GroupAuthority;
@@ -63,7 +64,7 @@ class RegisterApprovalPhone extends Command
             return self::FAILURE;
         }
 
-        AuthorizedApprovalPhone::updateOrCreate(
+        $phoneRecord = AuthorizedApprovalPhone::updateOrCreate(
             ['phone_hash' => hash_hmac('sha256', $phone, (string) config('app.key'))],
             [
                 'user_id' => $user->id,
@@ -75,12 +76,17 @@ class RegisterApprovalPhone extends Command
             ],
         );
 
+        ApprovalOtpChallenge::query()
+            ->where('authorized_approval_phone_id', $phoneRecord->id)
+            ->whereNull('consumed_at')
+            ->update(['consumed_at' => now(), 'updated_at' => now()]);
+
         AuditLog::create([
             'organization_id' => null,
             'actor_user_id' => $approver->id,
             'action' => 'governance.approval_phone_registered',
             'subject_type' => AuthorizedApprovalPhone::class,
-            'subject_id' => (string) AuthorizedApprovalPhone::where('phone_hash', hash_hmac('sha256', $phone, (string) config('app.key')))->value('id'),
+            'subject_id' => (string) $phoneRecord->id,
             'metadata' => ['assigned_user_id' => $user->id],
         ]);
 
