@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Http\\UploadedFile;
-use Tests\\TestCase;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Tests\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
 {
@@ -21,7 +21,6 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'status' => 'active',
         ]);
 
-        // email_verified_at is intentionally not mass assignable on User.
         $user->forceFill(['email_verified_at' => now()])->save();
 
         return $user;
