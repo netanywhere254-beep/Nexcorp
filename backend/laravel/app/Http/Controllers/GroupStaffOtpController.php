@@ -19,6 +19,10 @@ class GroupStaffOtpController
 {
     private function hasGroupAuthority(int $userId, array $authorities): bool
     {
+        if (! User::whereKey($userId)->where('status', 'active')->exists()) {
+            return false;
+        }
+
         return GroupAuthority::query()
             ->where('user_id', $userId)
             ->whereIn('authority', $authorities)
@@ -39,6 +43,10 @@ class GroupStaffOtpController
         ]);
 
         $staff = User::whereKey($data['user_id'])->where('status', 'active')->firstOrFail();
+        abort_unless($this->hasGroupAuthority($staff->id, [
+            'GROUP_CEO', 'GROUP_DIRECTOR', 'DEPARTMENT_HEAD',
+            'GROUP_SECURITY_OFFICER', 'GROUP_FINANCE_OFFICER', 'GROUP_AUDITOR',
+        ]), 422, 'The target account must hold an active Nexora Group appointment.');
         $phone = $data['phone'];
 
         $approved = DB::transaction(function () use ($request, $staff, $phone) {
