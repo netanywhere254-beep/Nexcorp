@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\AuthorizedApprovalPhone;
 use App\Models\GroupAuthority;
 use App\Models\User;
@@ -54,7 +55,7 @@ class RegisterApprovalPhone extends Command
         }
 
         $existingPhone = AuthorizedApprovalPhone::query()
-            ->where('phone_hash', hash('sha256', $phone))
+            ->where('phone_hash', hash_hmac('sha256', $phone, (string) config('app.key')))
             ->first();
 
         if ($existingPhone && (int) $existingPhone->user_id !== (int) $user->id) {
@@ -73,6 +74,15 @@ class RegisterApprovalPhone extends Command
                 'revoked_at' => null,
             ],
         );
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $approver->id,
+            'action' => 'governance.approval_phone_registered',
+            'subject_type' => AuthorizedApprovalPhone::class,
+            'subject_id' => (string) AuthorizedApprovalPhone::where('phone_hash', hash_hmac('sha256', $phone, (string) config('app.key')))->value('id'),
+            'metadata' => ['assigned_user_id' => $user->id, 'phone_last_four' => substr($phone, -4)],
+        ]);
 
         $this->info('Pre-approved phone registered. It is available only to the assigned approver.');
         return self::SUCCESS;
