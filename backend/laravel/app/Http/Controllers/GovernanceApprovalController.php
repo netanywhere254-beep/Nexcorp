@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AuditLog;
 use App\Models\GovernanceApproval;
 use App\Services\ApprovalOtpService;
 use Illuminate\Http\JsonResponse;
@@ -59,15 +58,6 @@ class GovernanceApprovalController extends Controller
                 $validated['decision'],
                 $validated['comment'] ?? null,
             );
-
-            AuditLog::create([
-                'organization_id' => null,
-                'actor_user_id' => $request->user()->id,
-                'action' => 'governance.approval_'.$validated['decision'],
-                'subject_type' => GovernanceApproval::class,
-                'subject_id' => (string) $approval->id,
-                'metadata' => ['approval_level' => $approval->approval_level],
-            ]);
 
             return response()->json([
                 'status' => $validated['decision'],
