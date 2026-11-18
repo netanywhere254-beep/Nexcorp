@@ -12,6 +12,7 @@ class OrganizationStaffOtpTest extends TestCase {
  private function setupOrg(string $role='owner'): array {
   $admin=User::create(['name'=>'Org Admin','email'=>'admin-'.uniqid().'@example.test','password'=>'Correct-Horse-42!','status'=>'active','email_verified_at'=>now()]);
   $staff=User::create(['name'=>'Staff','email'=>'staff-'.uniqid().'@example.test','password'=>'Correct-Horse-42!','status'=>'active','email_verified_at'=>now()]);
+  $admin->markEmailAsVerified(); $staff->markEmailAsVerified();
   $org=Organization::create(['name'=>'OTP Test Org','slug'=>'otp-'.uniqid(),'type'=>'business','status'=>'active','country_code'=>'KE','timezone'=>'Africa/Nairobi']);
   $org->users()->attach($admin->id,['role'=>$role,'status'=>'active','joined_at'=>now()]);
   $org->users()->attach($staff->id,['role'=>'member','status'=>'active','joined_at'=>now()]);
@@ -21,7 +22,7 @@ class OrganizationStaffOtpTest extends TestCase {
   [$admin,$staff,$org]=$this->setupOrg();
   $this->actingAs($admin)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/approved-phones',['user_id'=>$staff->id,'phone'=>'+254712345678'])
-   ->dump()->assertCreated()->assertJsonPath('phone_last_four','5678');
+   ->assertCreated()->assertJsonPath('phone_last_four','5678');
   $this->assertDatabaseHas('organization_staff_approved_phones',['organization_id'=>$org->id,'user_id'=>$staff->id,'phone_e164'=>'+254712345678','status'=>'active']);
  }
  public function test_staff_cannot_self_register_an_approved_phone(): void {
@@ -43,6 +44,6 @@ class OrganizationStaffOtpTest extends TestCase {
   config(['services.nexora_staff_sms.url'=>'http://insecure.example.test/send']);
   $this->actingAs($staff)->withSession(['active_organization_id'=>$org->id])
    ->postJson('/organization/staff-security/otp/send',['purpose'=>'billing.approve'])
-   ->dump()->assertStatus(503);
+   ->assertStatus(503);
  }
 }
