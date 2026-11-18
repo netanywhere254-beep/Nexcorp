@@ -15,7 +15,7 @@ services:
     volumes:
       - nexora_primary_mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -45,7 +45,15 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in infra/.env.primary}
       CACHE_STORE: file
       SESSION_DRIVER: file
-      QUEUE_CONNECTION: sync\n      MAIL_MAILER: ${MAIL_MAILER:-log}\n      MAIL_HOST: ${MAIL_HOST:-}\n      MAIL_PORT: ${MAIL_PORT:-587}\n      MAIL_USERNAME: ${MAIL_USERNAME:-}\n      MAIL_PASSWORD: ${MAIL_PASSWORD:-}\n      MAIL_SCHEME: ${MAIL_SCHEME:-tls}\n      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@example.com}\n      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Nexora Group}
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: "${MAIL_PORT:-587}"
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SCHEME: ${MAIL_SCHEME:-tls}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Nexora Group}
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-8080}:80"
     depends_on:
