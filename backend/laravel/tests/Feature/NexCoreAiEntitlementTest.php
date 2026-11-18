@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Organization;
-use App\\Models\\User;
-use App\\Services\\NexCoreAiService;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
+use App\Models\Organization;
+use App\Models\User;
+use App\Services\NexCoreAiService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class NexCoreAiEntitlementTest extends TestCase
 {
