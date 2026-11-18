@@ -2,6 +2,8 @@
 namespace Tests\Feature;
 use App\Models\Organization;
 use App\Models\OrganizationStaffApprovedPhone;
+use App\Models\OrganizationStaffOtpChallenge;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -56,6 +58,43 @@ class OrganizationStaffOtpTest extends TestCase {
    ->postJson('/organization/staff-security/approved-phones',['user_id'=>$staff->id,'phone'=>'+254798765432'])->assertCreated();
   $this->assertDatabaseHas('organization_staff_otp_challenges',['id'=>$challenge->id]);
   $this->assertNotNull($challenge->fresh()->consumed_at);
+ }
+
+
+ public function test_verification_rejects_challenge_linked_to_another_organisations_phone(): void
+ {
+  [$admin, $staff, $org] = $this->setupOrg();
+  $otherOrg = Organization::create([
+   'name' => 'Other Org',
+   'slug' => 'other-'.uniqid(),
+   'type' => 'business',
+   'status' => 'active',
+   'country_code' => 'KE',
+   'timezone' => 'Africa/Nairobi',
+  ]);
+  $foreignPhone = OrganizationStaffApprovedPhone::create([
+   'organization_id' => $otherOrg->id,
+   'user_id' => $staff->id,
+   'phone_e164' => '+254712345678',
+   'status' => 'active',
+   'approved_by' => $admin->id,
+   'approved_at' => now(),
+  ]);
+  $challenge = OrganizationStaffOtpChallenge::create([
+   'organization_id' => $org->id,
+   'user_id' => $staff->id,
+   'approved_phone_id' => $foreignPhone->id,
+   'purpose' => 'billing.approve',
+   'code_hash' => Hash::make('123456'),
+   'expires_at' => now()->addMinutes(5),
+  ]);
+
+  $this->actingAs($staff)->withSession(['active_organization_id' => $org->id])
+   ->postJson('/organization/staff-security/otp/verify', [
+    'challenge_id' => $challenge->id,
+    'code' => '123456',
+   ])
+   ->assertForbidden();
  }
 
 }
