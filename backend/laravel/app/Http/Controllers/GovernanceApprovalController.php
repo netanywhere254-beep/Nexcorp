@@ -33,7 +33,7 @@ class GovernanceApprovalController extends Controller
             ], 202);
         } catch (RuntimeException $exception) {
             $status = match ($exception->getMessage()) {
-                'Approval SMS delivery is not configured.' => 503,
+                str_starts_with($exception->getMessage(), 'Approval SMS delivery is not configured') => 503,
                 'No pre-approved, verified approval phone is registered.' => 403,
                 'The approval OTP could not be delivered.' => 502,
                 default => 409,
