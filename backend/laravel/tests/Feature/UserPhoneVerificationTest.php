@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class UserPhoneVerificationTest extends TestCase
 {
@@ -109,7 +109,7 @@ class UserPhoneVerificationTest extends TestCase
     {
         $owner = $this->verifiedUser('verified-owner@example.test');
         $other = $this->verifiedUser('verified-other@example.test');
-        \\DB::table('user_phone_verifications')->insert([
+        \DB::table('user_phone_verifications')->insert([
             'user_id' => $owner->id,
             'phone_e164' => '+254712345681',
             'verified_at' => now(),
