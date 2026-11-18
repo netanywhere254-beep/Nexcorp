@@ -19,11 +19,6 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
         return 1;
     }
 
-    if (! preg_match('/^\+[1-9][0-9]{7,14}$/', $phone)) {
-        $this->error('Provide the CEO phone in E.164 format, for example +2547XXXXXXXX.');
-        return 1;
-    }
-
     $providedKey = (string) $this->secret('One-time bootstrap key');
     if (! hash_equals($expectedKey, $providedKey)) {
         $this->error('Invalid bootstrap key.');
