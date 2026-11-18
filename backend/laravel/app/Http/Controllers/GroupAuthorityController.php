@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\AuditLog;
-use App\\Models\\GroupAuthority;
-use App\\Services\\GroupStaffOtpConfirmation;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
+use App\Models\AuditLog;
+use App\Models\GroupAuthority;
+use App\Services\GroupStaffOtpConfirmation;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GroupAuthorityController
 {
