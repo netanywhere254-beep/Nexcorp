@@ -65,5 +65,5 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/profile',[TraceProfileController::class,'store'])->middleware('throttle:3,1');
  Route::post('/phone/send-code',[TracePhoneVerificationController::class,'send'])->middleware('throttle:3,1');
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
- Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
+ Route::post('/cases/registration-otp',[TraceCaseRegistrationOtpController::class,'send'])->middleware('throttle:3,1');\n Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
 });
