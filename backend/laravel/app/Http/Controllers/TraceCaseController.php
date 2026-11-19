@@ -1,16 +1,16 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\TraceCase;
-use App\\Models\\TraceCaseDocument;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\Rule;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\TraceCase;
+use App\Models\TraceCaseDocument;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class TraceCaseController extends Controller
 {
