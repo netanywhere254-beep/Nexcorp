@@ -100,6 +100,20 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'status' => 'cross_region_review',
             'publication_status' => 'private',
         ]);
+
+        $challenge = DB::table('trace_case_registration_otps')->where('user_id', $user->id)->first();
+        $this->assertNotNull($challenge->consumed_at);
+
+        $this->actingAs($user)->postJson('/trace-find/cases', [
+            'registration_otp' => '123456',
+            'incident_country_code' => 'KE',
+            'incident_region_code' => 'KE-42',
+            'subject_name' => 'Second Attempt',
+            'subject_description' => 'A second submission using the same code.',
+            'last_seen_details' => 'This must not be registered.',
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseCount('trace_cases', 1);
     }
 
     public function test_unverified_location_and_selfie_do_not_receive_local_posting_status(): void
@@ -125,6 +139,38 @@ class LoopzaTraceFindFoundationTest extends TestCase
 
         $response->assertForbidden()
             ->assertJsonPath('message', 'Verify your contact phone number by OTP before registering a case.');
+    }
+
+
+    public function test_case_registration_otp_is_sent_only_to_the_verified_phone(): void
+    {
+        $user = $this->verifiedUser();
+        $user->traceProfile()->create([
+            'country_code' => 'KE',
+            'region_code' => 'KE-17',
+            'account_type' => 'family',
+            'verification_status' => 'pending',
+            'phone_verification_status' => 'verified',
+            'location_verification_status' => 'pending',
+            'selfie_verification_status' => 'pending',
+        ]);
+
+        config(['services.trace_find_sms.url' => 'https://sms.example.test/send']);
+        $sent = null;
+        Http::fake(function ($request) use (&$sent) {
+            $sent = ['to' => $request['to'], 'message' => $request['message']];
+            return Http::response(['accepted' => true], 200);
+        });
+
+        $this->actingAs($user)->postJson('/trace-find/cases/registration-otp')->assertOk();
+
+        $this->assertSame($user->phone, $sent['to']);
+        $this->assertStringContainsString('case registration code', $sent['message']);
+        $this->assertDatabaseHas('trace_case_registration_otps', [
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+            'attempts' => 0,
+        ]);
     }
 
     public function test_phone_otp_is_sent_and_verified_before_case_registration(): void
