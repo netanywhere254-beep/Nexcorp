@@ -1,13 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 class TraceCaseRegistrationOtpController extends Controller
 {
@@ -31,7 +32,7 @@ class TraceCaseRegistrationOtpController extends Controller
             ->latest('id')
             ->first();
 
-        if ($latest && $latest->last_sent_at && now()->lt(\\Illuminate\\Support\\Carbon::parse($latest->last_sent_at)->addSeconds(60))) {
+        if ($latest && $latest->last_sent_at && now()->lt(Carbon::parse($latest->last_sent_at)->addSeconds(60))) {
             return response()->json(['message' => 'Please wait before requesting another case registration code.'], 429);
         }
 
@@ -47,7 +48,7 @@ class TraceCaseRegistrationOtpController extends Controller
                 'to' => $user->phone,
                 'message' => 'Your Loopza Trace & Find case registration code is '.$code.'. It expires in 5 minutes.',
             ]);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
             return response()->json(['message' => 'We could not deliver the case registration code. Please try again later.'], 502);
         }
