@@ -11,6 +11,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
 use App\Http\Controllers\TraceProfileController;
 use App\Http\Controllers\TracePhoneVerificationController;
+use App\Http\Controllers\TraceCaseRegistrationOtpController;
 use App\Http\Controllers\UserPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 Route::get('/',fn()=>view('welcome'));
@@ -65,5 +66,6 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/profile',[TraceProfileController::class,'store'])->middleware('throttle:3,1');
  Route::post('/phone/send-code',[TracePhoneVerificationController::class,'send'])->middleware('throttle:3,1');
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
+ Route::post('/cases/registration-otp',[TraceCaseRegistrationOtpController::class,'send'])->middleware('throttle:3,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
 });
