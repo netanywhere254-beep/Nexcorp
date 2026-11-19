@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
@@ -67,7 +69,19 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'selfie_verification_status' => 'verified',
         ]);
 
+        DB::table('trace_case_registration_otps')->insert([
+            'user_id' => $user->id,
+            'phone' => $user->phone,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'last_sent_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $response = $this->actingAs($user)->postJson('/trace-find/cases', [
+            'registration_otp' => '123456',
             'incident_country_code' => 'KE',
             'incident_region_code' => 'KE-42',
             'subject_name' => 'Test Missing Person',
