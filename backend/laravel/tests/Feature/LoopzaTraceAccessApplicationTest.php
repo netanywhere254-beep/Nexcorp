@@ -337,4 +337,77 @@ class LoopzaTraceAccessApplicationTest extends TestCase
         ]);
     }
 
+    public function test_reviewer_cannot_decide_their_own_access_application(): void
+    {
+        $reviewer = $this->verifiedUser('self-reviewer@example.test');
+        $reviewer->forceFill(['phone' => '+254711000199'])->save();
+
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'country',
+            'scope_key' => 'KE',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+
+        $application = TraceAccessApplication::create([
+            'user_id' => $reviewer->id,
+            'requested_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'organisation_name' => 'Self Review Test',
+            'organisation_registration' => 'TEST-SELF-001',
+            'credentials_summary' => 'Synthetic credentials for a separation of duties security test.',
+            'evidence_path' => 'trace-find/access-applications/self-review.pdf',
+            'status' => 'pending_review',
+        ]);
+
+        $phone = GroupStaffApprovedPhone::create([
+            'user_id' => $reviewer->id,
+            'phone_e164' => $reviewer->phone,
+            'approved_by' => $reviewer->id,
+            'approval_method' => 'staff_approval',
+            'approved_at' => now(),
+            'status' => 'active',
+        ]);
+        $purpose = 'loopza.trace.access_applications.decision.'.$application->id;
+        $challenge = GroupStaffOtpChallenge::create([
+            'user_id' => $reviewer->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $purpose,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $session = ['nexora_group_staff_otp' => [
+            'challenge_id' => $challenge->id,
+            'user_id' => $reviewer->id,
+            'purpose' => $purpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/access-applications/'.$application->id.'/decision', [
+                'decision' => 'approve',
+                'notes' => 'This self-approval must be rejected.',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('trace_access_applications', [
+            'id' => $application->id,
+            'status' => 'pending_review',
+            'reviewed_by' => null,
+        ]);
+    }
+
+
 }
