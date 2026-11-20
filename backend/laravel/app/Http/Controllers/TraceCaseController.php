@@ -91,8 +91,10 @@ class TraceCaseController extends Controller {
    'urgent'=>['sometimes','boolean'],
    'ob_document'=>['nullable','file','mimes:pdf,jpg,jpeg,png','max:10240'],
   ]);
-  $case=TraceCase::query()->findOrFail($caseId);
-  abort_unless((int)$case->reporter_user_id===(int)$request->user()->id,404);
+  // Scope the lookup to the authenticated reporter so another user's case is never resolved here.
+  $case=TraceCase::query()
+   ->where('reporter_user_id', $request->user()->id)
+   ->findOrFail($caseId);
   abort_unless(in_array($case->status,['rejected','needs_more_information'],true),409,'Only rejected or information-requested cases can be resubmitted.');
   $storedPath=null;
   if ($request->hasFile('ob_document')) {
@@ -100,8 +102,11 @@ class TraceCaseController extends Controller {
   }
   try {
    $case=DB::transaction(function () use ($request,$caseId,$data,$storedPath): TraceCase {
-    $locked=TraceCase::query()->lockForUpdate()->findOrFail($caseId);
-    abort_unless((int)$locked->reporter_user_id===(int)$request->user()->id,404);
+    // Re-apply the ownership scope under the row lock to close the TOCTOU window.
+    $locked=TraceCase::query()
+     ->where('reporter_user_id', $request->user()->id)
+     ->lockForUpdate()
+     ->findOrFail($caseId);
     abort_unless(in_array($locked->status,['rejected','needs_more_information'],true),409,'This case is no longer eligible for resubmission.');
     $snapshot=[
      'status'=>$locked->status,'publication_status'=>$locked->publication_status,
