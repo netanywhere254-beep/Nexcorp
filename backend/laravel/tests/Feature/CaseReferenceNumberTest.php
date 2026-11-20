@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\CaseReferenceNumber;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Services\CaseReferenceNumber;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CaseReferenceNumberTest extends TestCase
 {
@@ -31,7 +31,7 @@ class CaseReferenceNumberTest extends TestCase
 
     public function test_unknown_systems_are_rejected(): void
     {
-        $this->expectException(\\InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
 
         app(CaseReferenceNumber::class)->next('unknown', 2026);
     }
