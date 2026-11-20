@@ -73,6 +73,28 @@ class ReplicationInboxController extends Controller
                 return ['accepted' => true, 'duplicate' => true];
             }
 
+            // One aggregate version must identify exactly one event. This prevents
+            // two different payloads from claiming the same position in a client's
+            // ordered change stream.
+            $sameVersion = DB::table('client_change_inbox')
+                ->where('product_code', $event['product_code'])
+                ->where('aggregate_type', $event['aggregate_type'])
+                ->where('aggregate_id', (string) $event['aggregate_id'])
+                ->where('aggregate_version', $event['aggregate_version'])
+                ->where(function ($scope) use ($event): void {
+                    if (array_key_exists('organization_id', $event) && $event['organization_id'] !== null) {
+                        $scope->where('organization_id', $event['organization_id']);
+                    } else {
+                        $scope->whereNull('organization_id');
+                    }
+                })
+                ->lockForUpdate()
+                ->first();
+
+            if ($sameVersion) {
+                return ['accepted' => false, 'conflict' => true, 'reason' => 'aggregate_version'];
+            }
+
             if (filled($event['idempotency_key'] ?? null)) {
                 $keyOwner = DB::table('client_change_inbox')
                     ->where('idempotency_key', $event['idempotency_key'])
@@ -80,7 +102,7 @@ class ReplicationInboxController extends Controller
                     ->first();
 
                 if ($keyOwner) {
-                    return ['accepted' => false, 'conflict' => true];
+                    return ['accepted' => false, 'conflict' => true, 'reason' => 'idempotency_key'];
                 }
             }
 
@@ -106,7 +128,13 @@ class ReplicationInboxController extends Controller
         }, 5);
 
         if ($result['conflict'] ?? false) {
-            return response()->json(['message' => 'Event UUID was already used for a different event.'], 409);
+            $message = match ($result['reason'] ?? null) {
+                'aggregate_version' => 'Aggregate version was already used by a different event.',
+                'idempotency_key' => 'Idempotency key was already used by a different event.',
+                default => 'Event UUID was already used for a different event.',
+            };
+
+            return response()->json(['message' => $message], 409);
         }
 
         return response()->json([
