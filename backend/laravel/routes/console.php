@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use App\Services\ClientChangeOutboxPublisher;
+use App\Services\ClientChangeInboxProcessor;
 use Illuminate\Validation\ValidationException;
 
 Artisan::command('nexora:about', function () {
@@ -120,6 +121,15 @@ Artisan::command('nexora:outbox:publish {--limit=100}', function (ClientChangeOu
     $this->info("Published: {$result['published']}; failed: {$result['failed']}.");
     return $result['failed'] > 0 ? 1 : 0;
 })->purpose('Publish durable client change events to the configured Nexora backup receiver.');
+
+Artisan::command('nexora:inbox:process {--limit=100}', function (ClientChangeInboxProcessor $processor) {
+    $result = $processor->processPending((int) $this->option('limit'));
+
+    $this->info("Processed: {$result['processed']}; failed: {$result['failed']}; waiting for earlier events: {$result['blocked']}.");
+
+    return $result['failed'] > 0 ? 1 : 0;
+})->purpose('Apply supported, ordered client identity events received from the primary.');
+
 
 Schedule::command('nexora:outbox:publish --limit=100')
     ->everyMinute()
