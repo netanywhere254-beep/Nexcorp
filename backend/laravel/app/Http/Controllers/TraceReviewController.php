@@ -1,0 +1,250 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AuditLog;
+use App\Models\GroupAuthority;
+use App\Models\TraceCase;
+use App\Models\TraceProfile;
+use App\Services\GroupStaffOtpConfirmation;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class TraceReviewController extends Controller
+{
+    private function assertReviewer(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+
+        $appointed = GroupAuthority::query()
+            ->where('user_id', $user->id)
+            ->whereIn('authority', ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'])
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
+
+        abort_unless($appointed, 403, 'An active Nexora Group Security Officer appointment is required.');
+    }
+
+    public function profileQueue(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    {
+        $this->assertReviewer($request);
+        $otp->consume($request, 'loopza.trace.review.profiles.queue');
+
+        $profiles = TraceProfile::query()
+            ->with('user:id,name,email,phone')
+            ->whereIn('verification_status', ['pending', 'in_review'])
+            ->orderBy('created_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'data' => $profiles->map(fn (TraceProfile $profile) => [
+                'id' => $profile->id,
+                'user' => [
+                    'id' => $profile->user->id,
+                    'name' => $profile->user->name,
+                    'email' => $profile->user->email,
+                    'phone_last_four' => $profile->user->phone ? substr($profile->user->phone, -4) : null,
+                ],
+                'country_code' => $profile->country_code,
+                'region_code' => $profile->region_code,
+                'locality' => $profile->locality,
+                'identity_status' => $profile->identity_verification_status,
+                'location_status' => $profile->location_verification_status,
+                'selfie_status' => $profile->selfie_verification_status,
+                'selfie_submitted' => filled($profile->selfie_path),
+                'submitted_coordinates' => [
+                    'latitude' => $profile->submitted_latitude,
+                    'longitude' => $profile->submitted_longitude,
+                ],
+                'submitted_at' => $profile->created_at?->toISOString(),
+            ]),
+        ]);
+    }
+
+    public function selfie(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $profileId
+    ): StreamedResponse {
+        $this->assertReviewer($request);
+        $otp->consume($request, 'loopza.trace.review.profile.selfie.'.$profileId);
+
+        $profile = TraceProfile::query()->findOrFail($profileId);
+        abort_unless(filled($profile->selfie_path), 404);
+        abort_unless(Storage::disk('local')->exists($profile->selfie_path), 404);
+
+        return Storage::disk('local')->response($profile->selfie_path);
+    }
+
+    public function decideProfile(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $profileId
+    ): JsonResponse {
+        $this->assertReviewer($request);
+
+        $data = $request->validate([
+            'identity_decision' => ['required', Rule::in(['approved', 'rejected'])],
+            'location_decision' => ['required', Rule::in(['approved', 'rejected'])],
+            'selfie_decision' => ['required', Rule::in(['approved', 'rejected'])],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $otp->consume($request, 'loopza.trace.review.profile.'.$profileId);
+
+        $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
+        abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 409,
+            'This profile is not awaiting review.');
+
+        $approved = $data['identity_decision'] === 'approved'
+            && $data['location_decision'] === 'approved'
+            && $data['selfie_decision'] === 'approved';
+
+        $profile->update([
+            'identity_verification_status' => $data['identity_decision'] === 'approved' ? 'verified' : 'rejected',
+            'location_verification_status' => $data['location_decision'] === 'approved' ? 'verified' : 'rejected',
+            'selfie_verification_status' => $data['selfie_decision'] === 'approved' ? 'verified' : 'rejected',
+            'verification_status' => $approved ? 'verified' : 'rejected',
+            'verified_latitude' => $approved ? $profile->submitted_latitude : null,
+            'verified_longitude' => $approved ? $profile->submitted_longitude : null,
+            'verified_at' => $approved ? now() : null,
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(),
+            'review_notes' => $data['notes'] ?? null,
+        ]);
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'loopza.trace_profile.reviewed',
+            'subject_type' => TraceProfile::class,
+            'subject_id' => (string) $profile->id,
+            'metadata' => [
+                'identity_decision' => $data['identity_decision'],
+                'location_decision' => $data['location_decision'],
+                'selfie_decision' => $data['selfie_decision'],
+                'result' => $approved ? 'verified' : 'rejected',
+            ],
+        ]);
+
+        return response()->json([
+            'message' => $approved
+                ? 'Profile verification approved.'
+                : 'Profile verification rejected.',
+            'profile' => [
+                'id' => $profile->id,
+                'verification_status' => $profile->verification_status,
+                'identity_verification_status' => $profile->identity_verification_status,
+                'location_verification_status' => $profile->location_verification_status,
+                'selfie_verification_status' => $profile->selfie_verification_status,
+                'reviewed_at' => $profile->reviewed_at?->toISOString(),
+            ],
+        ]);
+    }
+
+    public function caseQueue(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    {
+        $this->assertReviewer($request);
+        $otp->consume($request, 'loopza.trace.review.cases.queue');
+
+        $cases = TraceCase::query()
+            ->with('reporter:id,name,email')
+            ->whereIn('status', ['pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information'])
+            ->orderByDesc('urgent')
+            ->orderBy('created_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'data' => $cases->map(fn (TraceCase $case) => [
+                'id' => $case->id,
+                'reference' => $case->case_reference,
+                'case_type' => $case->case_type,
+                'subject_name' => $case->subject_name,
+                'subject_age' => $case->subject_age,
+                'subject_description' => $case->subject_description,
+                'last_seen_details' => $case->last_seen_details,
+                'last_seen_at' => $case->last_seen_at?->toISOString(),
+                'incident_country_code' => $case->incident_country_code,
+                'incident_region_code' => $case->incident_region_code,
+                'incident_locality' => $case->incident_locality,
+                'status' => $case->status,
+                'urgent' => $case->urgent,
+                'publication_status' => $case->publication_status,
+                'reporter' => [
+                    'id' => $case->reporter->id,
+                    'name' => $case->reporter->name,
+                    'email' => $case->reporter->email,
+                ],
+                'document_count' => $case->documents()->count(),
+                'submitted_at' => $case->created_at?->toISOString(),
+            ]),
+        ]);
+    }
+
+    public function decideCase(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $caseId
+    ): JsonResponse {
+        $this->assertReviewer($request);
+
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject', 'request_information'])],
+            'notes' => ['required', 'string', 'min:5', 'max:2000'],
+        ]);
+
+        $otp->consume($request, 'loopza.trace.review.case.'.$caseId);
+
+        $case = TraceCase::query()->lockForUpdate()->findOrFail($caseId);
+        abort_unless(in_array($case->status, [
+            'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
+        ], true), 409, 'This case is not awaiting review.');
+
+        $status = match ($data['decision']) {
+            'approve' => 'approved_pending_publication',
+            'reject' => 'rejected',
+            default => 'needs_more_information',
+        };
+
+        $case->update([
+            'status' => $status,
+            'publication_status' => 'private',
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(),
+            'review_notes' => $data['notes'],
+        ]);
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'loopza.trace_case.reviewed',
+            'subject_type' => TraceCase::class,
+            'subject_id' => (string) $case->id,
+            'metadata' => [
+                'case_reference' => $case->case_reference,
+                'decision' => $data['decision'],
+                'resulting_status' => $status,
+            ],
+        ]);
+
+        return response()->json([
+            'message' => 'Case review decision recorded. The case remains private.',
+            'case' => [
+                'reference' => $case->case_reference,
+                'status' => $case->status,
+                'publication_status' => $case->publication_status,
+                'reviewed_at' => $case->reviewed_at?->toISOString(),
+            ],
+        ]);
+    }
+}
