@@ -56,6 +56,7 @@ Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->gr
 });
 Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->group(function(){
  Route::delete('/{id}',[GroupAuthorityController::class,'revoke'])->middleware('throttle:5,1');
+ Route::post('/{id}/country-scope',[GroupAuthorityController::class,'appointCountryScope'])->middleware('throttle:5,1');
 });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
