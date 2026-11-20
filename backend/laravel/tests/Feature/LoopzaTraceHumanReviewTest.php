@@ -279,4 +279,50 @@ class LoopzaTraceHumanReviewTest extends TestCase
         ]);
     }
 
+    public function test_reviewer_cannot_decide_a_case_outside_their_country_appointment(): void
+    {
+        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.case.999');
+
+        $reporter = User::create([
+            'name' => 'Uganda Case Reporter',
+            'email' => 'uganda-case-reporter@example.test',
+            'password' => 'Strong-test-password-123',
+            'status' => 'active',
+        ]);
+
+        $case = TraceCase::create([
+            'public_id' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000999',
+            'reporter_user_id' => $reporter->id,
+            'reporter_phone' => null,
+            'reporter_country_code' => 'UG',
+            'reporter_region_code' => 'UG-01',
+            'incident_country_code' => 'UG',
+            'incident_region_code' => 'UG-01',
+            'incident_locality' => 'Kampala',
+            'case_type' => 'missing_person',
+            'subject_name' => 'Private cross-border test subject',
+            'subject_description' => 'Synthetic test data only.',
+            'last_seen_details' => 'Synthetic test location details.',
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'urgent' => false,
+        ]);
+
+        $session['nexora_group_staff_otp']['purpose'] = 'loopza.trace.review.case.'.$case->id;
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/cases/'.$case->id.'/decision', [
+                'decision' => 'approve',
+                'notes' => 'This cross-border decision must be denied.',
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('trace_cases', [
+            'id' => $case->id,
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+        ]);
+    }
+
 }
