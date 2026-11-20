@@ -21,7 +21,7 @@ Send a code through \`POST /group/staff-security/otp/send\` with the exact purpo
 ## Important safeguards
 
 - Review access is group-scoped and does not use a user's public family account as reviewer authority.
-- All sensitive read and write actions require a fresh OTP with a route-specific purpose. Queue reads and private selfie access are also recorded in the audit log.
+- All sensitive read and write actions require a fresh OTP with a route-specific purpose. Queue reads, private selfie access and restricted case-document downloads are also recorded in the audit log.
 - Profile approval requires all three checks (identity, location evidence, selfie) to be approved. Location consent, selfie submission time and biometric-processing consent time are recorded separately; the selfie endpoint refuses requests before the location step. A submitted coordinate is not proof of physical presence; the reviewer must assess the evidence and may reject it.
 - Case approval changes status to \`approved_pending_publication\`; it does not publish the case. Publication is a separate action requiring a future, separately authorised workflow.
 - Review decisions are audited without storing private notes or identity images in audit metadata.
