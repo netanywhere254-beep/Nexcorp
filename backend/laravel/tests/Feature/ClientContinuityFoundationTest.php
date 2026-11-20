@@ -207,4 +207,14 @@ class ClientContinuityFoundationTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         app(ClientChangeOutbox::class)->record('unknown', 'client', 1, 'client.updated', []);
     }
+
+    public function test_continuity_status_command_reports_read_only_queue_summary(): void
+    {
+        $this->artisan('nexora:continuity:status')
+            ->expectsOutputToContain('Primary outbox')
+            ->expectsOutputToContain('Backup inbox')
+            ->expectsOutputToContain('Read-only diagnostic')
+            ->assertExitCode(0);
+    }
+
 }
