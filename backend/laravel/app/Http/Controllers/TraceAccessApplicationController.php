@@ -169,7 +169,7 @@ class TraceAccessApplicationController extends Controller
             $app = TraceAccessApplication::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($applicationId);
             abort_unless(in_array($app->status, ['pending_review', 'needs_more_information'], true), 409,
                 'This application is no longer awaiting a decision.');
-            abort_if($app->user_id === $request->user()->id, 403,
+            abort_if((int) $app->user_id === (int) $request->user()->id, 403,
                 'Reviewers cannot approve, reject or otherwise decide their own access applications.');
 
             $status = match ($data['decision']) {
@@ -250,7 +250,7 @@ class TraceAccessApplicationController extends Controller
 
             abort_unless($lockedApplication->status === 'approved', 409,
                 'The application must remain approved when the access grant is created.');
-            abort_if($lockedApplication->user_id === $request->user()->id, 403,
+            abort_if((int) $lockedApplication->user_id === (int) $request->user()->id, 403,
                 'Reviewers cannot grant access to their own accounts.');
 
             $grant = TraceCountryAccessGrant::create([
