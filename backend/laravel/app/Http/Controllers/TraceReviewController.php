@@ -110,6 +110,8 @@ class TraceReviewController extends Controller
         $otp->consume($request, 'loopza.trace.review.profile.selfie.'.$profileId);
 
         $profile = TraceProfile::query()->whereIn('country_code', $countries)->findOrFail($profileId);
+        abort_if((int) $profile->user_id === (int) $request->user()->id, 403,
+            'Reviewers cannot access their own identity verification evidence.');
         abort_unless($profile->account_type === 'family', 404);
         abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 404);
         abort_unless(filled($profile->selfie_path), 404);
@@ -148,6 +150,8 @@ class TraceReviewController extends Controller
 
         $profile = DB::transaction(function () use ($request, $profileId, $data, $countries): TraceProfile {
             $profile = TraceProfile::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($profileId);
+            abort_if((int) $profile->user_id === (int) $request->user()->id, 403,
+                'Reviewers cannot decide their own identity verification.');
             abort_unless($profile->account_type === 'family', 404);
             abort_unless(filled($profile->selfie_path) && $profile->location_consent_at && $profile->biometric_processing_consent_at, 409,
                 'The location and selfie consent steps must be completed before profile review.');
