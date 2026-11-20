@@ -53,3 +53,5 @@ The Laravel API now exposes `POST /api/replication/events` and persists authenti
 An exact replay receives an accepted duplicate response without creating a second row. Reusing an event UUID with a different body returns HTTP 409. The receiver acknowledges only after the inbox transaction commits.
 
 **Still not complete:** the inbox is durable receipt, not yet application of replicated state. A worker must consume events in aggregate-version order, apply them idempotently to the standby data store, and record processing outcomes. Do not treat inbox receipt as proof that subscriptions, cases, invoices, files, router state, or sessions are available on the backup.
+
+The receiving inbox also enforces a unique non-null idempotency key in addition to the unique event UUID. A replay with the same event UUID and exact body is acknowledged as a duplicate; reusing an idempotency key for a different event UUID is rejected with HTTP 409. This prevents a sender retry or integration bug from creating two accepted inbox events for one business operation.
