@@ -199,8 +199,9 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'name' => 'Other Reporter', 'email' => 'other@example.test',
             'password' => 'Strong-test-password-123', 'status' => 'active',
         ]);
+        $other->forceFill(['email_verified_at' => now()])->save();
         $case = TraceCase::create([
-            'public_id' => (string) \Illuminate\\Support\\Str::uuid(),
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
             'case_reference' => 'LTF-'.now()->format('Y').'-000777',
             'reporter_user_id' => $reporter->id, 'reporter_phone' => $reporter->phone,
             'reporter_country_code' => 'KE', 'reporter_region_code' => 'KE-17',
