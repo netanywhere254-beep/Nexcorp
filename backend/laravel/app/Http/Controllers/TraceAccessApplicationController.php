@@ -7,6 +7,7 @@ use App\Models\GroupAuthority;
 use App\Models\TraceAccessApplication;
 use App\Models\TraceCountryAccessGrant;
 use App\Services\GroupStaffOtpConfirmation;
+use App\Services\TraceReviewerCountryScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,9 +91,11 @@ class TraceAccessApplicationController extends Controller
         ], 201);
     }
 
-    public function index(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    public function index(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope): JsonResponse
     {
         $this->assertAuthorisedReviewer($request);
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403, 'No active country-scoped Trace & Find reviewer appointment exists.');
         $otp->consume($request, 'loopza.trace.access_applications.queue');
 
         AuditLog::create([
@@ -106,6 +109,7 @@ class TraceAccessApplicationController extends Controller
 
         $applications = TraceAccessApplication::query()
             ->with('applicant:id,name,email')
+            ->whereIn('country_code', $countries)
             ->whereIn('status', ['pending_review', 'needs_more_information'])
             ->orderBy('created_at')
             ->limit(100)
@@ -124,12 +128,14 @@ class TraceAccessApplicationController extends Controller
         ])]);
     }
 
-    public function evidence(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): StreamedResponse
+    public function evidence(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope, int $applicationId): StreamedResponse
     {
         $this->assertAuthorisedReviewer($request);
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403);
         $otp->consume($request, 'loopza.trace.access_applications.evidence.'.$applicationId);
 
-        $application = TraceAccessApplication::query()->findOrFail($applicationId);
+        $application = TraceAccessApplication::query()->whereIn('country_code', $countries)->findOrFail($applicationId);
         abort_unless(in_array($application->status, ['pending_review', 'needs_more_information'], true), 404);
         abort_unless($application->evidence_path && Storage::disk('local')->exists($application->evidence_path), 404);
 
@@ -148,17 +154,19 @@ class TraceAccessApplicationController extends Controller
         ], 'attachment');
     }
 
-    public function decide(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): JsonResponse
+    public function decide(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope, int $applicationId): JsonResponse
     {
         $this->assertAuthorisedReviewer($request);
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403);
         $data = $request->validate([
             'decision' => ['required', Rule::in(['approve', 'reject', 'request_information'])],
             'notes' => ['required', 'string', 'min:5', 'max:2000'],
         ]);
         $otp->consume($request, 'loopza.trace.access_applications.decision.'.$applicationId);
 
-        $application = DB::transaction(function () use ($request, $applicationId, $data): TraceAccessApplication {
-            $app = TraceAccessApplication::query()->lockForUpdate()->findOrFail($applicationId);
+        $application = DB::transaction(function () use ($request, $applicationId, $data, $countries): TraceAccessApplication {
+            $app = TraceAccessApplication::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($applicationId);
             abort_unless(in_array($app->status, ['pending_review', 'needs_more_information'], true), 409,
                 'This application is no longer awaiting a decision.');
 
@@ -205,10 +213,12 @@ class TraceAccessApplicationController extends Controller
     }
 
 
-    public function grantCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): JsonResponse
+    public function grantCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope, int $applicationId): JsonResponse
     {
         $this->assertAuthorisedReviewer($request);
-        $application = TraceAccessApplication::query()->findOrFail($applicationId);
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403);
+        $application = TraceAccessApplication::query()->whereIn('country_code', $countries)->findOrFail($applicationId);
         abort_unless($application->status === 'approved', 409,
             'The application must first pass human vetting. Vetting approval alone does not grant access.');
 
@@ -227,11 +237,12 @@ class TraceAccessApplicationController extends Controller
 
         $otp->consume($request, 'loopza.trace.access_applications.grant.'.$applicationId);
 
-        $grant = DB::transaction(function () use ($request, $applicationId, $data): TraceCountryAccessGrant {
+        $grant = DB::transaction(function () use ($request, $applicationId, $data, $countries): TraceCountryAccessGrant {
             // Re-read and lock the approved application inside the grant transaction.
             // This prevents a concurrent reviewer action from changing its status
             // between the initial check and creation of the country-scoped grant.
             $lockedApplication = TraceAccessApplication::query()
+                ->whereIn('country_code', $countries)
                 ->lockForUpdate()
                 ->findOrFail($applicationId);
 
@@ -287,16 +298,18 @@ class TraceAccessApplicationController extends Controller
 
 
 
-    public function revokeCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, int $grantId): JsonResponse
+    public function revokeCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope, int $grantId): JsonResponse
     {
         $this->assertAuthorisedReviewer($request);
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403);
         $data = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
         $otp->consume($request, 'loopza.trace.country_access.revoke.'.$grantId);
 
-        $grant = DB::transaction(function () use ($request, $grantId, $data): TraceCountryAccessGrant {
-            $grant = TraceCountryAccessGrant::query()->lockForUpdate()->findOrFail($grantId);
+        $grant = DB::transaction(function () use ($request, $grantId, $data, $countries): TraceCountryAccessGrant {
+            $grant = TraceCountryAccessGrant::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($grantId);
             abort_unless($grant->status === 'active', 409, 'Only active grants can be revoked.');
 
             $grant->update([
