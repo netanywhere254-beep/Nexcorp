@@ -10,6 +10,7 @@ use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
+use App\Http\Controllers\TraceAccessApplicationController;
 use App\Http\Controllers\TraceProfileController;
 use App\Http\Controllers\TraceReviewController;
 use App\Http\Controllers\TracePhoneVerificationController;
