@@ -275,4 +275,51 @@ class TraceAccessApplicationController extends Controller
         ], 201);
     }
 
+
+
+    public function revokeCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, int $grantId): JsonResponse
+    {
+        $this->assertAuthorisedReviewer($request);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+        $otp->consume($request, 'loopza.trace.country_access.revoke.'.$grantId);
+
+        $grant = DB::transaction(function () use ($request, $grantId, $data): TraceCountryAccessGrant {
+            $grant = TraceCountryAccessGrant::query()->lockForUpdate()->findOrFail($grantId);
+            abort_unless($grant->status === 'active', 409, 'Only active grants can be revoked.');
+
+            $grant->update([
+                'status' => 'revoked',
+                'revoked_at' => now(),
+            ]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'loopza.trace_country_access.revoked',
+                'subject_type' => TraceCountryAccessGrant::class,
+                'subject_id' => (string) $grant->id,
+                'metadata' => [
+                    'user_id' => $grant->user_id,
+                    'source_application_id' => $grant->source_application_id,
+                    'access_role' => $grant->access_role,
+                    'country_code' => $grant->country_code,
+                    'reason' => $data['reason'],
+                ],
+            ]);
+
+            return $grant->fresh();
+        });
+
+        return response()->json([
+            'message' => 'Country-scoped access grant revoked.',
+            'grant' => [
+                'id' => $grant->id,
+                'status' => $grant->status,
+                'revoked_at' => $grant->revoked_at?->toISOString(),
+            ],
+        ]);
+    }
+
 }
