@@ -73,6 +73,17 @@ class ReplicationInboxController extends Controller
                 return ['accepted' => true, 'duplicate' => true];
             }
 
+            if (filled($event['idempotency_key'] ?? null)) {
+                $keyOwner = DB::table('client_change_inbox')
+                    ->where('idempotency_key', $event['idempotency_key'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($keyOwner) {
+                    return ['accepted' => false, 'conflict' => true];
+                }
+            }
+
             DB::table('client_change_inbox')->insert([
                 'event_uuid' => $event['event_uuid'],
                 'idempotency_key' => $event['idempotency_key'] ?? null,
