@@ -368,6 +368,9 @@ class LoopzaTraceHumanReviewTest extends TestCase
         ]);
 
         $session['nexora_group_staff_otp']['purpose'] = 'loopza.trace.review.profile.'.$profile->id;
+        GroupStaffOtpChallenge::query()
+            ->whereKey($session['nexora_group_staff_otp']['challenge_id'])
+            ->update(['purpose' => $session['nexora_group_staff_otp']['purpose']]);
 
         $this->actingAs($reviewer)->withSession($session)
             ->postJson('/trace-find/review/profiles/'.$profile->id.'/decision', [
