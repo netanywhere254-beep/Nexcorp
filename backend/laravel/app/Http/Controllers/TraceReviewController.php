@@ -116,7 +116,16 @@ class TraceReviewController extends Controller
         abort_unless(Storage::disk('local')->exists($profile->selfie_path), 404);
         $this->auditSensitiveRead($request, 'loopza.trace_profile.selfie.accessed', TraceProfile::class, (string) $profile->id);
 
-        return Storage::disk('local')->response($profile->selfie_path);
+        return Storage::disk('local')->response(
+            $profile->selfie_path,
+            null,
+            [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+                'Pragma' => 'no-cache',
+            ],
+            'inline'
+        );
     }
 
     public function decideProfile(
