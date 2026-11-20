@@ -67,6 +67,7 @@ class TraceCaseController extends Controller {
      'incident_country_code' => $case->incident_country_code,
     ],
     null, $user->id, 'loopza-trace-case-registered-'.$case->public_id,
+    1,
    );
 
    return $case;
