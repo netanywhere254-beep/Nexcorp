@@ -46,3 +46,10 @@ The publisher sends events to `POST /api/replication/events` with an event UUID 
 **Operational prerequisite:** Laravel's scheduler must actually be invoked by the host (Linux cron or Windows Task Scheduler running `php artisan schedule:run` every minute). Merely deploying the code does not start the scheduler.
 
 **Important limitation:** the receiver endpoint, signature-verification middleware, inbox processor and destination-side application are not implemented by this publisher commit. Until those exist and are deployed on the backup, leave `NEXORA_REPLICATION_URL` unset. This publisher alone is not failover, database replication, or a disaster-recovery guarantee. Receiver processing must verify timestamp freshness and HMAC using constant-time comparison, persist each `event_uuid` once, and return 2xx only after durable inbox commit.
+## Backup receiver inbox
+
+The Laravel API now exposes `POST /api/replication/events` and persists authenticated events in `client_change_inbox`. The receiver checks a five-minute timestamp window, verifies HMAC-SHA256 against the exact raw request bytes with constant-time comparison, validates product/event fields, checks the idempotency header, and stores a unique event UUID with a hash of the original body.
+
+An exact replay receives an accepted duplicate response without creating a second row. Reusing an event UUID with a different body returns HTTP 409. The receiver acknowledges only after the inbox transaction commits.
+
+**Still not complete:** the inbox is durable receipt, not yet application of replicated state. A worker must consume events in aggregate-version order, apply them idempotently to the standby data store, and record processing outcomes. Do not treat inbox receipt as proof that subscriptions, cases, invoices, files, router state, or sessions are available on the backup.
