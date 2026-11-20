@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\TraceCase;
 use App\Models\TraceCaseDocument;
+use App\Services\CaseReferenceNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,7 +32,7 @@ class TraceCaseController extends Controller {
    && $profile->selfie_verification_status==='verified';
   $urgent=(bool)($v['urgent']??false);
   $case=TraceCase::create([
-   'public_id'=>(string)Str::uuid(),'case_reference'=>'LTF-'.strtoupper(Str::random(10)),
+   'public_id'=>(string)Str::uuid(),'case_reference'=>app(CaseReferenceNumber::class)->next('loopza'),
    'reporter_user_id'=>$user->id,'reporter_phone'=>$user->phone,'reporter_country_code'=>strtoupper($profile->country_code),
    'reporter_region_code'=>$profile->region_code,'incident_country_code'=>strtoupper($v['incident_country_code']),
    'incident_region_code'=>$v['incident_region_code']??null,'incident_locality'=>$v['incident_locality']??null,
