@@ -55,6 +55,9 @@ class TraceReviewController extends Controller
         $profiles = TraceProfile::query()
             ->with('user:id,name,email,phone')
             ->where('account_type', 'family')
+            ->whereNotNull('selfie_path')
+            ->whereNotNull('location_consent_at')
+            ->whereNotNull('biometric_processing_consent_at')
             ->whereIn('verification_status', ['pending', 'in_review'])
             ->orderBy('created_at')
             ->limit(100)
@@ -122,6 +125,8 @@ class TraceReviewController extends Controller
         $profile = DB::transaction(function () use ($request, $profileId, $data): TraceProfile {
             $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
             abort_unless($profile->account_type === 'family', 404);
+            abort_unless(filled($profile->selfie_path) && $profile->location_consent_at && $profile->biometric_processing_consent_at, 409,
+                'The location and selfie consent steps must be completed before profile review.');
             abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 409,
                 'This profile is not awaiting review.');
 
