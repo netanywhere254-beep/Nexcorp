@@ -21,6 +21,10 @@ class ClientChangeOutboxPublisher
         $failed = 0;
         $rows = DB::table('client_change_outbox')
             ->whereNull('published_at')
+            ->where(function ($query): void {
+                $query->where('attempts', 0)
+                    ->orWhere('updated_at', '<=', now()->subMinutes(5));
+            })
             ->orderBy('id')
             ->limit(max(1, min($limit, 500)))
             ->get();
@@ -45,14 +49,14 @@ class ClientChangeOutboxPublisher
 
             try {
                 $response = Http::acceptJson()
-                    ->asJson()
                     ->timeout(10)
                     ->withHeaders([
                         'X-Nexora-Timestamp' => $timestamp,
                         'X-Nexora-Signature' => $signature,
                         'Idempotency-Key' => $row->event_uuid,
                     ])
-                    ->post($endpoint.'/api/replication/events', $body);
+                    ->withBody($encoded, 'application/json')
+                    ->post($endpoint.'/api/replication/events');
 
                 if ($response->successful()) {
                     DB::table('client_change_outbox')
