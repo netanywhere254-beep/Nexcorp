@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\GroupAuthority;
 use App\Models\TraceAccessApplication;
+use App\Models\TraceCountryAccessGrant;
 use App\Services\GroupStaffOtpConfirmation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
