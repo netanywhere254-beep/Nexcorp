@@ -72,6 +72,7 @@ class NexoraCaseRegistrationTest extends TestCase
             'aggregate_type' => 'case',
             'aggregate_id' => (string) $case->id,
             'event_type' => 'case.registered',
+            'aggregate_version' => 1,
             'user_id' => $user->id,
         ]);
         $this->assertSame('Suspicious account activity', $case->title);
