@@ -116,3 +116,10 @@ The repository now contains the initial Laravel application shell, primary MySQL
 This does not mean the full Nexora, NexISP, or Loopza products are complete. Authentication screens, roles and permissions, tenant-enforcement policies, billing, M-Pesa, router provisioning, campaign workflows, provider integrations, production TLS, monitoring, backups, and cross-database migration tooling remain to be implemented and tested.
 
 The GitHub Actions pipeline is expected to validate the source, tests, and Docker builds. A green CI run is evidence that these foundations build; it is not a production deployment or a disaster-recovery certification.
+
+
+## 8. Required future: automatic high availability and client continuity
+
+The separate PostgreSQL standby described above is not the final disaster-recovery design. Nexora requires automatic health-based failover and a common, continuously synchronised client/service record across NexISP, Loopza and group services. The target design, including fencing against split-brain, compatible MySQL HA, stable client IDs, replicated sessions/files/queues, automatic routing, blue/green migration and tested recovery objectives, is defined in `docs/NEXORA_HIGH_AVAILABILITY_AND_AUTOMATIC_FAILOVER.md`.
+
+Do not represent the current standby stack as a live failover environment. It is not synchronised with the Laravel/MySQL primary and must not receive production traffic as a replacement until compatible data replication, feature parity, security controls, automated promotion, reconciliation and disaster-recovery drills are implemented and verified. Customer records must never be split between independently writable client databases.
