@@ -110,6 +110,7 @@ class TraceAccessApplicationController extends Controller
         $applications = TraceAccessApplication::query()
             ->with('applicant:id,name,email')
             ->whereIn('country_code', $countries)
+            ->where('user_id', '!=', $request->user()->id)
             ->whereIn('status', ['pending_review', 'needs_more_information'])
             ->orderBy('created_at')
             ->limit(100)
@@ -136,6 +137,8 @@ class TraceAccessApplicationController extends Controller
         $otp->consume($request, 'loopza.trace.access_applications.evidence.'.$applicationId);
 
         $application = TraceAccessApplication::query()->whereIn('country_code', $countries)->findOrFail($applicationId);
+        abort_if((int) $application->user_id === (int) $request->user()->id, 403,
+            'Reviewers cannot access evidence attached to their own access applications.');
         abort_unless(in_array($application->status, ['pending_review', 'needs_more_information'], true), 404);
         abort_unless($application->evidence_path && Storage::disk('local')->exists($application->evidence_path), 404);
 
