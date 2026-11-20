@@ -123,5 +123,6 @@ Artisan::command('nexora:outbox:publish {--limit=100}', function (ClientChangeOu
 
 Schedule::command('nexora:outbox:publish --limit=100')
     ->everyMinute()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onOneServer();
 
