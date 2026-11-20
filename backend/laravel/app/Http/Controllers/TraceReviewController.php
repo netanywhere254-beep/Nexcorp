@@ -8,6 +8,7 @@ use App\Models\TraceCase;
 use App\Models\TraceCaseDocument;
 use App\Models\TraceProfile;
 use App\Services\GroupStaffOtpConfirmation;
+use App\Services\TraceReviewerCountryScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,13 @@ class TraceReviewController extends Controller
         abort_unless($appointed, 403, 'An active Nexora Group Security Officer appointment is required.');
     }
 
+    private function reviewerCountries(Request $request, TraceReviewerCountryScope $scope): array
+    {
+        $countries = $scope->countriesFor($request->user());
+        abort_if($countries === [], 403, 'No active country-scoped Trace & Find reviewer appointment exists.');
+        return $countries;
+    }
+
     private function auditSensitiveRead(Request $request, string $action, string $subjectType, ?string $subjectId = null): void
     {
         AuditLog::create([
@@ -47,15 +55,17 @@ class TraceReviewController extends Controller
         ]);
     }
 
-    public function profileQueue(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    public function profileQueue(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope): JsonResponse
     {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
         $otp->consume($request, 'loopza.trace.review.profiles.queue');
         $this->auditSensitiveRead($request, 'loopza.trace_profile.review_queue.accessed', TraceProfile::class);
 
         $profiles = TraceProfile::query()
             ->with('user:id,name,email,phone')
             ->where('account_type', 'family')
+            ->whereIn('country_code', $countries)
             ->whereNotNull('selfie_path')
             ->whereNotNull('location_consent_at')
             ->whereNotNull('biometric_processing_consent_at')
@@ -92,12 +102,14 @@ class TraceReviewController extends Controller
     public function selfie(
         Request $request,
         GroupStaffOtpConfirmation $otp,
-        int $profileId
+        int $profileId,
+        TraceReviewerCountryScope $scope
     ): StreamedResponse {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
         $otp->consume($request, 'loopza.trace.review.profile.selfie.'.$profileId);
 
-        $profile = TraceProfile::query()->findOrFail($profileId);
+        $profile = TraceProfile::query()->whereIn('country_code', $countries)->findOrFail($profileId);
         abort_unless($profile->account_type === 'family', 404);
         abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 404);
         abort_unless(filled($profile->selfie_path), 404);
@@ -110,9 +122,11 @@ class TraceReviewController extends Controller
     public function decideProfile(
         Request $request,
         GroupStaffOtpConfirmation $otp,
-        int $profileId
+        int $profileId,
+        TraceReviewerCountryScope $scope
     ): JsonResponse {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
 
         $data = $request->validate([
             'identity_decision' => ['required', Rule::in(['approved', 'rejected'])],
@@ -123,8 +137,8 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.profile.'.$profileId);
 
-        $profile = DB::transaction(function () use ($request, $profileId, $data): TraceProfile {
-            $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
+        $profile = DB::transaction(function () use ($request, $profileId, $data, $countries): TraceProfile {
+            $profile = TraceProfile::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($profileId);
             abort_unless($profile->account_type === 'family', 404);
             abort_unless(filled($profile->selfie_path) && $profile->location_consent_at && $profile->biometric_processing_consent_at, 409,
                 'The location and selfie consent steps must be completed before profile review.');
@@ -180,14 +194,16 @@ class TraceReviewController extends Controller
         ]);
     }
 
-    public function caseQueue(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    public function caseQueue(Request $request, GroupStaffOtpConfirmation $otp, TraceReviewerCountryScope $scope): JsonResponse
     {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
         $otp->consume($request, 'loopza.trace.review.cases.queue');
         $this->auditSensitiveRead($request, 'loopza.trace_case.review_queue.accessed', TraceCase::class);
 
         $cases = TraceCase::query()
             ->with(['reporter:id,name,email', 'documents:id,trace_case_id,original_filename,mime_type'])
+            ->whereIn('incident_country_code', $countries)
             ->whereIn('status', ['pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information'])
             ->orderByDesc('urgent')
             ->orderBy('created_at')
@@ -230,12 +246,14 @@ class TraceReviewController extends Controller
         Request $request,
         GroupStaffOtpConfirmation $otp,
         int $caseId,
-        int $documentId
+        int $documentId,
+        TraceReviewerCountryScope $scope
     ): StreamedResponse {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
         $otp->consume($request, 'loopza.trace.review.case.document.'.$documentId);
 
-        $case = TraceCase::query()->findOrFail($caseId);
+        $case = TraceCase::query()->whereIn('incident_country_code', $countries)->findOrFail($caseId);
         abort_unless(in_array($case->status, [
             'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
         ], true), 404);
@@ -267,9 +285,11 @@ class TraceReviewController extends Controller
     public function decideCase(
         Request $request,
         GroupStaffOtpConfirmation $otp,
-        int $caseId
+        int $caseId,
+        TraceReviewerCountryScope $scope
     ): JsonResponse {
         $this->assertReviewer($request);
+        $countries = $this->reviewerCountries($request, $scope);
 
         $data = $request->validate([
             'decision' => ['required', Rule::in(['approve', 'reject', 'request_information'])],
@@ -278,8 +298,8 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.case.'.$caseId);
 
-        $case = DB::transaction(function () use ($request, $caseId, $data): TraceCase {
-            $case = TraceCase::query()->lockForUpdate()->findOrFail($caseId);
+        $case = DB::transaction(function () use ($request, $caseId, $data, $countries): TraceCase {
+            $case = TraceCase::query()->whereIn('incident_country_code', $countries)->lockForUpdate()->findOrFail($caseId);
             abort_unless(in_array($case->status, [
                 'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
             ], true), 409, 'This case is not awaiting review.');
