@@ -1,6 +1,6 @@
 # Loopza Trace & Find human review console
 
-This is an internal Nexora Group review workflow, not a public authority/investigator portal.
+This is an internal Nexora Group review workflow, not a public authority/investigator portal. Public family onboarding is deliberately sequential: first the user records their location and consents to location processing; only then can they submit a selfie with separate biometric-processing consent.
 
 ## Reviewer access
 
@@ -21,8 +21,8 @@ Send a code through \`POST /group/staff-security/otp/send\` with the exact purpo
 ## Important safeguards
 
 - Review access is group-scoped and does not use a user's public family account as reviewer authority.
-- All sensitive read and write actions require a fresh OTP with a route-specific purpose.
-- Profile approval requires all three checks (identity, location evidence, selfie) to be approved. A submitted coordinate is not proof of physical presence; the reviewer must assess the evidence and may reject it.
+- All sensitive read and write actions require a fresh OTP with a route-specific purpose. Queue reads and private selfie access are also recorded in the audit log.
+- Profile approval requires all three checks (identity, location evidence, selfie) to be approved. Location consent, selfie submission time and biometric-processing consent time are recorded separately; the selfie endpoint refuses requests before the location step. A submitted coordinate is not proof of physical presence; the reviewer must assess the evidence and may reject it.
 - Case approval changes status to \`approved_pending_publication\`; it does not publish the case. Publication is a separate action requiring a future, separately authorised workflow.
 - Review decisions are audited without storing private notes or identity images in audit metadata.
 - Rejected profiles and cases remain private. This first review workflow does not yet provide resubmission, external authority account provisioning, investigator assignments, volunteer access, or case publication.
