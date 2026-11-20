@@ -54,6 +54,26 @@ class ClientChangeOutbox
                 }
             }
 
+            $latestVersionQuery = DB::table('client_change_outbox')
+                ->where('product_code', $productCode)
+                ->where('aggregate_type', $aggregateType)
+                ->where('aggregate_id', (string) $aggregateId);
+
+            if ($organizationId === null) {
+                $latestVersionQuery->whereNull('organization_id');
+            } else {
+                $latestVersionQuery->where('organization_id', $organizationId);
+            }
+
+            $latestVersion = $latestVersionQuery
+                ->orderByDesc('aggregate_version')
+                ->lockForUpdate()
+                ->value('aggregate_version');
+
+            if ($latestVersion !== null && $aggregateVersion <= (int) $latestVersion) {
+                throw new RuntimeException('Aggregate versions must increase monotonically for each client event stream.');
+            }
+
             return (int) DB::table('client_change_outbox')->insertGetId([
                 'event_uuid' => (string) Str::uuid(),
                 'idempotency_key' => $idempotencyKey,
