@@ -91,4 +91,18 @@ class ReplicationInboxTest extends TestCase
         $this->signedRequest($this->event(), str_repeat('a', 64))->assertUnauthorized();
         $this->assertDatabaseCount('client_change_inbox', 0);
     }
+
+    public function test_reused_idempotency_key_with_a_new_event_uuid_is_rejected(): void
+    {
+        $first = $this->event();
+        $this->signedRequest($first)->assertAccepted();
+
+        $second = $this->event('d7d8e9f0-1234-4abc-8def-0123456789ab');
+        $second['aggregate_version'] = 2;
+        $second['payload']['status'] = 'cancelled';
+
+        $this->signedRequest($second)->assertStatus(409);
+        $this->assertDatabaseCount('client_change_inbox', 1);
+    }
+
 }
