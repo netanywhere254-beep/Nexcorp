@@ -55,4 +55,80 @@ class TraceCaseController extends Controller {
    'case'=>['reference'=>$case->case_reference,'status'=>$case->status,'publication_status'=>$case->publication_status,
    'incident_country_code'=>$case->incident_country_code,'incident_region_code'=>$case->incident_region_code]],201);
  }
+
+ public function resubmit(Request $request, int $caseId): JsonResponse {
+  $data=$request->validate([
+   'reason'=>['required','string','min:10','max:2000'],
+   'subject_name'=>['sometimes','required','string','max:160'],
+   'subject_age'=>['sometimes','nullable','integer','min:0','max:120'],
+   'subject_description'=>['sometimes','required','string','max:2000'],
+   'last_seen_details'=>['sometimes','required','string','max:5000'],
+   'incident_region_code'=>['sometimes','nullable','string','max:64'],
+   'incident_locality'=>['sometimes','nullable','string','max:120'],
+   'last_seen_at'=>['sometimes','nullable','date','before_or_equal:now'],
+   'urgent'=>['sometimes','boolean'],
+   'ob_document'=>['nullable','file','mimes:pdf,jpg,jpeg,png','max:10240'],
+  ]);
+  $case=TraceCase::query()->findOrFail($caseId);
+  abort_unless((int)$case->reporter_user_id===(int)$request->user()->id,404);
+  abort_unless(in_array($case->status,['rejected','needs_more_information'],true),409,'Only rejected or information-requested cases can be resubmitted.');
+  $storedPath=null;
+  if ($request->hasFile('ob_document')) {
+   $storedPath=$request->file('ob_document')->store("trace-find/cases/{$case->public_id}/restricted",'local');
+  }
+  try {
+   $case=DB::transaction(function () use ($request,$caseId,$data,$storedPath): TraceCase {
+    $locked=TraceCase::query()->lockForUpdate()->findOrFail($caseId);
+    abort_unless((int)$locked->reporter_user_id===(int)$request->user()->id,404);
+    abort_unless(in_array($locked->status,['rejected','needs_more_information'],true),409,'This case is no longer eligible for resubmission.');
+    $snapshot=[
+     'status'=>$locked->status,'publication_status'=>$locked->publication_status,
+     'reviewed_by'=>$locked->reviewed_by,'reviewed_at'=>$locked->reviewed_at?->toISOString(),
+     'review_notes'=>$locked->review_notes,
+     'subject_name'=>$locked->subject_name,'subject_age'=>$locked->subject_age,
+     'subject_description'=>$locked->subject_description,'last_seen_details'=>$locked->last_seen_details,
+     'incident_region_code'=>$locked->incident_region_code,'incident_locality'=>$locked->incident_locality,
+     'last_seen_at'=>$locked->last_seen_at?->toISOString(),
+    ];
+    TraceCaseResubmission::create([
+     'trace_case_id'=>$locked->id,'submitted_by'=>$request->user()->id,
+     'reason'=>$data['reason'],'previous_review'=>$snapshot,
+    ]);
+    $updates=[];
+    foreach (['subject_name','subject_age','subject_description','last_seen_details','incident_region_code','incident_locality','last_seen_at','urgent'] as $field) {
+     if (array_key_exists($field,$data)) $updates[$field]=$data[$field];
+    }
+    $updates['status']='pending_review';
+    $updates['publication_status']='private';
+    $updates['reviewed_by']=null;
+    $updates['reviewed_at']=null;
+    $updates['review_notes']=null;
+    $locked->update($updates);
+    if ($storedPath) {
+     $file=$request->file('ob_document');
+     $locked->documents()->create([
+      'uploaded_by'=>$request->user()->id,'document_type'=>'supplementary_evidence',
+      'storage_path'=>$storedPath,'original_filename'=>basename($file->getClientOriginalName()),
+      'mime_type'=>(string)$file->getMimeType(),'size_bytes'=>(int)$file->getSize(),
+      'sha256'=>hash_file('sha256',$file->getRealPath()),'verification_status'=>'pending',
+     ]);
+    }
+    AuditLog::create([
+     'organization_id'=>null,'actor_user_id'=>$request->user()->id,
+     'action'=>'loopza.trace_case.resubmitted','subject_type'=>TraceCase::class,
+     'subject_id'=>(string)$locked->id,
+     'metadata'=>['case_reference'=>$locked->case_reference,'reason'=>$data['reason'],'new_evidence_added'=>(bool)$storedPath],
+    ]);
+    return $locked->fresh();
+   });
+  } catch (\\\\Throwable $exception) {
+   if ($storedPath) Storage::disk('local')->delete($storedPath);
+   throw $exception;
+  }
+  return response()->json([
+   'message'=>'Case resubmitted for human review. It remains private.',
+   'case'=>['reference'=>$case->case_reference,'status'=>$case->status,'publication_status'=>$case->publication_status],
+  ]);
+ }
+
 }
