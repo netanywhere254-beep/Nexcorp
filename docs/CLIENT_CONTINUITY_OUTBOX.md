@@ -57,3 +57,31 @@ An exact replay receives an accepted duplicate response without creating a secon
 **Still not complete:** the inbox is durable receipt, not yet application of replicated state. A worker must consume events in aggregate-version order, apply them idempotently to the standby data store, and record processing outcomes. Do not treat inbox receipt as proof that subscriptions, cases, invoices, files, router state, or sessions are available on the backup.
 
 The receiving inbox also enforces a unique non-null idempotency key in addition to the unique event UUID. A replay with the same event UUID and exact body is acknowledged as a duplicate; reusing an idempotency key for a different event UUID is rejected with HTTP 409. This prevents a sender retry or integration bug from creating two accepted inbox events for one business operation.
+
+
+## Backup inbox materialization (first supported contract)
+
+The backup now has an explicit processor command:
+
+`php artisan nexora:inbox:process --limit=100`
+
+The first supported event is `client.identity.upserted` with aggregate type
+`client_identity`. Its payload must contain `external_reference`, a status
+of `active`, `suspended`, or `closed`, and optional metadata. The aggregate
+ID must equal the external reference. Events must include organisation and user
+IDs that already exist on the backup; this processor does not silently create
+accounts or infer identity mappings.
+
+The materializer writes `client_service_identities` and records
+`source_version`. The first event must be version 1 and each subsequent event
+must be exactly the next version. Earlier pending events block later events
+for the same aggregate. Unknown event types, missing tenant/user records,
+conflicting identity ownership, and version gaps remain unprocessed and record
+an error for operator review. This is intentionally fail-closed.
+
+This is not yet a general product-data replication engine: subscription,
+payment, billing, case, and other product events have no materializer until
+their own validated handlers and transactional tests are added. The command
+is not automatically scheduled yet; enable it on the designated backup only
+after the backup's account/organisation identity prerequisites are replicated
+and operational monitoring is configured.
