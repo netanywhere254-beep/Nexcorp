@@ -22,8 +22,8 @@ class LoopzaTraceHumanReviewTest extends TestCase
     {
         $user = User::create([
             'name' => 'Group Security Reviewer',
-            'email' => 'security-reviewer@example.test',
-            'phone' => '+254711000091',
+            'email' => 'security-reviewer-'.\Illuminate\Support\Str::uuid().'@example.test',
+            'phone' => '+2547'.str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT),
             'password' => 'Strong-test-password-123',
             'status' => 'active',
         ]);
