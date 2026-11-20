@@ -1,23 +1,15 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use Illuminate\\Support\\Facades\\DB;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class CaseReferenceNumber
 {
-    /**
-     * Separate, monotonically increasing yearly sequences for the Nexora Group
-     * and Loopza Trace & Find systems. The caller must persist the returned
-     * reference in the same business workflow that creates its case.
-     */
     public function next(string $system, ?int $year = null): string
     {
-        $systems = [
-            'nexora' => 'NEX',
-            'loopza' => 'LTF',
-        ];
+        $systems = ['nexora' => 'NEX', 'loopza' => 'LTF'];
 
         if (! array_key_exists($system, $systems)) {
             throw new InvalidArgumentException('Unsupported case registration system.');
@@ -44,7 +36,7 @@ class CaseReferenceNumber
                 ->first();
 
             if (! $sequence) {
-                throw new \\RuntimeException('Unable to initialise the case reference sequence.');
+                throw new \RuntimeException('Unable to initialise the case reference sequence.');
             }
 
             $next = ((int) $sequence->last_number) + 1;
