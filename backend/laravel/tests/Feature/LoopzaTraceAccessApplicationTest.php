@@ -410,4 +410,91 @@ class LoopzaTraceAccessApplicationTest extends TestCase
     }
 
 
+
+    public function test_reviewer_cannot_see_or_download_their_own_application_evidence(): void
+    {
+        $reviewer = $this->verifiedUser('self-evidence-reviewer@example.test');
+        $reviewer->forceFill(['phone' => '+254711000198'])->save();
+
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'country',
+            'scope_key' => 'KE',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+
+        $application = TraceAccessApplication::create([
+            'user_id' => $reviewer->id,
+            'requested_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'organisation_name' => 'Self Evidence Test',
+            'organisation_registration' => 'TEST-EVIDENCE-001',
+            'credentials_summary' => 'Synthetic credentials for a separation of duties security test.',
+            'evidence_path' => 'trace-find/access-applications/self-evidence.pdf',
+            'status' => 'pending_review',
+        ]);
+
+        $phone = GroupStaffApprovedPhone::create([
+            'user_id' => $reviewer->id,
+            'phone_e164' => $reviewer->phone,
+            'approved_by' => $reviewer->id,
+            'approval_method' => 'staff_approval',
+            'approved_at' => now(),
+            'status' => 'active',
+        ]);
+
+        $queuePurpose = 'loopza.trace.access_applications.queue';
+        $queueChallenge = GroupStaffOtpChallenge::create([
+            'user_id' => $reviewer->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $queuePurpose,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $queueSession = ['nexora_group_staff_otp' => [
+            'challenge_id' => $queueChallenge->id,
+            'user_id' => $reviewer->id,
+            'purpose' => $queuePurpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($reviewer)->withSession($queueSession)
+            ->getJson('/trace-find/review/access-applications')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $evidencePurpose = 'loopza.trace.access_applications.evidence.'.$application->id;
+        $evidenceChallenge = GroupStaffOtpChallenge::create([
+            'user_id' => $reviewer->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $evidencePurpose,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $evidenceSession = ['nexora_group_staff_otp' => [
+            'challenge_id' => $evidenceChallenge->id,
+            'user_id' => $reviewer->id,
+            'purpose' => $evidencePurpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($reviewer)->withSession($evidenceSession)
+            ->get('/trace-find/review/access-applications/'.$application->id.'/evidence')
+            ->assertForbidden();
+    }
+
 }
