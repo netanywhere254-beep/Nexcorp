@@ -388,4 +388,48 @@ class LoopzaTraceHumanReviewTest extends TestCase
         ]);
     }
 
+
+    public function test_reviewer_cannot_review_their_own_case(): void
+    {
+        [$reviewer, $session] = $this->reviewerWithOtp('placeholder');
+        $case = TraceCase::create([
+            'public_id' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000777',
+            'reporter_user_id' => $reviewer->id,
+            'reporter_phone' => $reviewer->phone,
+            'reporter_country_code' => 'KE',
+            'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE',
+            'incident_region_code' => 'KE-17',
+            'incident_locality' => 'Kisii',
+            'case_type' => 'missing_person',
+            'subject_name' => 'Reviewers own synthetic case',
+            'subject_description' => 'Synthetic test description.',
+            'last_seen_details' => 'Synthetic test location.',
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'urgent' => false,
+        ]);
+
+        $purpose = 'loopza.trace.review.case.'.$case->id;
+        $session['nexora_group_staff_otp']['purpose'] = $purpose;
+        GroupStaffOtpChallenge::query()
+            ->whereKey($session['nexora_group_staff_otp']['challenge_id'])
+            ->update(['purpose' => $purpose]);
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/cases/'.$case->id.'/decision', [
+                'decision' => 'approve',
+                'notes' => 'A reviewer must not decide their own case.',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('trace_cases', [
+            'id' => $case->id,
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'reviewed_by' => null,
+        ]);
+    }
+
 }
