@@ -54,3 +54,15 @@ permissions through this endpoint. Grants are audited. Revocation and runtime
 permission enforcement must be applied by the relevant case and document
 controllers before any country-scoped user-facing access is enabled.
 
+
+
+## Runtime country-grant enforcement
+
+Vetted users access the external discovery surface through:
+
+- \`GET /trace-find/authorised/cases\` — returns metadata for published cases only.
+- \`GET /trace-find/authorised/cases/{caseId}/documents/{documentId}\` — returns a verified document attached to a published case only.
+
+Every request checks that the grant is active, unexpired, belongs to the authenticated user, matches the approved application role and country, includes the requested permission, and matches the case country and optional region. The source application must remain approved. Role permission allow-lists are rechecked at runtime; a volunteer grant cannot be used for private case access even if a malformed grant row exists.
+
+Unpublished/private cases and unverified documents are not exposed through these endpoints. Reads are audited. A grant is not a publication decision and does not bypass Nexora's internal human review.
