@@ -128,6 +128,37 @@ class ClientContinuityFoundationTest extends TestCase
         ]);
     }
 
+    public function test_publisher_does_not_skip_an_earlier_unacknowledged_event_for_the_same_aggregate(): void
+    {
+        $service = app(ClientChangeOutbox::class);
+        $service->record('nexisp', 'subscription', 77, 'subscription.updated', ['version' => 1], null, null, 'ordered-event-77-v1', 1);
+        $service->record('nexisp', 'subscription', 77, 'subscription.updated', ['version' => 2], null, null, 'ordered-event-77-v2', 2);
+        config([
+            'services.nexora_replication.url' => 'https://backup.example.test',
+            'services.nexora_replication.secret' => 'test-shared-secret',
+        ]);
+        Http::fake(['backup.example.test/api/replication/events' => Http::response(['error' => 'unavailable'], 503)]);
+
+        $publisher = app(ClientChangeOutboxPublisher::class);
+        $firstResult = $publisher->publishPending();
+        $secondResult = $publisher->publishPending();
+
+        $this->assertSame(1, $firstResult['failed']);
+        $this->assertSame(0, $secondResult['published']);
+        $this->assertSame(0, $secondResult['failed']);
+        $this->assertSame(1, Http::recorded()->count());
+        $this->assertDatabaseHas('client_change_outbox', [
+            'idempotency_key' => 'ordered-event-77-v1',
+            'published_at' => null,
+            'attempts' => 1,
+        ]);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'idempotency_key' => 'ordered-event-77-v2',
+            'published_at' => null,
+            'attempts' => 0,
+        ]);
+    }
+
     public function test_outbox_rejects_unknown_product_code(): void
     {
         $this->expectException(\InvalidArgumentException::class);
