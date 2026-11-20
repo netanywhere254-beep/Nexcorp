@@ -6,6 +6,8 @@ use App\Models\GroupStaffApprovedPhone;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
+use App\Services\ClientChangeOutboxPublisher;
 use Illuminate\Validation\ValidationException;
 
 Artisan::command('nexora:about', function () {
@@ -105,3 +107,21 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
     $this->info('Remove NEXORA_GROUP_CEO_BOOTSTRAP_KEY from the runtime environment now.');
     return 0;
 })->purpose('Perform the one-time, secret-protected initial Nexora Group CEO and phone bootstrap.');
+
+Artisan::command('nexora:outbox:publish {--limit=100}', function (ClientChangeOutboxPublisher $publisher) {
+    $limit = (int) $this->option('limit');
+    $result = $publisher->publishPending($limit);
+
+    if (! $result['configured']) {
+        $this->warn('Replication is not configured. Set NEXORA_REPLICATION_URL and NEXORA_REPLICATION_SECRET.');
+        return 0;
+    }
+
+    $this->info("Published: {$result['published']}; failed: {$result['failed']}.");
+    return $result['failed'] > 0 ? 1 : 0;
+})->purpose('Publish durable client change events to the configured Nexora backup receiver.');
+
+Schedule::command('nexora:outbox:publish --limit=100')
+    ->everyMinute()
+    ->withoutOverlapping();
+
