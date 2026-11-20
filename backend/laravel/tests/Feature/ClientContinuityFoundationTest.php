@@ -97,7 +97,7 @@ class ClientContinuityFoundationTest extends TestCase
         $this->assertSame(1, $result['published']);
         $this->assertSame(0, $result['failed']);
         $this->assertDatabaseCount('client_change_outbox', 1);
-        $this->assertNotNull(\\Illuminate\\Support\\Facades\\DB::table('client_change_outbox')->value('published_at'));
+        $this->assertNotNull(\Illuminate\Support\Facades\DB::table('client_change_outbox')->value('published_at'));
         Http::assertSent(fn ($request) =>
             $request->url() === 'https://backup.example.test/api/replication/events'
             && $request->hasHeader('X-Nexora-Signature')
