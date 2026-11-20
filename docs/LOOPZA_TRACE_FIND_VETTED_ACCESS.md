@@ -50,9 +50,9 @@ The grant action requires a fresh one-time group staff OTP for purpose
 
 Authority permissions, investigator permissions and volunteer permissions
 are separate allow-lists. Volunteers cannot be granted private case or document
-permissions through this endpoint. Grants are audited. Revocation and runtime
-permission enforcement must be applied by the relevant case and document
-controllers before any country-scoped user-facing access is enabled.
+permissions through this endpoint. Grants are audited. Runtime permission enforcement is applied by the authorised case and document endpoints. An active grant can be revoked by an authorised Nexora Group Security Officer or Group CEO using a fresh OTP:
+
+- `POST /trace-find/review/access-applications/grants/{grantId}/revoke` — requires a reason and OTP purpose `loopza.trace.country_access.revoke.{grantId}`. Revocation is transactional, records `revoked_at`, and writes an audit event.
 
 
 
