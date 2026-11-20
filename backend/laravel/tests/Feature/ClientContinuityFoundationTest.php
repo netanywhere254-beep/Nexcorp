@@ -60,6 +60,24 @@ class ClientContinuityFoundationTest extends TestCase
         $service->record('loopza', 'order', 12, 'order.cancelled', ['order_id' => 12], null, null, 'payment-webhook-12');
     }
 
+    public function test_outbox_event_rolls_back_with_the_business_transaction(): void
+    {
+        try {
+            \\Illuminate\\Support\\Facades\\DB::transaction(function (): void {
+                app(ClientChangeOutbox::class)->record(
+                    'nexisp', 'subscription', 99, 'subscription.activated',
+                    ['subscription_id' => 99], null, null, 'rollback-event-99'
+                );
+
+                throw new RuntimeException('Simulated business transaction failure.');
+            });
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Simulated business transaction failure.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('client_change_outbox', 0);
+    }
+
     public function test_outbox_rejects_unknown_product_code(): void
     {
         $this->expectException(\InvalidArgumentException::class);
