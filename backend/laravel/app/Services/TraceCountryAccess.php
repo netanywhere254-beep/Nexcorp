@@ -23,7 +23,10 @@ class TraceCountryAccess
             ->where('country_code', strtoupper((string) $case->incident_country_code))
             ->whereJsonContains('permissions', $permission)
             ->whereHas('application', function ($query) {
-                $query->where('status', 'approved');
+                $query->where('status', 'approved')
+                    ->whereColumn('trace_access_applications.user_id', 'trace_country_access_grants.user_id')
+                    ->whereColumn('trace_access_applications.requested_role', 'trace_country_access_grants.access_role')
+                    ->whereColumn('trace_access_applications.country_code', 'trace_country_access_grants.country_code');
             })
             ->where(function ($query) use ($case) {
                 $query->whereNull('region_code')
@@ -42,7 +45,10 @@ class TraceCountryAccess
             ->where('status', 'active')
             ->where('expires_at', '>', now())
             ->whereJsonContains('permissions', 'cases.read')
-            ->whereHas('application', fn ($query) => $query->where('status', 'approved'))
+            ->whereHas('application', fn ($query) => $query->where('status', 'approved')
+                ->whereColumn('trace_access_applications.user_id', 'trace_country_access_grants.user_id')
+                ->whereColumn('trace_access_applications.requested_role', 'trace_country_access_grants.access_role')
+                ->whereColumn('trace_access_applications.country_code', 'trace_country_access_grants.country_code'))
             ->get()
             ->filter(fn (TraceCountryAccessGrant $grant) =>
                 in_array('cases.read', self::ROLE_PERMISSIONS[$grant->access_role] ?? [], true)
