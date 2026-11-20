@@ -111,7 +111,7 @@ class TraceCaseController extends Controller {
      'incident_region_code'=>$locked->incident_region_code,'incident_locality'=>$locked->incident_locality,
      'last_seen_at'=>$locked->last_seen_at?->toISOString(),
     ];
-    TraceCaseResubmission::create([
+    $resubmission=TraceCaseResubmission::create([
      'trace_case_id'=>$locked->id,'submitted_by'=>$request->user()->id,
      'reason'=>$data['reason'],'previous_review'=>$snapshot,
     ]);
@@ -140,6 +140,20 @@ class TraceCaseController extends Controller {
      'subject_id'=>(string)$locked->id,
      'metadata'=>['case_reference'=>$locked->case_reference,'reason'=>$data['reason'],'new_evidence_added'=>(bool)$storedPath],
     ]);
+    app(\App\Services\ClientChangeOutbox::class)->record(
+     'loopza', 'trace_case', $locked->id, 'trace_case.resubmitted',
+     [
+      'case_reference' => $locked->case_reference,
+      'status' => $locked->status,
+      'publication_status' => $locked->publication_status,
+      'resubmission_id' => $resubmission->id,
+      'new_evidence_added' => (bool) $storedPath,
+     ],
+     null, $request->user()->id,
+     'loopza-trace-case-resubmitted-'.$resubmission->id,
+     $resubmission->id,
+    );
+
     return $locked->fresh();
    });
   } catch (\Throwable $exception) {
