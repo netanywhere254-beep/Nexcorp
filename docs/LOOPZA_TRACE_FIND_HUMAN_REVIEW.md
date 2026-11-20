@@ -20,7 +20,10 @@ Send a code through \`POST /group/staff-security/otp/send\` with the exact purpo
 
 ## Important safeguards
 
-- Review access is group-scoped and does not use a user's public family account as reviewer authority.
+- Reviewer eligibility is group-scoped, but all Trace & Find data access is additionally country-scoped. A group appointment alone grants no country access; separate active country appointments are required.
+- Cross-country object identifiers cannot bypass the country boundary: private profile, case, document, application and grant lookups are constrained in the database query, returning not found for records outside the reviewer's appointed countries.
+- Country scope is checked again inside transactional decision/grant/revocation operations to prevent a concurrent scope or record change from bypassing the boundary.
+- Reviewer country appointments do not grant authority, investigator or volunteer permissions to the reviewed applicant; those remain separately vetted and explicitly granted.
 - All sensitive read and write actions require a fresh OTP with a route-specific purpose. Queue reads, private selfie access and restricted case-document downloads are also recorded in the audit log.
 - Profile approval requires all three checks (identity, location evidence, selfie) to be approved. Location consent, selfie submission time and biometric-processing consent time are recorded separately; the selfie endpoint refuses requests before the location step. A submitted coordinate is not proof of physical presence; the reviewer must assess the evidence and may reject it.
 - Case approval changes status to \`approved_pending_publication\`; it does not publish the case. Publication is a separate action requiring a future, separately authorised workflow.
