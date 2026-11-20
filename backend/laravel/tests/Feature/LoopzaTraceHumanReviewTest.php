@@ -105,6 +105,9 @@ class LoopzaTraceHumanReviewTest extends TestCase
             'location_verification_status' => 'pending',
             'selfie_verification_status' => 'pending',
             'selfie_path' => 'trace-find/identity/pending/sample.png',
+            'location_consent_at' => now(),
+            'biometric_processing_consent_at' => now(),
+            'selfie_submitted_at' => now(),
             'submitted_latitude' => '-0.6817000',
             'submitted_longitude' => '34.7667000',
         ]);
