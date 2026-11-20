@@ -6,10 +6,12 @@ use App\Models\GroupAuthority;
 use App\Models\GroupStaffApprovedPhone;
 use App\Models\GroupStaffOtpChallenge;
 use App\Models\TraceCase;
+use App\Models\TraceCaseDocument;
 use App\Models\TraceProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LoopzaTraceHumanReviewTest extends TestCase
@@ -208,6 +210,65 @@ class LoopzaTraceHumanReviewTest extends TestCase
         $this->actingAs($reviewer)->withSession($session)
             ->getJson('/trace-find/review/profiles')
             ->assertForbidden();
+    }
+
+
+    public function test_private_case_document_download_requires_reviewer_otp_and_is_audited(): void
+    {
+        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.case.document.1');
+        $reporter = User::create([
+            'name' => 'Document Reporter',
+            'email' => 'document-reporter@example.test',
+            'phone' => '+254711000094',
+            'password' => 'Strong-test-password-123',
+            'status' => 'active',
+        ]);
+
+        $case = TraceCase::create([
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000124',
+            'reporter_user_id' => $reporter->id,
+            'reporter_phone' => $reporter->phone,
+            'reporter_country_code' => 'KE',
+            'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE',
+            'incident_region_code' => 'KE-17',
+            'incident_locality' => 'Kisii',
+            'case_type' => 'missing_person',
+            'subject_name' => 'Private Document Subject',
+            'subject_description' => 'Private test description.',
+            'last_seen_details' => 'Last seen in the test locality.',
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'urgent' => false,
+        ]);
+
+        Storage::fake('local');
+        Storage::disk('local')->put('trace-find/cases/restricted/report.pdf', '%PDF-1.4 test');
+        $document = TraceCaseDocument::create([
+            'trace_case_id' => $case->id,
+            'uploaded_by' => $reporter->id,
+            'document_type' => 'authority_report',
+            'storage_path' => 'trace-find/cases/restricted/report.pdf',
+            'original_filename' => 'report.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 13,
+            'sha256' => hash('sha256', '%PDF-1.4 test'),
+            'verification_status' => 'pending',
+        ]);
+
+        $session['nexora_group_staff_otp']['purpose'] = 'loopza.trace.review.case.document.'.$document->id;
+
+        $response = $this->actingAs($reviewer)->withSession($session)
+            ->get('/trace-find/review/cases/'.$case->id.'/documents/'.$document->id);
+
+        $response->assertOk();
+        $this->assertStringContainsString('attachment', $response->headers->get('content-disposition'));
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $reviewer->id,
+            'action' => 'loopza.trace_case.document.accessed',
+            'subject_id' => (string) $document->id,
+        ]);
     }
 
 }
