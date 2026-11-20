@@ -34,7 +34,7 @@ Consumers must:
 This commit adds the identity mapping, outbox table, model, service and focused feature tests. It does **not** yet automatically emit events from every billing, subscription, profile, case or payment workflow; it does not run a publisher/consumer; and it does not replicate data to a second region. Those are the next implementation stages. Do not describe the system as automatically synchronised or zero-downtime until those integrations, a compatible MySQL HA topology, failover fencing and recovery drills pass.
 ## Scheduled signed publisher
 
-The Laravel application now has `App\Services\ClientChangeOutboxPublisher` and the Artisan command `php artisan nexora:outbox:publish`. A scheduler entry attempts publication every minute and prevents overlapping runs on the same shared scheduler lock.
+The Laravel application now has `App\Services\ClientChangeOutboxPublisher` and the Artisan command `php artisan nexora:outbox:publish`. A scheduler entry attempts publication every minute, prevents overlapping runs, and uses Laravel's `onOneServer()` election so only one scheduler node dispatches when all nodes share a compatible cache/lock store. Configure the same shared cache backend and prefix on every scheduler node; a local file/array cache on separate hosts does not coordinate them. Run the publisher only from the designated primary.
 
 Configure both environment values on the primary and keep the secret out of source control:
 
