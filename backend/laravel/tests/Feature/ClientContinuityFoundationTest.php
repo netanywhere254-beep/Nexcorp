@@ -62,6 +62,32 @@ class ClientContinuityFoundationTest extends TestCase
         $service->record('loopza', 'order', 12, 'order.cancelled', ['order_id' => 12], null, null, 'payment-webhook-12');
     }
 
+    public function test_outbox_does_not_replay_an_idempotency_key_across_organisations(): void
+    {
+        $firstOrganization = Organization::create([
+            'name' => 'First Tenant', 'slug' => 'first-tenant', 'type' => 'business',
+            'status' => 'active', 'country_code' => 'KE', 'timezone' => 'Africa/Nairobi',
+        ]);
+        $secondOrganization = Organization::create([
+            'name' => 'Second Tenant', 'slug' => 'second-tenant', 'type' => 'business',
+            'status' => 'active', 'country_code' => 'KE', 'timezone' => 'Africa/Nairobi',
+        ]);
+
+        $service = app(ClientChangeOutbox::class);
+        $service->record(
+            'nexisp', 'subscription', 101, 'subscription.activated',
+            ['subscription_id' => 101], $firstOrganization->id, null, 'tenant-scoped-event-key', 1
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Idempotency key was already used for a different client event');
+
+        $service->record(
+            'nexisp', 'subscription', 101, 'subscription.activated',
+            ['subscription_id' => 101], $secondOrganization->id, null, 'tenant-scoped-event-key', 1
+        );
+    }
+
     public function test_outbox_requires_strictly_increasing_versions_for_an_aggregate(): void
     {
         $service = app(ClientChangeOutbox::class);
