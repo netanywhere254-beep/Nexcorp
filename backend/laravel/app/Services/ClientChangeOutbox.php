@@ -40,7 +40,10 @@ class ClientChangeOutbox
                 $existing = DB::table('client_change_outbox')
                     ->where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
-                    $sameEvent = $existing->product_code === $productCode
+                    $sameEvent = (int) $existing->organization_id === (int) $organizationId
+                        && (($existing->user_id === null && $userId === null)
+                            || (int) $existing->user_id === (int) $userId)
+                        && $existing->product_code === $productCode
                         && $existing->aggregate_type === $aggregateType
                         && (string) $existing->aggregate_id === (string) $aggregateId
                         && $existing->event_type === $eventType
