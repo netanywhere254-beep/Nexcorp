@@ -3,9 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\GroupAuthority;
+use App\Models\GroupStaffApprovedPhone;
+use App\Models\GroupStaffOtpChallenge;
+use App\Models\TraceAccessApplication;
+use App\Models\TraceCountryAccessGrant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class LoopzaTraceAccessApplicationTest extends TestCase
@@ -85,4 +90,143 @@ class LoopzaTraceAccessApplicationTest extends TestCase
         $this->actingAs($user)->getJson('/trace-find/review/access-applications')
             ->assertForbidden();
     }
+
+
+    public function test_vetting_approval_requires_a_separate_country_scoped_grant_with_otp(): void
+    {
+        $reviewer = $this->verifiedUser('reviewer@example.test');
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        $phone = GroupStaffApprovedPhone::create([
+            'user_id' => $reviewer->id,
+            'phone_e164' => $reviewer->phone,
+            'approved_by' => $reviewer->id,
+            'approval_method' => 'staff_approval',
+            'approved_at' => now(),
+            'status' => 'active',
+        ]);
+        $purpose = 'loopza.trace.access_applications.grant.501';
+        $challenge = GroupStaffOtpChallenge::create([
+            'user_id' => $reviewer->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $purpose,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $applicant = $this->verifiedUser('investigator@example.test');
+        $application = TraceAccessApplication::create([
+            'user_id' => $applicant->id,
+            'requested_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'organisation_name' => 'Independent Investigations',
+            'organisation_registration' => 'REG-KE-555',
+            'credentials_summary' => 'Verified professional credentials supplied for review.',
+            'evidence_path' => 'trace-find/access-applications/evidence.pdf',
+            'status' => 'approved',
+            'reviewed_by' => $reviewer->id,
+            'reviewed_at' => now(),
+            'review_notes' => 'Credentials verified.',
+        ]);
+        $purpose = 'loopza.trace.access_applications.grant.'.$application->id;
+        $challenge->update(['purpose' => $purpose]);
+
+        $session = ['nexora_group_staff_otp' => [
+            'challenge_id' => $challenge->id,
+            'user_id' => $reviewer->id,
+            'purpose' => $purpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/access-applications/'.$application->id.'/grant', [
+                'permissions' => ['cases.read', 'cases.match.submit'],
+                'region_code' => 'KE-17',
+                'expires_at' => now()->addMonths(3)->toISOString(),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('grant.country_code', 'KE')
+            ->assertJsonPath('grant.region_code', 'KE-17')
+            ->assertJsonPath('grant.role', 'professional_investigator');
+
+        $this->assertDatabaseHas('trace_country_access_grants', [
+            'user_id' => $applicant->id,
+            'source_application_id' => $application->id,
+            'access_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'region_code' => 'KE-17',
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $reviewer->id,
+            'action' => 'loopza.trace_country_access.granted',
+        ]);
+    }
+
+    public function test_volunteer_cannot_be_granted_private_case_permissions(): void
+    {
+        $user = $this->verifiedUser('volunteer-application@example.test');
+        $reviewer = $this->verifiedUser('reviewer-denied@example.test');
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        $phone = GroupStaffApprovedPhone::create([
+            'user_id' => $reviewer->id,
+            'phone_e164' => $reviewer->phone,
+            'approved_by' => $reviewer->id,
+            'approval_method' => 'staff_approval',
+            'approved_at' => now(),
+            'status' => 'active',
+        ]);
+        $application = TraceAccessApplication::create([
+            'user_id' => $user->id,
+            'requested_role' => 'volunteer',
+            'country_code' => 'KE',
+            'evidence_path' => 'trace-find/access-applications/volunteer.pdf',
+            'status' => 'approved',
+            'reviewed_by' => $reviewer->id,
+            'reviewed_at' => now(),
+            'review_notes' => 'Volunteer vetting approved.',
+        ]);
+        $purpose = 'loopza.trace.access_applications.grant.'.$application->id;
+        $challenge = GroupStaffOtpChallenge::create([
+            'user_id' => $reviewer->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $purpose,
+            'code_hash' => Hash::make('123456'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $session = ['nexora_group_staff_otp' => [
+            'challenge_id' => $challenge->id,
+            'user_id' => $reviewer->id,
+            'purpose' => $purpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/access-applications/'.$application->id.'/grant', [
+                'permissions' => ['cases.read'],
+                'expires_at' => now()->addMonths(1)->toISOString(),
+            ])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseMissing('trace_country_access_grants', [
+            'source_application_id' => $application->id,
+        ]);
+    }
+
 }
