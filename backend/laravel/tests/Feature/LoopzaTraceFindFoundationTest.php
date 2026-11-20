@@ -29,24 +29,25 @@ class LoopzaTraceFindFoundationTest extends TestCase
         return $user;
     }
 
-    public function test_public_onboarding_only_creates_a_pending_family_profile(): void
+    public function test_public_onboarding_requires_location_first_then_selfie(): void
     {
         $user = $this->verifiedUser();
 
-        $response = $this->actingAs($user)->withHeader('Accept', 'application/json')->post('/trace-find/profile', [
+        $location = $this->actingAs($user)->postJson('/trace-find/profile', [
             'country_code' => 'KE',
             'region_code' => 'KE-17',
             'locality' => 'Kisii',
             'latitude' => '-0.6817',
             'longitude' => '34.7667',
-            'selfie' => UploadedFile::fake()->createWithContent('selfie.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')),
             'location_consent' => '1',
-            'biometric_processing_consent' => '1',
             'account_type' => 'authority',
             'verification_status' => 'verified',
         ]);
 
-        $response->assertCreated()->assertJsonPath('profile.verification_status', 'pending');
+        $location->assertCreated()
+            ->assertJsonPath('next_step', 'selfie')
+            ->assertJsonPath('profile.verification_status', 'pending');
+
         $this->assertDatabaseHas('trace_profiles', [
             'user_id' => $user->id,
             'account_type' => 'family',
@@ -54,6 +55,44 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'location_verification_status' => 'pending',
             'selfie_verification_status' => 'pending',
         ]);
+
+        $profile = $user->fresh()->traceProfile;
+        $this->assertNotNull($profile->location_consent_at);
+        $this->assertNull($profile->selfie_path);
+        $this->assertNull($profile->biometric_processing_consent_at);
+
+        $selfie = UploadedFile::fake()->createWithContent(
+            'selfie.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
+
+        $this->actingAs($user)->postJson('/trace-find/profile/selfie', [
+            'selfie' => $selfie,
+            'biometric_processing_consent' => '1',
+        ])->assertCreated()
+            ->assertJsonPath('profile.verification_status', 'pending');
+
+        $profile->refresh();
+        $this->assertNotNull($profile->selfie_path);
+        $this->assertNotNull($profile->selfie_submitted_at);
+        $this->assertNotNull($profile->biometric_processing_consent_at);
+        $this->assertSame('pending', $profile->verification_status);
+    }
+
+    public function test_selfie_cannot_be_submitted_before_location_step(): void
+    {
+        $user = $this->verifiedUser();
+        $selfie = UploadedFile::fake()->createWithContent(
+            'selfie.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
+
+        $this->actingAs($user)->postJson('/trace-find/profile/selfie', [
+            'selfie' => $selfie,
+            'biometric_processing_consent' => '1',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('trace_profiles', ['user_id' => $user->id]);
     }
 
     public function test_cross_region_case_is_accepted_for_review_but_not_published(): void
