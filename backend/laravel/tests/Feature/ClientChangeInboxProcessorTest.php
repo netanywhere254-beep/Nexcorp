@@ -93,4 +93,45 @@ class ClientChangeInboxProcessorTest extends TestCase
         ]);
         $this->assertStringContainsString('Identity version gap', (string) DB::table('client_change_inbox')->where('id', $eventId)->value('last_error'));
     }
+
+    public function test_processor_never_acknowledges_case_events_without_a_case_materializer(): void
+    {
+        $eventId = (int) DB::table('client_change_inbox')->insertGetId([
+            'event_uuid' => (string) Str::uuid(),
+            'idempotency_key' => 'loopza-case-registration-unsupported',
+            'event_hash' => hash('sha256', 'loopza-case-registration-unsupported'),
+            'organization_id' => null,
+            'user_id' => 9001,
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => '501',
+            'event_type' => 'trace_case.registered',
+            'aggregate_version' => 1,
+            'payload' => json_encode([
+                'case_reference' => 'LOOP-2026-000501',
+                'status' => 'pending_review',
+                'publication_status' => 'private',
+            ], JSON_THROW_ON_ERROR),
+            'occurred_at' => now(),
+            'received_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = app(ClientChangeInboxProcessor::class)->processPending();
+
+        $this->assertSame(0, $result['processed']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertDatabaseHas('client_change_inbox', [
+            'id' => $eventId,
+            'processed_at' => null,
+            'attempts' => 1,
+        ]);
+        $this->assertStringContainsString(
+            'No inbox handler is registered',
+            (string) DB::table('client_change_inbox')->where('id', $eventId)->value('last_error')
+        );
+        $this->assertDatabaseCount('trace_cases', 0);
+    }
+
 }
