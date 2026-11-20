@@ -157,6 +157,14 @@ class LoopzaTraceAccessApplicationTest extends TestCase
         $this->actingAs($reviewer)->withSession($session)
             ->postJson('/trace-find/review/access-applications/'.$application->id.'/grant', [
                 'permissions' => ['cases.read', 'cases.match.submit'],
+                'region_code' => 'UG-1',
+                'expires_at' => now()->addMonths(3)->toISOString(),
+            ])
+            ->assertUnprocessable();
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/access-applications/'.$application->id.'/grant', [
+                'permissions' => ['cases.read', 'cases.match.submit'],
                 'region_code' => 'KE-17',
                 'expires_at' => now()->addMonths(3)->toISOString(),
             ])
