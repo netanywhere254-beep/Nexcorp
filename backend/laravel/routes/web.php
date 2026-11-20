@@ -83,5 +83,6 @@ Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(func
     Route::get('/profiles/{profileId}/selfie', [TraceReviewController::class, 'selfie'])->whereNumber('profileId')->middleware('throttle:6,1');
     Route::post('/profiles/{profileId}/decision', [TraceReviewController::class, 'decideProfile'])->whereNumber('profileId')->middleware('throttle:10,1');
     Route::get('/cases', [TraceReviewController::class, 'caseQueue'])->middleware('throttle:10,1');
+    Route::get('/cases/{caseId}/documents/{documentId}', [TraceReviewController::class, 'caseDocument'])->whereNumber('caseId')->whereNumber('documentId')->middleware('throttle:6,1');
     Route::post('/cases/{caseId}/decision', [TraceReviewController::class, 'decideCase'])->whereNumber('caseId')->middleware('throttle:10,1');
 });
