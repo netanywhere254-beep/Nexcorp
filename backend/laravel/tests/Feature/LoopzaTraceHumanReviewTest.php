@@ -152,8 +152,6 @@ class LoopzaTraceHumanReviewTest extends TestCase
 
     public function test_case_approval_does_not_publish_case(): void
     {
-        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.case.1');
-
         $reporter = User::create([
             'name' => 'Case Reporter',
             'email' => 'case-reporter@example.test',
