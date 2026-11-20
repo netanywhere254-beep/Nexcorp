@@ -14,6 +14,7 @@ class TraceProfile extends Model
         'selfie_verification_status', 'selfie_path', 'verified_latitude',
         'verified_longitude', 'submitted_latitude', 'submitted_longitude',
         'verified_at', 'reviewed_by', 'reviewed_at', 'review_notes',
+        'location_consent_at', 'biometric_processing_consent_at', 'selfie_submitted_at',
     ];
 
     protected function casts(): array
@@ -25,6 +26,9 @@ class TraceProfile extends Model
             'submitted_longitude' => 'decimal:7',
             'verified_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'location_consent_at' => 'datetime',
+            'biometric_processing_consent_at' => 'datetime',
+            'selfie_submitted_at' => 'datetime',
         ];
     }
 
