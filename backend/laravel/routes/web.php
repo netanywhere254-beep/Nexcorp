@@ -13,6 +13,7 @@ use App\Http\Controllers\TraceCaseController;
 use App\Http\Controllers\TraceAccessApplicationController;
 use App\Http\Controllers\TraceProfileController;
 use App\Http\Controllers\TraceReviewController;
+use App\Http\Controllers\TraceGrantedAccessController;
 use App\Http\Controllers\TracePhoneVerificationController;
 use App\Http\Controllers\UserPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
@@ -89,6 +90,13 @@ Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(func
     Route::post('/cases/{caseId}/decision', [TraceReviewController::class, 'decideCase'])->whereNumber('caseId')->middleware('throttle:10,1');
 });
 
+
+// Vetted external access is restricted to explicitly published records and active country grants.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/authorised')->group(function () {
+    Route::get('/cases', [TraceGrantedAccessController::class, 'cases'])->middleware('throttle:30,1');
+    Route::get('/cases/{caseId}/documents/{documentId}', [TraceGrantedAccessController::class, 'document'])
+        ->whereNumber('caseId')->whereNumber('documentId')->middleware('throttle:10,1');
+});
 
 // Authority, professional investigator and volunteer access is separately vetted.
 // Approval does not itself grant access to private cases or documents.
