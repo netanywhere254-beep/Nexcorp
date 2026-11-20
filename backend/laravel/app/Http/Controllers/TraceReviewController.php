@@ -187,7 +187,7 @@ class TraceReviewController extends Controller
         $this->auditSensitiveRead($request, 'loopza.trace_case.review_queue.accessed', TraceCase::class);
 
         $cases = TraceCase::query()
-            ->with('reporter:id,name,email')
+            ->with(['reporter:id,name,email', 'documents:id,trace_case_id,original_filename,mime_type'])
             ->whereIn('status', ['pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information'])
             ->orderByDesc('urgent')
             ->orderBy('created_at')
@@ -216,6 +216,11 @@ class TraceReviewController extends Controller
                     'email' => $case->reporter->email,
                 ],
                 'document_count' => $case->documents()->count(),
+                'documents' => $case->documents->map(fn (TraceCaseDocument $document) => [
+                    'id' => $document->id,
+                    'original_filename' => $document->original_filename,
+                    'mime_type' => $document->mime_type,
+                ]),
                 'submitted_at' => $case->created_at?->toISOString(),
             ]),
         ]);
