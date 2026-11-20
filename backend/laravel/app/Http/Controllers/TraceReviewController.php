@@ -65,6 +65,7 @@ class TraceReviewController extends Controller
         $profiles = TraceProfile::query()
             ->with('user:id,name,email,phone')
             ->where('account_type', 'family')
+            ->where('user_id', '!=', $request->user()->id)
             ->whereIn('country_code', $countries)
             ->whereNotNull('selfie_path')
             ->whereNotNull('location_consent_at')
