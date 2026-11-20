@@ -41,6 +41,7 @@ class TraceReviewController extends Controller
 
         $profiles = TraceProfile::query()
             ->with('user:id,name,email,phone')
+            ->where('account_type', 'family')
             ->whereIn('verification_status', ['pending', 'in_review'])
             ->orderBy('created_at')
             ->limit(100)
@@ -80,6 +81,7 @@ class TraceReviewController extends Controller
         $otp->consume($request, 'loopza.trace.review.profile.selfie.'.$profileId);
 
         $profile = TraceProfile::query()->findOrFail($profileId);
+        abort_unless($profile->account_type === 'family', 404);
         abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 404);
         abort_unless(filled($profile->selfie_path), 404);
         abort_unless(Storage::disk('local')->exists($profile->selfie_path), 404);
@@ -105,6 +107,7 @@ class TraceReviewController extends Controller
 
         $profile = DB::transaction(function () use ($request, $profileId, $data): TraceProfile {
             $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
+            abort_unless($profile->account_type === 'family', 404);
             abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 409,
                 'This profile is not awaiting review.');
 
