@@ -80,6 +80,7 @@ class TraceReviewController extends Controller
         $otp->consume($request, 'loopza.trace.review.profile.selfie.'.$profileId);
 
         $profile = TraceProfile::query()->findOrFail($profileId);
+        abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 404);
         abort_unless(filled($profile->selfie_path), 404);
         abort_unless(Storage::disk('local')->exists($profile->selfie_path), 404);
 
