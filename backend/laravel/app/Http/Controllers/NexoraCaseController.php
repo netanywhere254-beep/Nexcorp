@@ -74,7 +74,7 @@ class NexoraCaseController extends Controller
                 'visibility' => 'private',
             ]);
 
-            app(\\App\\Services\\ClientChangeOutbox::class)->record(
+            app(\App\Services\ClientChangeOutbox::class)->record(
                 'nexora',
                 'case',
                 $case->id,
