@@ -45,3 +45,19 @@ The workspace provides separate queues for family profiles, Loopza cases, and ve
 - Access application approval records vetting only and does not create authority appointments or grant private case access.
 - Sensitive evidence downloads are streamed from private local storage and audited.
 - The queue exposes only document metadata; storage paths are never returned to the browser.
+
+
+## Country and regional access grants
+
+- An approved access application is not itself an access token. A separate OTP-confirmed grant is required.
+- Grants are limited by the applicant's approved role, country, optional region, explicit permission allow-list, active status and expiry.
+- Regional grant codes must use a country-prefixed form (for example, `KE-17`) matching the approved application's country. This is a structural country-boundary check; it does not replace validation against an authoritative national administrative-region registry.
+- Runtime access checks re-evaluate the grant status, expiry, application approval, role permission allow-list, country and region on each request. Revocation therefore takes effect on subsequent authorization checks without waiting for a cache refresh.
+- Revocation is transactional, requires a fresh purpose-specific OTP, records the reason in the audit trail, and cannot be repeated on an already revoked grant.
+- A volunteer grant cannot be expanded to private case or document permissions by changing request parameters; permissions are constrained by the server-side role allow-list.
+
+## Shared client records and continuity boundary
+
+The current outbox/inbox implementation provides a transactional event journal, signed event transport, replay detection and durable receipt. The inbox stores accepted events; it is not yet a complete replicated client database, conflict-resolution engine, or automatic primary/standby promotion controller.
+
+Production continuity still requires a separately implemented and tested event consumer, authoritative client identity mapping, ordered per-client version handling, reconciliation, backup restore drills, health-based fencing/leader election, and controlled promotion/demotion. Until those are delivered and exercised under failure tests, the reference MySQL replication Compose file is a validation/lab reference only. Do not claim automatic failover or zero downtime from the current event inbox.
