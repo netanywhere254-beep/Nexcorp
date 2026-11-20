@@ -151,7 +151,9 @@ class GroupAuthorityController
                 $lockedTarget->status === 'active'
                     && $lockedTarget->scope_type === 'group'
                     && $lockedTarget->scope_key === 'nexora'
-                    && in_array($lockedTarget->authority, ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'], true),
+                    && in_array($lockedTarget->authority, ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'], true)
+                    && ($lockedTarget->starts_at === null || $lockedTarget->starts_at->lte(now()))
+                    && ($lockedTarget->expires_at === null || $lockedTarget->expires_at->gt(now())),
                 409,
                 'The target group appointment is no longer active.'
             );
@@ -162,6 +164,7 @@ class GroupAuthorityController
                 ->where('scope_type', 'country')
                 ->where('scope_key', $country)
                 ->where('status', 'active')
+                ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
                 ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
                 ->exists();
             abort_if($alreadyAssigned, 409, 'An active appointment already exists for this reviewer and country.');
