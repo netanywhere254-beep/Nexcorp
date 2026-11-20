@@ -202,4 +202,76 @@ class TraceAccessApplicationController extends Controller
             ],
         ]);
     }
+
+
+    public function grantCountryAccess(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): JsonResponse
+    {
+        $this->assertAuthorisedReviewer($request);
+        $application = TraceAccessApplication::query()->findOrFail($applicationId);
+        abort_unless($application->status === 'approved', 409,
+            'The application must first pass human vetting. Vetting approval alone does not grant access.');
+
+        $allowedByRole = [
+            'authority' => ['cases.review', 'cases.read', 'documents.read', 'authority.confirmation.submit'],
+            'professional_investigator' => ['cases.read', 'cases.match.submit', 'documents.read'],
+            'volunteer' => ['public_tasks.view', 'public_tasks.submit'],
+        ];
+        $allowed = $allowedByRole[$application->requested_role] ?? [];
+        $data = $request->validate([
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['required', 'string', Rule::in($allowed)],
+            'region_code' => ['nullable', 'string', 'max:64'],
+            'expires_at' => ['required', 'date', 'after:now'],
+        ]);
+
+        $otp->consume($request, 'loopza.trace.access_applications.grant.'.$applicationId);
+
+        $grant = DB::transaction(function () use ($request, $application, $data): TraceCountryAccessGrant {
+            $grant = TraceCountryAccessGrant::create([
+                'user_id' => $application->user_id,
+                'source_application_id' => $application->id,
+                'access_role' => $application->requested_role,
+                'country_code' => $application->country_code,
+                'region_code' => $data['region_code'] ?? null,
+                'permissions' => array_values(array_unique($data['permissions'])),
+                'status' => 'active',
+                'granted_by' => $request->user()->id,
+                'expires_at' => $data['expires_at'],
+            ]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'loopza.trace_country_access.granted',
+                'subject_type' => TraceCountryAccessGrant::class,
+                'subject_id' => (string) $grant->id,
+                'metadata' => [
+                    'application_id' => $application->id,
+                    'user_id' => $application->user_id,
+                    'role' => $application->requested_role,
+                    'country_code' => $application->country_code,
+                    'region_code' => $grant->region_code,
+                    'permissions' => $grant->permissions,
+                    'expires_at' => $grant->expires_at?->toISOString(),
+                ],
+            ]);
+
+            return $grant;
+        });
+
+        return response()->json([
+            'message' => 'Country-scoped access grant created. Access is limited to the selected country, optional region and listed permissions.',
+            'grant' => [
+                'id' => $grant->id,
+                'user_id' => $grant->user_id,
+                'role' => $grant->access_role,
+                'country_code' => $grant->country_code,
+                'region_code' => $grant->region_code,
+                'permissions' => $grant->permissions,
+                'status' => $grant->status,
+                'expires_at' => $grant->expires_at?->toISOString(),
+            ],
+        ], 201);
+    }
+
 }
