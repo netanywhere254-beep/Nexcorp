@@ -32,3 +32,17 @@ Consumers must:
 ## Current implementation boundary
 
 This commit adds the identity mapping, outbox table, model, service and focused feature tests. It does **not** yet automatically emit events from every billing, subscription, profile, case or payment workflow; it does not run a publisher/consumer; and it does not replicate data to a second region. Those are the next implementation stages. Do not describe the system as automatically synchronised or zero-downtime until those integrations, a compatible MySQL HA topology, failover fencing and recovery drills pass.
+## Scheduled signed publisher
+
+The Laravel application now has `App\Services\ClientChangeOutboxPublisher` and the Artisan command `php artisan nexora:outbox:publish`. A scheduler entry attempts publication every minute and prevents overlapping runs on the same shared scheduler lock.
+
+Configure both environment values on the primary and keep the secret out of source control:
+
+- `NEXORA_REPLICATION_URL`: HTTPS base URL of the receiving backup service.
+- `NEXORA_REPLICATION_SECRET`: long random shared secret, identical on sender and receiver.
+
+The publisher sends events to `POST /api/replication/events` with an event UUID idempotency key, timestamp and HMAC-SHA256 signature over the exact request body. It marks an event published only after a successful 2xx response. Failed attempts remain pending, increment an attempt counter, record a safe error summary and wait at least five minutes before retrying.
+
+**Operational prerequisite:** Laravel's scheduler must actually be invoked by the host (Linux cron or Windows Task Scheduler running `php artisan schedule:run` every minute). Merely deploying the code does not start the scheduler.
+
+**Important limitation:** the receiver endpoint, signature-verification middleware, inbox processor and destination-side application are not implemented by this publisher commit. Until those exist and are deployed on the backup, leave `NEXORA_REPLICATION_URL` unset. This publisher alone is not failover, database replication, or a disaster-recovery guarantee. Receiver processing must verify timestamp freshness and HMAC using constant-time comparison, persist each `event_uuid` once, and return 2xx only after durable inbox commit.
