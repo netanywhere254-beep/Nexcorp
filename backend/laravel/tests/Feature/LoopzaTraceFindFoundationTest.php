@@ -276,6 +276,29 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'review_notes' => null,
             'subject_description' => 'Updated description with additional identifying details.',
         ]);
+
+        // A later reviewer request must continue the same event stream at version 3.
+        DB::table('trace_cases')->where('id', $case->id)->update([
+            'status' => 'needs_more_information',
+            'reviewed_by' => $other->id,
+            'reviewed_at' => now(),
+            'review_notes' => 'Please clarify the latest sighting.',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding the additional sighting details requested by the reviewer.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'aggregate_version' => 3,
+            'user_id' => $reporter->id,
+        ]);
+        $this->assertDatabaseCount('trace_case_resubmissions', 2);
     }
 
 
