@@ -82,6 +82,7 @@ Route::middleware(['auth', 'verified'])->prefix('nexora/cases')->group(function 
 
 // Sensitive Loopza review actions require a group-scoped appointment and one-time staff OTP.
 Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(function () {
+    Route::get('/console', fn () => view('trace-find.review-console'))->name('trace-find.review.console');
     Route::get('/profiles', [TraceReviewController::class, 'profileQueue'])->middleware('throttle:10,1');
     Route::get('/profiles/{profileId}/selfie', [TraceReviewController::class, 'selfie'])->whereNumber('profileId')->middleware('throttle:6,1');
     Route::post('/profiles/{profileId}/decision', [TraceReviewController::class, 'decideProfile'])->whereNumber('profileId')->middleware('throttle:10,1');
