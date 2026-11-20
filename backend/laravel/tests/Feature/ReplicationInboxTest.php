@@ -86,6 +86,22 @@ class ReplicationInboxTest extends TestCase
         $this->assertDatabaseCount('client_change_inbox', 1);
     }
 
+    public function test_different_event_cannot_claim_an_already_received_aggregate_version(): void
+    {
+        $first = $this->event();
+        $this->signedRequest($first)->assertAccepted();
+
+        $conflict = $this->event('d7d8e9f0-1234-4abc-8def-0123456789ab');
+        $conflict['idempotency_key'] = 'replication-test-conflicting-version';
+        $conflict['event_type'] = 'subscription.cancelled';
+        $conflict['payload']['status'] = 'cancelled';
+
+        $this->signedRequest($conflict)->assertStatus(409)
+            ->assertJsonPath('message', 'Aggregate version was already used by a different event.');
+
+        $this->assertDatabaseCount('client_change_inbox', 1);
+    }
+
     public function test_invalid_hmac_is_rejected(): void
     {
         $this->signedRequest($this->event(), str_repeat('a', 64))->assertUnauthorized();
