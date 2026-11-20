@@ -238,6 +238,13 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'trace_case_id' => $case->id,
             'submitted_by' => $reporter->id,
         ]);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'user_id' => $reporter->id,
+        ]);
         $this->assertDatabaseHas('trace_cases', [
             'id' => $case->id,
             'case_reference' => 'LTF-'.now()->format('Y').'-000777',
