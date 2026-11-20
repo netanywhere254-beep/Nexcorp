@@ -31,3 +31,26 @@ Approval records that the application passed this vetting step for the stated ro
 - Record the evidence and reasoning in reviewer notes without copying unnecessary sensitive data.
 - Use \`needs_more_information\` to request corrections; do not approve incomplete evidence.
 - Keep uploaded evidence private and apply retention/deletion rules under the applicable country policy.
+
+## Separate country-scoped access grants
+
+A successful vetting decision is not an access grant. An authorised Nexora Group Security Officer or Group CEO must separately call:
+
+- `POST /trace-find/review/access-applications/{applicationId}/grant`
+
+The grant action requires a fresh one-time group staff OTP for purpose
+`loopza.trace.access_applications.grant.{applicationId}`. It creates a
+`trace_country_access_grants` record tied to the approved application, with:
+
+- the applicant and vetted role;
+- the application's country code (the reviewer cannot substitute another country);
+- an optional narrower region code;
+- an explicit role-allow-listed permission set;
+- an expiry time, grantor and active/revoked status.
+
+Authority permissions, investigator permissions and volunteer permissions
+are separate allow-lists. Volunteers cannot be granted private case or document
+permissions through this endpoint. Grants are audited. Revocation and runtime
+permission enforcement must be applied by the relevant case and document
+controllers before any country-scoped user-facing access is enabled.
+
