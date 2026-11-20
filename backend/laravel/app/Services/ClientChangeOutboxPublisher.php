@@ -19,15 +19,34 @@ class ClientChangeOutboxPublisher
 
         $published = 0;
         $failed = 0;
-        $rows = DB::table('client_change_outbox')
-            ->whereNull('published_at')
+        // Do not publish a later event while an earlier event for the same
+        // aggregate remains unacknowledged. This preserves per-aggregate FIFO
+        // delivery even when an earlier request is retrying after a failure.
+        $rows = DB::table('client_change_outbox as pending_event')
+            ->whereNull('pending_event.published_at')
             ->where(function ($query): void {
-                $query->where('attempts', 0)
-                    ->orWhere('updated_at', '<=', now()->subMinutes(5));
+                $query->where('pending_event.attempts', 0)
+                    ->orWhere('pending_event.updated_at', '<=', now()->subMinutes(5));
             })
-            ->orderBy('id')
+            ->whereNotExists(function ($query): void {
+                $query->select(DB::raw(1))
+                    ->from('client_change_outbox as earlier_event')
+                    ->whereColumn('earlier_event.id', '<', 'pending_event.id')
+                    ->whereNull('earlier_event.published_at')
+                    ->whereColumn('earlier_event.product_code', 'pending_event.product_code')
+                    ->whereColumn('earlier_event.aggregate_type', 'pending_event.aggregate_type')
+                    ->whereColumn('earlier_event.aggregate_id', 'pending_event.aggregate_id')
+                    ->where(function ($scope): void {
+                        $scope->whereColumn('earlier_event.organization_id', 'pending_event.organization_id')
+                            ->orWhere(function ($nullScope): void {
+                                $nullScope->whereNull('earlier_event.organization_id')
+                                    ->whereNull('pending_event.organization_id');
+                            });
+                    });
+            })
+            ->orderBy('pending_event.id')
             ->limit(max(1, min($limit, 500)))
-            ->get();
+            ->get('pending_event.*');
 
         foreach ($rows as $row) {
             $body = [
