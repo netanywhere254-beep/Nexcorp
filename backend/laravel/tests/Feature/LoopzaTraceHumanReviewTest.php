@@ -393,7 +393,7 @@ class LoopzaTraceHumanReviewTest extends TestCase
     {
         [$reviewer, $session] = $this->reviewerWithOtp('placeholder');
         $case = TraceCase::create([
-            'public_id' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
             'case_reference' => 'LTF-'.now()->format('Y').'-000777',
             'reporter_user_id' => $reviewer->id,
             'reporter_phone' => $reviewer->phone,
