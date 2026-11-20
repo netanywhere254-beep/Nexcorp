@@ -1,0 +1,205 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AuditLog;
+use App\Models\GroupAuthority;
+use App\Models\TraceAccessApplication;
+use App\Services\GroupStaffOtpConfirmation;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class TraceAccessApplicationController extends Controller
+{
+    private function assertAuthorisedReviewer(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless($user && $user->status === 'active', 403);
+
+        $allowed = GroupAuthority::query()
+            ->where('user_id', $user->id)
+            ->whereIn('authority', ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'])
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
+
+        abort_unless($allowed, 403, 'An active Nexora Group Security Officer or Group CEO appointment is required.');
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'requested_role' => ['required', Rule::in(['authority', 'professional_investigator', 'volunteer'])],
+            'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+            'organisation_name' => ['required_if:requested_role,authority,professional_investigator', 'nullable', 'string', 'max:180'],
+            'organisation_registration' => ['required_if:requested_role,authority,professional_investigator', 'nullable', 'string', 'max:120'],
+            'credentials_summary' => ['required_if:requested_role,authority,professional_investigator', 'nullable', 'string', 'min:20', 'max:4000'],
+            'evidence' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+        ]);
+
+        $alreadyApproved = TraceAccessApplication::query()
+            ->where('user_id', $request->user()->id)
+            ->where('requested_role', $data['requested_role'])
+            ->where('country_code', strtoupper($data['country_code']))
+            ->where('status', 'approved')
+            ->exists();
+        abort_if($alreadyApproved, 409, 'This role is already approved for the selected country.');
+
+        $existingPending = TraceAccessApplication::query()
+            ->where('user_id', $request->user()->id)
+            ->where('requested_role', $data['requested_role'])
+            ->where('country_code', strtoupper($data['country_code']))
+            ->where('status', 'pending_review')
+            ->exists();
+        abort_if($existingPending, 409, 'An application for this role and country is already awaiting review.');
+
+        $path = $request->file('evidence')->store('trace-find/access-applications/'.$request->user()->id, 'local');
+
+        try {
+            $application = TraceAccessApplication::create([
+                'user_id' => $request->user()->id,
+                'requested_role' => $data['requested_role'],
+                'country_code' => strtoupper($data['country_code']),
+                'organisation_name' => $data['organisation_name'] ?? null,
+                'organisation_registration' => $data['organisation_registration'] ?? null,
+                'credentials_summary' => $data['credentials_summary'] ?? null,
+                'evidence_path' => $path,
+                'status' => 'pending_review',
+            ]);
+        } catch (\Throwable $exception) {
+            Storage::disk('local')->delete($path);
+            throw $exception;
+        }
+
+        return response()->json([
+            'message' => 'Application received for human vetting. No professional or authority permissions have been granted.',
+            'application' => [
+                'id' => $application->id,
+                'requested_role' => $application->requested_role,
+                'country_code' => $application->country_code,
+                'status' => $application->status,
+            ],
+        ], 201);
+    }
+
+    public function index(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
+    {
+        $this->assertAuthorisedReviewer($request);
+        $otp->consume($request, 'loopza.trace.access_applications.queue');
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'loopza.trace_access_application.queue.accessed',
+            'subject_type' => TraceAccessApplication::class,
+            'subject_id' => null,
+            'metadata' => ['accessed_at' => now()->toISOString()],
+        ]);
+
+        $applications = TraceAccessApplication::query()
+            ->with('applicant:id,name,email')
+            ->whereIn('status', ['pending_review', 'needs_more_information'])
+            ->orderBy('created_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json(['data' => $applications->map(fn ($app) => [
+            'id' => $app->id,
+            'applicant' => ['id' => $app->applicant->id, 'name' => $app->applicant->name, 'email' => $app->applicant->email],
+            'requested_role' => $app->requested_role,
+            'country_code' => $app->country_code,
+            'organisation_name' => $app->organisation_name,
+            'organisation_registration' => $app->organisation_registration,
+            'credentials_summary' => $app->credentials_summary,
+            'status' => $app->status,
+            'submitted_at' => $app->created_at?->toISOString(),
+        ])]);
+    }
+
+    public function evidence(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): StreamedResponse
+    {
+        $this->assertAuthorisedReviewer($request);
+        $otp->consume($request, 'loopza.trace.access_applications.evidence.'.$applicationId);
+
+        $application = TraceAccessApplication::query()->findOrFail($applicationId);
+        abort_unless(in_array($application->status, ['pending_review', 'needs_more_information'], true), 404);
+        abort_unless($application->evidence_path && Storage::disk('local')->exists($application->evidence_path), 404);
+
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'loopza.trace_access_application.evidence.accessed',
+            'subject_type' => TraceAccessApplication::class,
+            'subject_id' => (string) $application->id,
+            'metadata' => ['accessed_at' => now()->toISOString()],
+        ]);
+
+        return Storage::disk('local')->response($application->evidence_path, 'verification-evidence', [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ], 'attachment');
+    }
+
+    public function decide(Request $request, GroupStaffOtpConfirmation $otp, int $applicationId): JsonResponse
+    {
+        $this->assertAuthorisedReviewer($request);
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject', 'request_information'])],
+            'notes' => ['required', 'string', 'min:5', 'max:2000'],
+        ]);
+        $otp->consume($request, 'loopza.trace.access_applications.decision.'.$applicationId);
+
+        $application = DB::transaction(function () use ($request, $applicationId, $data): TraceAccessApplication {
+            $app = TraceAccessApplication::query()->lockForUpdate()->findOrFail($applicationId);
+            abort_unless(in_array($app->status, ['pending_review', 'needs_more_information'], true), 409,
+                'This application is no longer awaiting a decision.');
+
+            $status = match ($data['decision']) {
+                'approve' => 'approved',
+                'reject' => 'rejected',
+                default => 'needs_more_information',
+            };
+
+            $app->update([
+                'status' => $status,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'review_notes' => $data['notes'],
+            ]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'loopza.trace_access_application.reviewed',
+                'subject_type' => TraceAccessApplication::class,
+                'subject_id' => (string) $app->id,
+                'metadata' => [
+                    'requested_role' => $app->requested_role,
+                    'country_code' => $app->country_code,
+                    'decision' => $data['decision'],
+                    'resulting_status' => $status,
+                ],
+            ]);
+
+            return $app->fresh();
+        });
+
+        return response()->json([
+            'message' => 'Vetting decision recorded. Approval records verification only; case access remains separately permissioned.',
+            'application' => [
+                'id' => $application->id,
+                'requested_role' => $application->requested_role,
+                'country_code' => $application->country_code,
+                'status' => $application->status,
+                'reviewed_at' => $application->reviewed_at?->toISOString(),
+            ],
+        ]);
+    }
+}
