@@ -9,6 +9,7 @@ use App\Models\TraceProfile;
 use App\Services\GroupStaffOtpConfirmation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -101,43 +102,47 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.profile.'.$profileId);
 
-        $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
-        abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 409,
-            'This profile is not awaiting review.');
+        $profile = DB::transaction(function () use ($request, $profileId, $data): TraceProfile {
+            $profile = TraceProfile::query()->lockForUpdate()->findOrFail($profileId);
+            abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 409,
+                'This profile is not awaiting review.');
 
-        $approved = $data['identity_decision'] === 'approved'
-            && $data['location_decision'] === 'approved'
-            && $data['selfie_decision'] === 'approved';
+            $approved = $data['identity_decision'] === 'approved'
+                && $data['location_decision'] === 'approved'
+                && $data['selfie_decision'] === 'approved';
 
-        $profile->update([
-            'identity_verification_status' => $data['identity_decision'] === 'approved' ? 'verified' : 'rejected',
-            'location_verification_status' => $data['location_decision'] === 'approved' ? 'verified' : 'rejected',
-            'selfie_verification_status' => $data['selfie_decision'] === 'approved' ? 'verified' : 'rejected',
-            'verification_status' => $approved ? 'verified' : 'rejected',
-            'verified_latitude' => $approved ? $profile->submitted_latitude : null,
-            'verified_longitude' => $approved ? $profile->submitted_longitude : null,
-            'verified_at' => $approved ? now() : null,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-            'review_notes' => $data['notes'] ?? null,
-        ]);
+            $profile->update([
+                'identity_verification_status' => $data['identity_decision'] === 'approved' ? 'verified' : 'rejected',
+                'location_verification_status' => $data['location_decision'] === 'approved' ? 'verified' : 'rejected',
+                'selfie_verification_status' => $data['selfie_decision'] === 'approved' ? 'verified' : 'rejected',
+                'verification_status' => $approved ? 'verified' : 'rejected',
+                'verified_latitude' => $approved ? $profile->submitted_latitude : null,
+                'verified_longitude' => $approved ? $profile->submitted_longitude : null,
+                'verified_at' => $approved ? now() : null,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'review_notes' => $data['notes'] ?? null,
+            ]);
 
-        AuditLog::create([
-            'organization_id' => null,
-            'actor_user_id' => $request->user()->id,
-            'action' => 'loopza.trace_profile.reviewed',
-            'subject_type' => TraceProfile::class,
-            'subject_id' => (string) $profile->id,
-            'metadata' => [
-                'identity_decision' => $data['identity_decision'],
-                'location_decision' => $data['location_decision'],
-                'selfie_decision' => $data['selfie_decision'],
-                'result' => $approved ? 'verified' : 'rejected',
-            ],
-        ]);
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'loopza.trace_profile.reviewed',
+                'subject_type' => TraceProfile::class,
+                'subject_id' => (string) $profile->id,
+                'metadata' => [
+                    'identity_decision' => $data['identity_decision'],
+                    'location_decision' => $data['location_decision'],
+                    'selfie_decision' => $data['selfie_decision'],
+                    'result' => $approved ? 'verified' : 'rejected',
+                ],
+            ]);
+
+            return $profile->fresh();
+        });
 
         return response()->json([
-            'message' => $approved
+            'message' => $profile->verification_status === 'verified'
                 ? 'Profile verification approved.'
                 : 'Profile verification rejected.',
             'profile' => [
@@ -205,37 +210,41 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.case.'.$caseId);
 
-        $case = TraceCase::query()->lockForUpdate()->findOrFail($caseId);
-        abort_unless(in_array($case->status, [
-            'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
-        ], true), 409, 'This case is not awaiting review.');
+        $case = DB::transaction(function () use ($request, $caseId, $data): TraceCase {
+            $case = TraceCase::query()->lockForUpdate()->findOrFail($caseId);
+            abort_unless(in_array($case->status, [
+                'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
+            ], true), 409, 'This case is not awaiting review.');
 
-        $status = match ($data['decision']) {
-            'approve' => 'approved_pending_publication',
-            'reject' => 'rejected',
-            default => 'needs_more_information',
-        };
+            $status = match ($data['decision']) {
+                'approve' => 'approved_pending_publication',
+                'reject' => 'rejected',
+                default => 'needs_more_information',
+            };
 
-        $case->update([
-            'status' => $status,
-            'publication_status' => 'private',
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-            'review_notes' => $data['notes'],
-        ]);
+            $case->update([
+                'status' => $status,
+                'publication_status' => 'private',
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'review_notes' => $data['notes'],
+            ]);
 
-        AuditLog::create([
-            'organization_id' => null,
-            'actor_user_id' => $request->user()->id,
-            'action' => 'loopza.trace_case.reviewed',
-            'subject_type' => TraceCase::class,
-            'subject_id' => (string) $case->id,
-            'metadata' => [
-                'case_reference' => $case->case_reference,
-                'decision' => $data['decision'],
-                'resulting_status' => $status,
-            ],
-        ]);
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $request->user()->id,
+                'action' => 'loopza.trace_case.reviewed',
+                'subject_type' => TraceCase::class,
+                'subject_id' => (string) $case->id,
+                'metadata' => [
+                    'case_reference' => $case->case_reference,
+                    'decision' => $data['decision'],
+                    'resulting_status' => $status,
+                ],
+            ]);
+
+            return $case->fresh();
+        });
 
         return response()->json([
             'message' => 'Case review decision recorded. The case remains private.',
