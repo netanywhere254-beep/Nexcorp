@@ -35,7 +35,8 @@ class TraceCaseController extends Controller {
    && $profile->location_verification_status==='verified'
    && $profile->selfie_verification_status==='verified';
   $urgent=(bool)($v['urgent']??false);
-  $case=TraceCase::create([
+  $case=DB::transaction(function () use ($request,$user,$profile,$v,$locallyVerified,$urgent): TraceCase {
+   $case=TraceCase::create([
    'public_id'=>(string)Str::uuid(),'case_reference'=>app(CaseReferenceNumber::class)->next('loopza'),
    'reporter_user_id'=>$user->id,'reporter_phone'=>$user->phone,'reporter_country_code'=>strtoupper($profile->country_code),
    'reporter_region_code'=>$profile->region_code,'incident_country_code'=>strtoupper($v['incident_country_code']),
@@ -46,15 +47,31 @@ class TraceCaseController extends Controller {
    'publication_status'=>'private','urgent'=>$urgent,'authority_reference'=>$v['authority_reference']??null,
    'authority_reported_at'=>$v['authority_reported_at']??null,
   ]);
-  if ($request->hasFile('ob_document')) {
-   $file=$request->file('ob_document'); $path=$file->store("trace-find/cases/{$case->public_id}/restricted",'local');
-   TraceCaseDocument::create([
+   if ($request->hasFile('ob_document')) {
+    $file=$request->file('ob_document'); $path=$file->store("trace-find/cases/{$case->public_id}/restricted",'local');
+    TraceCaseDocument::create([
     'trace_case_id'=>$case->id,'uploaded_by'=>$user->id,'document_type'=>'authority_report',
     'storage_path'=>$path,'original_filename'=>basename($file->getClientOriginalName()),
     'mime_type'=>(string)$file->getMimeType(),'size_bytes'=>(int)$file->getSize(),
     'sha256'=>hash_file('sha256',$file->getRealPath()),'verification_status'=>'pending',
    ]);
-  }
+   }
+
+   app(\\App\\Services\\ClientChangeOutbox::class)->record(
+    'loopza', 'trace_case', $case->id, 'trace_case.registered',
+    [
+     'case_reference' => $case->case_reference,
+     'case_type' => $case->case_type,
+     'status' => $case->status,
+     'publication_status' => $case->publication_status,
+     'incident_country_code' => $case->incident_country_code,
+    ],
+    null, $user->id, 'loopza-trace-case-registered-'.$case->public_id,
+   );
+
+   return $case;
+  }, 5);
+
   return response()->json(['message'=>'Report received for review. It is not publicly visible.',
    'case'=>['reference'=>$case->case_reference,'status'=>$case->status,'publication_status'=>$case->publication_status,
    'incident_country_code'=>$case->incident_country_code,'incident_region_code'=>$case->incident_region_code]],201);
