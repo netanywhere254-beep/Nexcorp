@@ -6,6 +6,8 @@ use App\Models\ClientServiceIdentity;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\ClientChangeOutbox;
+use App\Services\ClientChangeOutboxPublisher;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -76,6 +78,54 @@ class ClientContinuityFoundationTest extends TestCase
         }
 
         $this->assertDatabaseCount('client_change_outbox', 0);
+    }
+
+    public function test_publisher_marks_event_published_only_after_backup_acknowledges_it(): void
+    {
+        app(ClientChangeOutbox::class)->record(
+            'nexisp', 'subscription', 44, 'subscription.activated',
+            ['subscription_id' => 44], null, null, 'publisher-event-44'
+        );
+        config([
+            'services.nexora_replication.url' => 'https://backup.example.test',
+            'services.nexora_replication.secret' => 'test-shared-secret',
+        ]);
+        Http::fake(['backup.example.test/api/replication/events' => Http::response(['accepted' => true], 202)]);
+
+        $result = app(ClientChangeOutboxPublisher::class)->publishPending();
+
+        $this->assertSame(1, $result['published']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertDatabaseCount('client_change_outbox', 1);
+        $this->assertNotNull(\\Illuminate\\Support\\Facades\\DB::table('client_change_outbox')->value('published_at'));
+        Http::assertSent(fn ($request) =>
+            $request->url() === 'https://backup.example.test/api/replication/events'
+            && $request->hasHeader('X-Nexora-Signature')
+            && $request->hasHeader('Idempotency-Key')
+        );
+    }
+
+    public function test_publisher_keeps_event_pending_and_counts_failure_when_backup_is_unavailable(): void
+    {
+        app(ClientChangeOutbox::class)->record(
+            'loopza', 'order', 55, 'order.paid', ['order_id' => 55], null, null, 'publisher-event-55'
+        );
+        config([
+            'services.nexora_replication.url' => 'https://backup.example.test',
+            'services.nexora_replication.secret' => 'test-shared-secret',
+        ]);
+        Http::fake(['backup.example.test/api/replication/events' => Http::response(['error' => 'unavailable'], 503)]);
+
+        $result = app(ClientChangeOutboxPublisher::class)->publishPending();
+
+        $this->assertSame(0, $result['published']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'idempotency_key' => 'publisher-event-55',
+            'published_at' => null,
+            'attempts' => 1,
+            'last_error' => 'Replication endpoint returned HTTP 503',
+        ]);
     }
 
     public function test_outbox_rejects_unknown_product_code(): void
