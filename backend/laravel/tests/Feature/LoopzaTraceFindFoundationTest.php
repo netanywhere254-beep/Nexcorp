@@ -241,4 +241,61 @@ class LoopzaTraceFindFoundationTest extends TestCase
         ]);
     }
 
+
+    public function test_resubmission_appends_new_evidence_without_deleting_existing_documents(): void
+    {
+        $reporter = $this->verifiedUser();
+        $case = TraceCase::create([
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000778',
+            'reporter_user_id' => $reporter->id,
+            'reporter_phone' => $reporter->phone,
+            'reporter_country_code' => 'KE',
+            'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE',
+            'incident_region_code' => 'KE-17',
+            'case_type' => 'missing_person',
+            'subject_name' => 'Evidence Retention Subject',
+            'subject_description' => 'Original description.',
+            'last_seen_details' => 'Original last seen details.',
+            'status' => 'rejected',
+            'publication_status' => 'private',
+            'reviewed_at' => now(),
+            'review_notes' => 'Please submit a clearer supporting document.',
+        ]);
+
+        Storage::fake('local');
+        Storage::disk('local')->put('trace-find/cases/original.pdf', '%PDF-1.4 original');
+        $original = $case->documents()->create([
+            'uploaded_by' => $reporter->id,
+            'document_type' => 'authority_report',
+            'storage_path' => 'trace-find/cases/original.pdf',
+            'original_filename' => 'original.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 18,
+            'sha256' => hash('sha256', '%PDF-1.4 original'),
+            'verification_status' => 'pending',
+        ]);
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'I am adding the clearer supporting report requested by the reviewer.',
+            'ob_document' => UploadedFile::fake()->create('updated-report.pdf', 128, 'application/pdf'),
+        ])->assertOk()
+            ->assertJsonPath('case.reference', $case->case_reference)
+            ->assertJsonPath('case.status', 'pending_review');
+
+        $this->assertDatabaseCount('trace_case_documents', 2);
+        $this->assertDatabaseHas('trace_case_documents', [
+            'id' => $original->id,
+            'storage_path' => 'trace-find/cases/original.pdf',
+        ]);
+        $this->assertDatabaseHas('trace_case_documents', [
+            'trace_case_id' => $case->id,
+            'document_type' => 'supplementary_evidence',
+            'original_filename' => 'updated-report.pdf',
+            'verification_status' => 'pending',
+        ]);
+        $this->assertTrue(Storage::disk('local')->exists('trace-find/cases/original.pdf'));
+    }
+
 }
