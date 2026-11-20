@@ -74,6 +74,22 @@ class NexoraCaseController extends Controller
                 'visibility' => 'private',
             ]);
 
+            app(\\App\\Services\\ClientChangeOutbox::class)->record(
+                'nexora',
+                'case',
+                $case->id,
+                'case.registered',
+                [
+                    'case_reference' => $case->case_reference,
+                    'case_type' => $case->case_type,
+                    'priority' => $case->priority,
+                    'status' => $case->status,
+                ],
+                null,
+                $user->id,
+                'nexora-case-registered-'.$case->public_id,
+            );
+
             AuditLog::create([
                 'organization_id' => null,
                 'actor_user_id' => $user->id,
