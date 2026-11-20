@@ -88,6 +88,7 @@ class NexoraCaseController extends Controller
                 null,
                 $user->id,
                 'nexora-case-registered-'.$case->public_id,
+                1,
             );
 
             AuditLog::create([
