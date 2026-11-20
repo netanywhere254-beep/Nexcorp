@@ -95,6 +95,7 @@ class LoopzaTraceAccessApplicationTest extends TestCase
     public function test_vetting_approval_requires_a_separate_country_scoped_grant_with_otp(): void
     {
         $reviewer = $this->verifiedUser('reviewer@example.test');
+        $reviewer->forceFill(['phone' => '+254711000101'])->save();
         GroupAuthority::create([
             'user_id' => $reviewer->id,
             'authority' => 'GROUP_SECURITY_OFFICER',
@@ -174,6 +175,7 @@ class LoopzaTraceAccessApplicationTest extends TestCase
     {
         $user = $this->verifiedUser('volunteer-application@example.test');
         $reviewer = $this->verifiedUser('reviewer-denied@example.test');
+        $reviewer->forceFill(['phone' => '+254711000102'])->save();
         GroupAuthority::create([
             'user_id' => $reviewer->id,
             'authority' => 'GROUP_SECURITY_OFFICER',
