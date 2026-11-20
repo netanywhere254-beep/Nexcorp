@@ -62,6 +62,23 @@ class ClientContinuityFoundationTest extends TestCase
         $service->record('loopza', 'order', 12, 'order.cancelled', ['order_id' => 12], null, null, 'payment-webhook-12');
     }
 
+    public function test_outbox_requires_strictly_increasing_versions_for_an_aggregate(): void
+    {
+        $service = app(ClientChangeOutbox::class);
+        $service->record(
+            'nexisp', 'subscription', 91, 'subscription.activated',
+            ['subscription_id' => 91], null, null, 'subscription-91-v1', 1
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Aggregate versions must increase monotonically');
+
+        $service->record(
+            'nexisp', 'subscription', 91, 'subscription.updated',
+            ['subscription_id' => 91], null, null, 'subscription-91-v1-duplicate', 1
+        );
+    }
+
     public function test_outbox_event_rolls_back_with_the_business_transaction(): void
     {
         try {
