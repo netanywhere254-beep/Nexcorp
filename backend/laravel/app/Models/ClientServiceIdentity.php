@@ -13,7 +13,7 @@ class ClientServiceIdentity extends Model
 
     protected function casts(): array
     {
-        return ['metadata' => 'array'];
+        return ['metadata' => 'array', 'source_version' => 'integer'];
     }
 
     public function organization(): BelongsTo
