@@ -100,5 +100,36 @@ class GroupAuthorityCountryScopeTest extends TestCase
             'actor_user_id' => $ceo->id,
             'action' => 'group.authority.country_scope.appointed',
         ]);
+
+        $countryAppointment = GroupAuthority::query()
+            ->where('user_id', $reviewer->id)
+            ->where('scope_type', 'country')
+            ->where('scope_key', 'KE')
+            ->firstOrFail();
+        $revokePurpose = 'group.authority.country_scope.revoke.'.$countryAppointment->id;
+        $revokeChallenge = GroupStaffOtpChallenge::create([
+            'user_id' => $ceo->id,
+            'approved_phone_id' => $phone->id,
+            'purpose' => $revokePurpose,
+            'code_hash' => Hash::make('654321'),
+            'attempts' => 0,
+            'expires_at' => now()->addMinutes(5),
+            'verified_at' => now(),
+        ]);
+        $revokeSession = ['nexora_group_staff_otp' => [
+            'challenge_id' => $revokeChallenge->id,
+            'user_id' => $ceo->id,
+            'purpose' => $revokePurpose,
+            'verified_at' => now()->timestamp,
+        ]];
+
+        $this->actingAs($ceo)->withSession($revokeSession)
+            ->deleteJson('/group/staff-security/'.$countryAppointment->id.'/country-scope')
+            ->assertOk();
+
+        $this->assertDatabaseHas('group_authorities', [
+            'id' => $countryAppointment->id,
+            'status' => 'revoked',
+        ]);
     }
 }
