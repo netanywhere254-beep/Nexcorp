@@ -106,4 +106,105 @@ class GroupAuthorityController
 
         return response()->json(['message' => 'Nexora Group authority revoked.']);
     }
+
+    public function appointCountryScope(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $id,
+    ): JsonResponse {
+        $actor = $request->user();
+        abort_unless($actor && $actor->status === 'active', 403);
+        abort_unless(GroupAuthority::query()
+            ->where('user_id', $actor->id)
+            ->where('authority', 'GROUP_CEO')
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists(), 403, 'Only the active Nexora Group CEO may appoint reviewer country scopes.');
+
+        $data = $request->validate([
+            'country_code' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+            'expires_at' => ['required', 'date', 'after:now'],
+        ]);
+        $country = strtoupper($data['country_code']);
+
+        $target = GroupAuthority::query()
+            ->whereKey($id)
+            ->whereIn('authority', ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'])
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->firstOrFail();
+
+        abort_if($target->user_id === $actor->id, 422, 'A CEO cannot appoint their own country review scope.');
+
+        $purpose = 'group.authority.country_scope.appoint.'.$target->id.'.'.$country;
+        $otp->consume($request, $purpose);
+
+        $appointment = DB::transaction(function () use ($actor, $target, $country, $data): GroupAuthority {
+            $lockedTarget = GroupAuthority::query()->lockForUpdate()->findOrFail($target->id);
+            abort_unless(
+                $lockedTarget->status === 'active'
+                    && $lockedTarget->scope_type === 'group'
+                    && $lockedTarget->scope_key === 'nexora'
+                    && in_array($lockedTarget->authority, ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'], true),
+                409,
+                'The target group appointment is no longer active.'
+            );
+
+            $alreadyAssigned = GroupAuthority::query()
+                ->where('user_id', $lockedTarget->user_id)
+                ->where('authority', $lockedTarget->authority)
+                ->where('scope_type', 'country')
+                ->where('scope_key', $country)
+                ->where('status', 'active')
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->exists();
+            abort_if($alreadyAssigned, 409, 'An active appointment already exists for this reviewer and country.');
+
+            $appointment = GroupAuthority::create([
+                'user_id' => $lockedTarget->user_id,
+                'authority' => $lockedTarget->authority,
+                'scope_type' => 'country',
+                'scope_key' => $country,
+                'status' => 'active',
+                'appointed_by' => $actor->id,
+                'starts_at' => now(),
+                'expires_at' => $data['expires_at'],
+            ]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $actor->id,
+                'action' => 'group.authority.country_scope.appointed',
+                'subject_type' => GroupAuthority::class,
+                'subject_id' => (string) $appointment->id,
+                'metadata' => [
+                    'target_user_id' => $lockedTarget->user_id,
+                    'authority' => $lockedTarget->authority,
+                    'country_code' => $country,
+                    'expires_at' => $appointment->expires_at?->toISOString(),
+                ],
+            ]);
+
+            return $appointment;
+        });
+
+        return response()->json([
+            'message' => 'Country-scoped Trace & Find reviewer appointment created.',
+            'appointment' => [
+                'id' => $appointment->id,
+                'user_id' => $appointment->user_id,
+                'authority' => $appointment->authority,
+                'country_code' => $appointment->scope_key,
+                'status' => $appointment->status,
+                'expires_at' => $appointment->expires_at?->toISOString(),
+            ],
+        ], 201);
+    }
+
 }
