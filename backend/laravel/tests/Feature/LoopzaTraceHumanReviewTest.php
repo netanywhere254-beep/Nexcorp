@@ -291,7 +291,7 @@ class LoopzaTraceHumanReviewTest extends TestCase
         ]);
 
         $case = TraceCase::create([
-            'public_id' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
             'case_reference' => 'LTF-'.now()->format('Y').'-000999',
             'reporter_user_id' => $reporter->id,
             'reporter_phone' => null,
