@@ -11,6 +11,7 @@ use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
 use App\Http\Controllers\TraceProfileController;
+use App\Http\Controllers\TraceReviewController;
 use App\Http\Controllers\TracePhoneVerificationController;
 use App\Http\Controllers\UserPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
@@ -73,4 +74,13 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
 Route::middleware(['auth', 'verified'])->prefix('nexora/cases')->group(function () {
     Route::get('/', [NexoraCaseController::class, 'index'])->middleware('throttle:30,1');
     Route::post('/', [NexoraCaseController::class, 'store'])->middleware('throttle:5,1');
+});
+
+// Sensitive Loopza review actions require a group-scoped appointment and one-time staff OTP.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(function () {
+    Route::get('/profiles', [TraceReviewController::class, 'profileQueue'])->middleware('throttle:10,1');
+    Route::get('/profiles/{profileId}/selfie', [TraceReviewController::class, 'selfie'])->whereNumber('profileId')->middleware('throttle:6,1');
+    Route::post('/profiles/{profileId}/decision', [TraceReviewController::class, 'decideProfile'])->whereNumber('profileId')->middleware('throttle:10,1');
+    Route::get('/cases', [TraceReviewController::class, 'caseQueue'])->middleware('throttle:10,1');
+    Route::post('/cases/{caseId}/decision', [TraceReviewController::class, 'decideCase'])->whereNumber('caseId')->middleware('throttle:10,1');
 });
