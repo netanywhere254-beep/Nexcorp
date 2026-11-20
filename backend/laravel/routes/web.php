@@ -65,6 +65,7 @@ Route::middleware(['auth','verified','organization.active'])->prefix('organizati
 });
 Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/profile',[TraceProfileController::class,'store'])->middleware('throttle:3,1');
+ Route::post('/profile/selfie',[TraceProfileController::class,'selfie'])->middleware('throttle:3,1');
  Route::post('/phone/send-code',[TracePhoneVerificationController::class,'send'])->middleware('throttle:3,1');
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
