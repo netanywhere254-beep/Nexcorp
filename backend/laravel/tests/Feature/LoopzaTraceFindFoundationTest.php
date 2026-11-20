@@ -191,4 +191,53 @@ class LoopzaTraceFindFoundationTest extends TestCase
         $this->assertSame('+254700000009', $user->fresh()->phone);
         $this->assertSame('verified', $user->fresh()->traceProfile->phone_verification_status);
     }
+
+    public function test_only_original_reporter_can_resubmit_and_reference_and_review_history_are_preserved(): void
+    {
+        $reporter = $this->verifiedUser();
+        $other = User::create([
+            'name' => 'Other Reporter', 'email' => 'other@example.test',
+            'password' => 'Strong-test-password-123', 'status' => 'active',
+        ]);
+        $case = TraceCase::create([
+            'public_id' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000777',
+            'reporter_user_id' => $reporter->id, 'reporter_phone' => $reporter->phone,
+            'reporter_country_code' => 'KE', 'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE', 'incident_region_code' => 'KE-17',
+            'case_type' => 'missing_person', 'subject_name' => 'Original Subject',
+            'subject_description' => 'Original description.',
+            'last_seen_details' => 'Original last seen details.',
+            'status' => 'needs_more_information', 'publication_status' => 'private',
+            'reviewed_by' => $other->id, 'reviewed_at' => now(),
+            'review_notes' => 'Please provide a clearer recent description.',
+        ]);
+
+        $this->actingAs($other)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding requested details from the family.',
+        ])->assertNotFound();
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding requested details from the family.',
+            'subject_description' => 'Updated description with additional identifying details.',
+        ])->assertOk()
+            ->assertJsonPath('case.reference', 'LTF-'.now()->format('Y').'-000777')
+            ->assertJsonPath('case.status', 'pending_review')
+            ->assertJsonPath('case.publication_status', 'private');
+
+        $this->assertDatabaseHas('trace_case_resubmissions', [
+            'trace_case_id' => $case->id,
+            'submitted_by' => $reporter->id,
+        ]);
+        $this->assertDatabaseHas('trace_cases', [
+            'id' => $case->id,
+            'case_reference' => 'LTF-'.now()->format('Y').'-000777',
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'reviewed_by' => null,
+            'review_notes' => null,
+            'subject_description' => 'Updated description with additional identifying details.',
+        ]);
+    }
+
 }
