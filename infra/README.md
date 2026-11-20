@@ -1,6 +1,6 @@
 # Primary and standby deployment paths
 
-The repository now has two separate application starter foundations, each with an isolated Compose definition and CI build checks:
+The repository has two separate application starter foundations, plus a MySQL 8.4 primary/replica configuration reference. The MySQL reference is a local lab only; it does not configure live replication or automatic promotion.
 
 | Role | Stack | Compose file | Local URL |
 |---|---|---|---|
@@ -231,3 +231,10 @@ Do not add `-v` unless you intend to delete the database volume and have verifie
 
 **Architecture and build warning:** this is a Node/Next.js + PostgreSQL proposal, not the active Laravel modular monolith + MySQL direction. The repository currently has no compatible root backend Dockerfile or `Dockerfile.frontend`, and no complete backend/Next.js application setup. It is not currently buildable or deployable. The frontend API URL is passed as a build argument because Next.js commonly embeds `NEXT_PUBLIC_*` values during build; `http://localhost:4000` is for local browser access only. Use a public HTTPS URL or same-origin reverse-proxy route for a real deployment. This stack and the three-database reference both default to host port 5432; do not run both together without changing one host port.
 
+
+
+## MySQL 8.4 replication reference
+
+The Laravel application uses MySQL, so a disaster-recovery database must be MySQL-compatible. The repository includes `docker-compose.mysql-ha-reference.yml`, `mysql-ha/primary.cnf`, `mysql-ha/replica.cnf`, and `.env.mysql-ha.example` as a local replication configuration foundation. See [the MySQL replication runbook](../docs/MYSQL_REPLICATION_REFERENCE.md) before using it.
+
+**Important:** the Compose lab creates two isolated MySQL nodes but does not initialise replication or contain production data. It is not connected to the Laravel application, does not provide quorum/fencing, and does not automatically promote or route traffic. Never treat it as a production HA service.
