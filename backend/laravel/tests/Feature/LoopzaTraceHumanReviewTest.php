@@ -37,6 +37,14 @@ class LoopzaTraceHumanReviewTest extends TestCase
             'status' => 'active',
             'starts_at' => now()->subMinute(),
         ]);
+        GroupAuthority::create([
+            'user_id' => $user->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'country',
+            'scope_key' => 'KE',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
 
         $phone = GroupStaffApprovedPhone::create([
             'user_id' => $user->id,
