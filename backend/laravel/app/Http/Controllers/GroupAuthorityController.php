@@ -207,4 +207,53 @@ class GroupAuthorityController
         ], 201);
     }
 
+
+    public function revokeCountryScope(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $id,
+    ): JsonResponse {
+        $actor = $request->user();
+        abort_unless($actor && $actor->status === 'active', 403);
+        abort_unless(GroupAuthority::query()
+            ->where('user_id', $actor->id)
+            ->where('authority', 'GROUP_CEO')
+            ->where('scope_type', 'group')
+            ->where('scope_key', 'nexora')
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists(), 403, 'Only the active Nexora Group CEO may revoke reviewer country scopes.');
+
+        $appointment = GroupAuthority::query()
+            ->whereKey($id)
+            ->whereIn('authority', ['GROUP_SECURITY_OFFICER', 'GROUP_CEO'])
+            ->where('scope_type', 'country')
+            ->firstOrFail();
+
+        abort_if($appointment->user_id === $actor->id, 422, 'A CEO cannot revoke their own country review scope.');
+        $otp->consume($request, 'group.authority.country_scope.revoke.'.$appointment->id);
+
+        DB::transaction(function () use ($request, $actor, $appointment): void {
+            $locked = GroupAuthority::query()->lockForUpdate()->findOrFail($appointment->id);
+            abort_unless($locked->status === 'active', 409, 'This country appointment is no longer active.');
+            $locked->update(['status' => 'revoked', 'expires_at' => now()]);
+
+            AuditLog::create([
+                'organization_id' => null,
+                'actor_user_id' => $actor->id,
+                'action' => 'group.authority.country_scope.revoked',
+                'subject_type' => GroupAuthority::class,
+                'subject_id' => (string) $locked->id,
+                'metadata' => [
+                    'target_user_id' => $locked->user_id,
+                    'authority' => $locked->authority,
+                    'country_code' => $locked->scope_key,
+                ],
+            ]);
+        });
+
+        return response()->json(['message' => 'Country-scoped reviewer appointment revoked.']);
+    }
+
 }
