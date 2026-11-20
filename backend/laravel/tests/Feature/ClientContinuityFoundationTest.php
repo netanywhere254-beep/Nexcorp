@@ -63,7 +63,7 @@ class ClientContinuityFoundationTest extends TestCase
     public function test_outbox_event_rolls_back_with_the_business_transaction(): void
     {
         try {
-            \\Illuminate\\Support\\Facades\\DB::transaction(function (): void {
+            \Illuminate\Support\Facades\DB::transaction(function (): void {
                 app(ClientChangeOutbox::class)->record(
                     'nexisp', 'subscription', 99, 'subscription.activated',
                     ['subscription_id' => 99], null, null, 'rollback-event-99'
