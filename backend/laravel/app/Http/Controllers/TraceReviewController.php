@@ -217,6 +217,7 @@ class TraceReviewController extends Controller
         $cases = TraceCase::query()
             ->with(['reporter:id,name,email', 'documents:id,trace_case_id,original_filename,mime_type'])
             ->whereIn('incident_country_code', $countries)
+            ->where('reporter_user_id', '!=', $request->user()->id)
             ->whereIn('status', ['pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information'])
             ->orderByDesc('urgent')
             ->orderBy('created_at')
@@ -267,6 +268,8 @@ class TraceReviewController extends Controller
         $otp->consume($request, 'loopza.trace.review.case.document.'.$documentId);
 
         $case = TraceCase::query()->whereIn('incident_country_code', $countries)->findOrFail($caseId);
+        abort_if((int) $case->reporter_user_id === (int) $request->user()->id, 403,
+            'Reviewers cannot access evidence attached to their own cases.');
         abort_unless(in_array($case->status, [
             'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
         ], true), 404);
@@ -313,6 +316,8 @@ class TraceReviewController extends Controller
 
         $case = DB::transaction(function () use ($request, $caseId, $data, $countries): TraceCase {
             $case = TraceCase::query()->whereIn('incident_country_code', $countries)->lockForUpdate()->findOrFail($caseId);
+            abort_if((int) $case->reporter_user_id === (int) $request->user()->id, 403,
+                'Reviewers cannot decide their own cases.');
             abort_unless(in_array($case->status, [
                 'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
             ], true), 409, 'This case is not awaiting review.');
