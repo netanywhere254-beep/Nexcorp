@@ -344,4 +344,45 @@ class LoopzaTraceHumanReviewTest extends TestCase
             ->assertForbidden();
     }
 
+
+    public function test_reviewer_cannot_approve_their_own_identity_profile(): void
+    {
+        [$reviewer, $session] = $this->reviewerWithOtp('placeholder');
+
+        $profile = $reviewer->traceProfile()->create([
+            'country_code' => 'KE',
+            'region_code' => 'KE-17',
+            'locality' => 'Kisii',
+            'account_type' => 'family',
+            'verification_status' => 'pending',
+            'identity_verification_status' => 'pending',
+            'phone_verification_status' => 'verified',
+            'location_verification_status' => 'pending',
+            'selfie_verification_status' => 'pending',
+            'selfie_path' => 'trace-find/identity/pending/reviewer-selfie.png',
+            'location_consent_at' => now(),
+            'biometric_processing_consent_at' => now(),
+            'selfie_submitted_at' => now(),
+            'submitted_latitude' => '-0.6817000',
+            'submitted_longitude' => '34.7667000',
+        ]);
+
+        $session['nexora_group_staff_otp']['purpose'] = 'loopza.trace.review.profile.'.$profile->id;
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->postJson('/trace-find/review/profiles/'.$profile->id.'/decision', [
+                'identity_decision' => 'approved',
+                'location_decision' => 'approved',
+                'selfie_decision' => 'approved',
+                'notes' => 'A reviewer must not approve their own identity profile.',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('trace_profiles', [
+            'id' => $profile->id,
+            'verification_status' => 'pending',
+            'reviewed_by' => null,
+        ]);
+    }
+
 }
