@@ -108,7 +108,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
         $this->assertDatabaseCount('trace_profiles', 0);
     }
 
-    public function test_duplicate_selfie_submission_is_rejected(): void
+    public function test_duplicate_selfie_submission_is_rejected_without_leaving_an_orphan_upload(): void
     {
         Storage::fake('local');
         $user = $this->verifiedUser();
@@ -123,17 +123,17 @@ class LoopzaTraceFindFoundationTest extends TestCase
 
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAElFTkSuQmCC');
 
-        $payload = [
+        $this->actingAs($user)->post('/trace-find/profile/selfie', [
             'selfie' => UploadedFile::fake()->createWithContent('selfie.png', $png),
             'biometric_processing_consent' => '1',
-        ];
-
-        $this->actingAs($user)->post('/trace-find/profile/selfie', $payload)->assertCreated();
+        ])->assertCreated();
 
         $this->actingAs($user)->post('/trace-find/profile/selfie', [
             'selfie' => UploadedFile::fake()->createWithContent('selfie-again.png', $png),
             'biometric_processing_consent' => '1',
         ])->assertStatus(409);
+
+        $this->assertCount(1, Storage::disk('local')->allFiles());
     }
 
     public function test_cross_region_case_is_accepted_for_review_but_not_published(): void
