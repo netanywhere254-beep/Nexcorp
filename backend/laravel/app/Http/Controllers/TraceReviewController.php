@@ -34,10 +34,23 @@ class TraceReviewController extends Controller
         abort_unless($appointed, 403, 'An active Nexora Group Security Officer appointment is required.');
     }
 
+    private function auditSensitiveRead(Request $request, string $action, string $subjectType, ?string $subjectId = null): void
+    {
+        AuditLog::create([
+            'organization_id' => null,
+            'actor_user_id' => $request->user()->id,
+            'action' => $action,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'metadata' => ['accessed_at' => now()->toISOString()],
+        ]);
+    }
+
     public function profileQueue(Request $request, GroupStaffOtpConfirmation $otp): JsonResponse
     {
         $this->assertReviewer($request);
         $otp->consume($request, 'loopza.trace.review.profiles.queue');
+        $this->auditSensitiveRead($request, 'loopza.trace_profile.review_queue.accessed', TraceProfile::class);
 
         $profiles = TraceProfile::query()
             ->with('user:id,name,email,phone')
@@ -85,6 +98,7 @@ class TraceReviewController extends Controller
         abort_unless(in_array($profile->verification_status, ['pending', 'in_review'], true), 404);
         abort_unless(filled($profile->selfie_path), 404);
         abort_unless(Storage::disk('local')->exists($profile->selfie_path), 404);
+        $this->auditSensitiveRead($request, 'loopza.trace_profile.selfie.accessed', TraceProfile::class, (string) $profile->id);
 
         return Storage::disk('local')->response($profile->selfie_path);
     }
@@ -164,6 +178,7 @@ class TraceReviewController extends Controller
     {
         $this->assertReviewer($request);
         $otp->consume($request, 'loopza.trace.review.cases.queue');
+        $this->auditSensitiveRead($request, 'loopza.trace_case.review_queue.accessed', TraceCase::class);
 
         $cases = TraceCase::query()
             ->with('reporter:id,name,email')
