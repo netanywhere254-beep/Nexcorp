@@ -57,7 +57,7 @@ class TraceCaseController extends Controller {
    ]);
    }
 
-   app(\\App\\Services\\ClientChangeOutbox::class)->record(
+   app(\App\Services\ClientChangeOutbox::class)->record(
     'loopza', 'trace_case', $case->id, 'trace_case.registered',
     [
      'case_reference' => $case->case_reference,
