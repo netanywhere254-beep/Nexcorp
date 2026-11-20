@@ -130,6 +130,13 @@ class LoopzaTraceFindFoundationTest extends TestCase
         ]);
 
         $case = TraceCase::query()->where('reporter_user_id', $user->id)->firstOrFail();
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.registered',
+            'user_id' => $user->id,
+        ]);
         $this->assertSame($user->phone, $case->reporter_phone);
         $storedPhone = DB::table('trace_cases')->where('id', $case->id)->value('reporter_phone');
         $this->assertNotSame($user->phone, $storedPhone, 'Reporter phone must be encrypted at rest.');
