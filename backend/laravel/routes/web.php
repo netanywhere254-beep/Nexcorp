@@ -87,3 +87,16 @@ Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(func
     Route::get('/cases/{caseId}/documents/{documentId}', [TraceReviewController::class, 'caseDocument'])->whereNumber('caseId')->whereNumber('documentId')->middleware('throttle:6,1');
     Route::post('/cases/{caseId}/decision', [TraceReviewController::class, 'decideCase'])->whereNumber('caseId')->middleware('throttle:10,1');
 });
+
+
+// Authority, professional investigator and volunteer access is separately vetted.
+// Approval does not itself grant access to private cases or documents.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/access-applications')->group(function () {
+    Route::post('/', [TraceAccessApplicationController::class, 'store'])->middleware('throttle:3,1');
+});
+
+Route::middleware(['auth', 'verified'])->prefix('trace-find/review/access-applications')->group(function () {
+    Route::get('/', [TraceAccessApplicationController::class, 'index'])->middleware('throttle:10,1');
+    Route::get('/{applicationId}/evidence', [TraceAccessApplicationController::class, 'evidence'])->whereNumber('applicationId')->middleware('throttle:6,1');
+    Route::post('/{applicationId}/decision', [TraceAccessApplicationController::class, 'decide'])->whereNumber('applicationId')->middleware('throttle:10,1');
+});
