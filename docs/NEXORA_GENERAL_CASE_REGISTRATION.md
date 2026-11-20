@@ -23,3 +23,8 @@ Supported case types: complaint, support_request, service_request, security_inci
 Case titles and descriptions use Laravel encrypted casts and are stored encrypted at rest. The list endpoint is scoped to the authenticated reporter. A registration audit event records the reference, type, and priority without copying the case narrative into audit metadata.
 
 This is the public reporter registration foundation. A separately authorised group review queue, assignment workflow, staff-only OTP gates, and case lifecycle actions must be implemented before operational staff can process these records.
+
+
+## Staff review boundary
+
+The public reporter endpoints do not expose a case queue, assignment, status mutation, or cross-user case lookup. Those operations must be added behind explicit group-scoped permissions and staff OTP verification. Do not reuse Loopza investigator or authority roles to grant Nexora Group case access.
