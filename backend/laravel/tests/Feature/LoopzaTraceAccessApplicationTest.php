@@ -200,6 +200,14 @@ class LoopzaTraceAccessApplicationTest extends TestCase
             'status' => 'active',
             'starts_at' => now()->subMinute(),
         ]);
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'country',
+            'scope_key' => 'KE',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
         $phone = GroupStaffApprovedPhone::create([
             'user_id' => $reviewer->id,
             'phone_e164' => $reviewer->phone,
@@ -258,6 +266,14 @@ class LoopzaTraceAccessApplicationTest extends TestCase
             'authority' => 'GROUP_SECURITY_OFFICER',
             'scope_type' => 'group',
             'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'country',
+            'scope_key' => 'KE',
             'status' => 'active',
             'starts_at' => now()->subMinute(),
         ]);
