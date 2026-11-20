@@ -325,4 +325,27 @@ class LoopzaTraceHumanReviewTest extends TestCase
         ]);
     }
 
+    public function test_group_reviewer_without_country_appointment_cannot_open_trace_queue(): void
+    {
+        $reviewer = User::create([
+            'name' => 'Unscoped Group Reviewer',
+            'email' => 'unscoped-reviewer@example.test',
+            'password' => 'Strong-test-password-123',
+            'status' => 'active',
+        ]);
+        $reviewer->forceFill(['email_verified_at' => now()])->save();
+
+        GroupAuthority::create([
+            'user_id' => $reviewer->id,
+            'authority' => 'GROUP_SECURITY_OFFICER',
+            'scope_type' => 'group',
+            'scope_key' => 'nexora',
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($reviewer)->getJson('/trace-find/review/profiles')
+            ->assertForbidden();
+    }
+
 }
