@@ -1,0 +1,53 @@
+# MySQL 8.4 primary + read-only replica reference topology.
+# Replication bootstrap and automatic failover are NOT implemented.
+name: nexora-mysql-ha-reference
+services:
+  mysql-primary:
+    image: mysql:8.4
+    command: ["mysqld", "--defaults-extra-file=/etc/mysql/conf.d/ha.cnf"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nexora}
+      MYSQL_USER: ${MYSQL_USER:-nexora_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
+    ports:
+      - "127.0.0.1:${MYSQL_PRIMARY_PORT:-3307}:3306"
+    volumes:
+      - nexora_mysql_primary:/var/lib/mysql
+      - ./infra/mysql-ha/primary.cnf:/etc/mysql/conf.d/ha.cnf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks: [mysql_private]
+  mysql-replica:
+    image: mysql:8.4
+    command: ["mysqld", "--defaults-extra-file=/etc/mysql/conf.d/ha.cnf"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_REPLICA_ROOT_PASSWORD:?Set MYSQL_REPLICA_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:${MYSQL_REPLICA_PORT:-3308}:3306"
+    volumes:
+      - nexora_mysql_replica:/var/lib/mysql
+      - ./infra/mysql-ha/replica.cnf:/etc/mysql/conf.d/ha.cnf:ro
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+    networks: [mysql_private]
+volumes:
+  nexora_mysql_primary:
+  nexora_mysql_replica:
+networks:
+  mysql_private:
+    driver: bridge
+    internal: true
