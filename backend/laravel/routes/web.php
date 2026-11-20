@@ -109,4 +109,5 @@ Route::middleware(['auth', 'verified'])->prefix('trace-find/review/access-applic
     Route::get('/{applicationId}/evidence', [TraceAccessApplicationController::class, 'evidence'])->whereNumber('applicationId')->middleware('throttle:6,1');
     Route::post('/{applicationId}/decision', [TraceAccessApplicationController::class, 'decide'])->whereNumber('applicationId')->middleware('throttle:10,1');
     Route::post('/{applicationId}/grant', [TraceAccessApplicationController::class, 'grantCountryAccess'])->whereNumber('applicationId')->middleware('throttle:5,1');
+    Route::post('/grants/{grantId}/revoke', [TraceAccessApplicationController::class, 'revokeCountryAccess'])->whereNumber('grantId')->middleware('throttle:5,1');
 });
