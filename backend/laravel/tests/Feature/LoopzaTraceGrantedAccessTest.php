@@ -136,4 +136,43 @@ class LoopzaTraceGrantedAccessTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+
+    public function test_revoked_grant_stops_exposing_published_cases_immediately(): void
+    {
+        $investigator = $this->user('investigator-revoked@example.test');
+        $reporter = $this->user('reporter-revoked@example.test');
+        $application = TraceAccessApplication::create([
+            'user_id' => $investigator->id,
+            'requested_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'organisation_name' => 'Synthetic Investigations Ltd',
+            'organisation_registration' => 'TEST-REG-003',
+            'credentials_summary' => 'Synthetic credentials used only for automated permission testing.',
+            'evidence_path' => 'test/evidence.pdf',
+            'status' => 'approved',
+            'reviewed_by' => $reporter->id,
+            'reviewed_at' => now(),
+            'review_notes' => 'Synthetic test approval.',
+        ]);
+
+        TraceCountryAccessGrant::create([
+            'user_id' => $investigator->id,
+            'source_application_id' => $application->id,
+            'access_role' => 'professional_investigator',
+            'country_code' => 'KE',
+            'region_code' => null,
+            'permissions' => ['cases.read'],
+            'status' => 'revoked',
+            'granted_by' => $reporter->id,
+            'expires_at' => now()->addMonth(),
+            'revoked_at' => now(),
+        ]);
+
+        $this->traceCase($reporter, 'KE', 'KE-17', 'published');
+
+        $this->actingAs($investigator)->getJson('/trace-find/authorised/cases')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
 }
