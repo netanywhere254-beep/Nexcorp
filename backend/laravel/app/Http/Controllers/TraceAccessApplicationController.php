@@ -227,12 +227,22 @@ class TraceAccessApplicationController extends Controller
 
         $otp->consume($request, 'loopza.trace.access_applications.grant.'.$applicationId);
 
-        $grant = DB::transaction(function () use ($request, $application, $data): TraceCountryAccessGrant {
+        $grant = DB::transaction(function () use ($request, $applicationId, $data): TraceCountryAccessGrant {
+            // Re-read and lock the approved application inside the grant transaction.
+            // This prevents a concurrent reviewer action from changing its status
+            // between the initial check and creation of the country-scoped grant.
+            $lockedApplication = TraceAccessApplication::query()
+                ->lockForUpdate()
+                ->findOrFail($applicationId);
+
+            abort_unless($lockedApplication->status === 'approved', 409,
+                'The application must remain approved when the access grant is created.');
+
             $grant = TraceCountryAccessGrant::create([
-                'user_id' => $application->user_id,
-                'source_application_id' => $application->id,
-                'access_role' => $application->requested_role,
-                'country_code' => $application->country_code,
+                'user_id' => $lockedApplication->user_id,
+                'source_application_id' => $lockedApplication->id,
+                'access_role' => $lockedApplication->requested_role,
+                'country_code' => $lockedApplication->country_code,
                 'region_code' => $data['region_code'] ?? null,
                 'permissions' => array_values(array_unique($data['permissions'])),
                 'status' => 'active',
@@ -247,10 +257,10 @@ class TraceAccessApplicationController extends Controller
                 'subject_type' => TraceCountryAccessGrant::class,
                 'subject_id' => (string) $grant->id,
                 'metadata' => [
-                    'application_id' => $application->id,
-                    'user_id' => $application->user_id,
-                    'role' => $application->requested_role,
-                    'country_code' => $application->country_code,
+                    'application_id' => $lockedApplication->id,
+                    'user_id' => $lockedApplication->user_id,
+                    'role' => $lockedApplication->requested_role,
+                    'country_code' => $lockedApplication->country_code,
                     'region_code' => $grant->region_code,
                     'permissions' => $grant->permissions,
                     'expires_at' => $grant->expires_at?->toISOString(),
