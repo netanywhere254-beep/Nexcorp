@@ -67,6 +67,13 @@ class NexoraCaseRegistrationTest extends TestCase
             ->assertJsonPath('case.visibility', 'private');
 
         $case = NexoraCase::query()->firstOrFail();
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'nexora',
+            'aggregate_type' => 'case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'case.registered',
+            'user_id' => $user->id,
+        ]);
         $this->assertSame('Suspicious account activity', $case->title);
         $this->assertSame(
             'I noticed an unfamiliar login and need the security team to review it.',
