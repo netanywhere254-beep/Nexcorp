@@ -186,4 +186,25 @@ class LoopzaTraceHumanReviewTest extends TestCase
             'reviewed_by' => $reviewer->id,
         ]);
     }
+
+    public function test_sensitive_profile_queue_read_is_audited_and_otp_is_consumed(): void
+    {
+        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.profiles.queue');
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->getJson('/trace-find/review/profiles')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_user_id' => $reviewer->id,
+            'action' => 'loopza.trace_profile.review_queue.accessed',
+            'subject_type' => TraceProfile::class,
+        ]);
+
+        $this->actingAs($reviewer)->withSession($session)
+            ->getJson('/trace-find/review/profiles')
+            ->assertForbidden();
+    }
+
 }
