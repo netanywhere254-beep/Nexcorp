@@ -140,6 +140,15 @@ class TraceCaseController extends Controller {
      'subject_id'=>(string)$locked->id,
      'metadata'=>['case_reference'=>$locked->case_reference,'reason'=>$data['reason'],'new_evidence_added'=>(bool)$storedPath],
     ]);
+    // The case row is locked above, so successive resubmissions for this
+    // aggregate can safely allocate the next event version in this transaction.
+    $nextEventVersion = ((int) DB::table('client_change_outbox')
+     ->whereNull('organization_id')
+     ->where('product_code', 'loopza')
+     ->where('aggregate_type', 'trace_case')
+     ->where('aggregate_id', (string) $locked->id)
+     ->max('aggregate_version')) + 1;
+
     app(\App\Services\ClientChangeOutbox::class)->record(
      'loopza', 'trace_case', $locked->id, 'trace_case.resubmitted',
      [
@@ -151,7 +160,7 @@ class TraceCaseController extends Controller {
      ],
      null, $request->user()->id,
      'loopza-trace-case-resubmitted-'.$resubmission->id,
-     $resubmission->id,
+     $nextEventVersion,
     );
 
     return $locked->fresh();
