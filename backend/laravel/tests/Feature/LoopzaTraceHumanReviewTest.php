@@ -181,7 +181,7 @@ class LoopzaTraceHumanReviewTest extends TestCase
             'urgent' => false,
         ]);
 
-        $session['nexora_group_staff_otp']['purpose'] = 'loopza.trace.review.case.'.$case->id;
+        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.case.'.$case->id);
 
         $this->actingAs($reviewer)->withSession($session)
             ->postJson('/trace-find/review/cases/'.$case->id.'/decision', [
@@ -281,8 +281,6 @@ class LoopzaTraceHumanReviewTest extends TestCase
 
     public function test_reviewer_cannot_decide_a_case_outside_their_country_appointment(): void
     {
-        [$reviewer, $session] = $this->reviewerWithOtp('loopza.trace.review.case.999');
-
         $reporter = User::create([
             'name' => 'Uganda Case Reporter',
             'email' => 'uganda-case-reporter@example.test',
