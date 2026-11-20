@@ -226,6 +226,19 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'reason' => 'Adding requested details from the family.',
         ])->assertNotFound();
 
+        // Simulate the original registration event already present in the primary outbox.
+        app(\App\Services\ClientChangeOutbox::class)->record(
+            'loopza',
+            'trace_case',
+            $case->id,
+            'trace_case.registered',
+            ['case_reference' => $case->case_reference, 'status' => 'needs_more_information'],
+            null,
+            $reporter->id,
+            'loopza-trace-case-registered-'.$case->public_id,
+            1
+        );
+
         $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
             'reason' => 'Adding requested details from the family.',
             'subject_description' => 'Updated description with additional identifying details.',
@@ -243,6 +256,14 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'aggregate_type' => 'trace_case',
             'aggregate_id' => (string) $case->id,
             'event_type' => 'trace_case.resubmitted',
+            'user_id' => $reporter->id,
+        ]);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'aggregate_version' => 2,
             'user_id' => $reporter->id,
         ]);
         $this->assertDatabaseHas('trace_cases', [
