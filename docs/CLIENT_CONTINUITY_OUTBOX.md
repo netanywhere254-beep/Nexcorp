@@ -47,14 +47,14 @@ The publisher sends events to `POST /api/replication/events` with an event UUID 
 
 **Operational prerequisite:** Laravel's scheduler must actually be invoked by the host (Linux cron or Windows Task Scheduler running `php artisan schedule:run` every minute). Merely deploying the code does not start the scheduler.
 
-**Important limitation:** the signed receiver endpoint and durable inbox acceptance are implemented, but the inbox processor, destination-side materializer, version-gap recovery and destination client-record application are not implemented yet. Until those exist and are deployed on the backup, leave `NEXORA_REPLICATION_URL` unset. This publisher alone is not failover, database replication, or a disaster-recovery guarantee. Receiver processing must verify timestamp freshness and HMAC using constant-time comparison, persist each `event_uuid` once, and return 2xx only after durable inbox commit.
+**Important limitation:** the signed receiver and durable inbox are implemented. A manually invoked backup processor now materializes only the `client.identity.upserted` / `client_identity` contract. It requires the referenced organisation and user to exist on the backup and is deliberately not scheduled automatically. Other product event types—including case, subscription, payment and billing events—are accepted into the inbox but have no materializer yet. A successful publisher response means the event was durably accepted by the inbox; it does not mean the destination business record has been applied. Keep the publisher disabled until the receiver is deployed and the operator has confirmed the backup's prerequisites. This is not automatic failover or a complete disaster-recovery guarantee.
 ## Backup receiver inbox
 
 The Laravel API now exposes `POST /api/replication/events` and persists authenticated events in `client_change_inbox`. The receiver checks a five-minute timestamp window, verifies HMAC-SHA256 against the exact raw request bytes with constant-time comparison, validates product/event fields, checks the idempotency header, and stores a unique event UUID with a hash of the original body.
 
 An exact replay receives an accepted duplicate response without creating a second row. Reusing an event UUID with a different body returns HTTP 409. The receiver acknowledges only after the inbox transaction commits.
 
-**Still not complete:** the inbox is durable receipt, not yet application of replicated state. A worker must consume events in aggregate-version order, apply them idempotently to the standby data store, and record processing outcomes. Do not treat inbox receipt as proof that subscriptions, cases, invoices, files, router state, or sessions are available on the backup.
+The inbox processor is now implemented as an operator-invoked command, but it currently applies only the client identity upsert contract documented below. It enforces per-aggregate ordering, requires the referenced organisation and user to exist on the backup, rejects identity ownership conflicts and version gaps, and marks an event processed only after the destination write commits. It is not scheduled automatically. Do not treat inbox receipt as proof that subscriptions, cases, invoices, files, router state, or sessions are available on the backup.
 
 The receiving inbox also enforces a unique non-null idempotency key in addition to the unique event UUID. A replay with the same event UUID and exact body is acknowledged as a duplicate; reusing an idempotency key for a different event UUID is rejected with HTTP 409. This prevents a sender retry or integration bug from creating two accepted inbox events for one business operation.
 
@@ -85,3 +85,8 @@ their own validated handlers and transactional tests are added. The command
 is not automatically scheduled yet; enable it on the designated backup only
 after the backup's account/organisation identity prerequisites are replicated
 and operational monitoring is configured.
+
+
+## Read-only continuity diagnostics
+
+Run `php artisan nexora:continuity:status` on the relevant application node to inspect pending and previously failed outbox/inbox events, the oldest pending timestamps, and unprocessed event types. This command is read-only: it does not publish, process, retry, or delete events. Use it as an operator check before enabling any backup-side processing schedule.
