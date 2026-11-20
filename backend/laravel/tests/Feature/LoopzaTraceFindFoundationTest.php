@@ -135,6 +135,7 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'aggregate_type' => 'trace_case',
             'aggregate_id' => (string) $case->id,
             'event_type' => 'trace_case.registered',
+            'aggregate_version' => 1,
             'user_id' => $user->id,
         ]);
         $this->assertSame($user->phone, $case->reporter_phone);
