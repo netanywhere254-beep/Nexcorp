@@ -17,7 +17,7 @@ Do not create a second independent customer master list for a backup system. A d
 
 `client_change_outbox` stores versioned client/service change events, unique event UUIDs, optional idempotency keys, product and tenant scope, payload, occurrence time, publication state and retry/error metadata.
 
-`App\\Services\\ClientChangeOutbox` records events and returns the same event row for a replay with the same idempotency key and identical event. Reusing a key for a different event is rejected.
+`App\\Services\\ClientChangeOutbox` records events and returns the same event row for a replay with the same idempotency key and identical event. Reusing a key for a different event is rejected, including when the same key is presented under a different organisation or user. An idempotency replay is accepted only when the tenant/user ownership and event identity match the original record.
 
 Callers must write the business record and outbox event inside the **same outer database transaction**. The outbox rejects non-increasing aggregate versions, and the outbox/inbox schemas add unique aggregate-version indexes. Every production customer event must include its organisation ID and the next monotonically increasing version for that product/aggregate stream; use the same stable aggregate ID on both primary and standby. The outbox service uses a nested Laravel transaction, so it participates in the caller's transaction. This is essential: a committed subscription/payment/order change must not exist without its corresponding durable event.
 
