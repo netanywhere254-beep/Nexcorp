@@ -1,14 +1,14 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\GroupAuthority;
-use App\\Models\\GroupStaffApprovedPhone;
-use App\\Models\\GroupStaffOtpChallenge;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Hash;
-use Tests\\TestCase;
+use App\Models\GroupAuthority;
+use App\Models\GroupStaffApprovedPhone;
+use App\Models\GroupStaffOtpChallenge;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class GroupAuthorityCountryScopeTest extends TestCase
 {
@@ -79,7 +79,7 @@ class GroupAuthorityCountryScopeTest extends TestCase
         ]];
 
         $this->actingAs($ceo)->withSession($session)
-            ->postJson('/group/staff-security/'.$targetAppointment->id.'/country-scope', [
+            ->postJson('/group/governance/authorities/'.$targetAppointment->id.'/country-scope', [
                 'country_code' => 'ke',
                 'expires_at' => now()->addMonths(3)->toISOString(),
             ])
@@ -124,7 +124,7 @@ class GroupAuthorityCountryScopeTest extends TestCase
         ]];
 
         $this->actingAs($ceo)->withSession($revokeSession)
-            ->deleteJson('/group/staff-security/'.$countryAppointment->id.'/country-scope')
+            ->deleteJson('/group/governance/authorities/'.$countryAppointment->id.'/country-scope')
             ->assertOk();
 
         $this->assertDatabaseHas('group_authorities', [
