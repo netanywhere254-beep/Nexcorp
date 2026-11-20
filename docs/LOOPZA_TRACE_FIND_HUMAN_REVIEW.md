@@ -27,3 +27,18 @@ Send a code through \`POST /group/staff-security/otp/send\` with the exact purpo
 - Review decisions are audited without storing private notes or identity images in audit metadata.
 - A case can be resubmitted only by its original reporter after `rejected` or `needs_more_information`. The same case reference is retained; the case returns to `pending_review` and remains private. Each resubmission stores a snapshot of the prior review state and reason in `trace_case_resubmissions`; existing evidence is retained and new documents are appended as supplementary evidence.
 - Rejected profiles do not yet have a controlled resubmission workflow. External authority account provisioning, investigator assignments, volunteer access, and public case publication remain separate future workflows.
+
+
+## Human review console
+
+Authenticated, email-verified Nexora Group reviewers can open the Laravel review workspace at:
+
+- GET /trace-find/review/console
+
+The workspace provides separate queues for family profiles, Loopza cases, and vetted access applications. It requests a fresh purpose-specific Group Staff OTP before each queue read, private selfie/evidence/document download, and review decision. The corresponding API controllers remain the security boundary; hiding a UI control is never treated as authorisation.
+
+- Family profile decisions remain separate for identity, location and selfie.
+- Case approval leaves publication status private; publication remains a separate workflow.
+- Access application approval records vetting only and does not create authority appointments or grant private case access.
+- Sensitive evidence downloads are streamed from private local storage and audited.
+- The queue exposes only document metadata; storage paths are never returned to the browser.
