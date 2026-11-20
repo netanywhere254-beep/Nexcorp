@@ -69,6 +69,7 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/phone/send-code',[TracePhoneVerificationController::class,'send'])->middleware('throttle:3,1');
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
+ Route::post('/cases/{caseId}/resubmit',[TraceCaseController::class,'resubmit'])->whereNumber('caseId')->middleware('throttle:5,1');
 });
 
 // Nexora Group general cases are distinct from Loopza Trace & Find cases.
