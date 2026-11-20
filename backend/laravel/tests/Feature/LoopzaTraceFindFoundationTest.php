@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LoopzaTraceFindFoundationTest extends TestCase
@@ -29,24 +30,25 @@ class LoopzaTraceFindFoundationTest extends TestCase
         return $user;
     }
 
-    public function test_public_onboarding_only_creates_a_pending_family_profile(): void
+    public function test_public_onboarding_requires_location_first_then_selfie(): void
     {
         $user = $this->verifiedUser();
 
-        $response = $this->actingAs($user)->withHeader('Accept', 'application/json')->post('/trace-find/profile', [
+        $location = $this->actingAs($user)->postJson('/trace-find/profile', [
             'country_code' => 'KE',
             'region_code' => 'KE-17',
             'locality' => 'Kisii',
             'latitude' => '-0.6817',
             'longitude' => '34.7667',
-            'selfie' => UploadedFile::fake()->createWithContent('selfie.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')),
             'location_consent' => '1',
-            'biometric_processing_consent' => '1',
             'account_type' => 'authority',
             'verification_status' => 'verified',
         ]);
 
-        $response->assertCreated()->assertJsonPath('profile.verification_status', 'pending');
+        $location->assertCreated()
+            ->assertJsonPath('next_step', 'selfie')
+            ->assertJsonPath('profile.verification_status', 'pending');
+
         $this->assertDatabaseHas('trace_profiles', [
             'user_id' => $user->id,
             'account_type' => 'family',
@@ -54,6 +56,44 @@ class LoopzaTraceFindFoundationTest extends TestCase
             'location_verification_status' => 'pending',
             'selfie_verification_status' => 'pending',
         ]);
+
+        $profile = $user->fresh()->traceProfile;
+        $this->assertNotNull($profile->location_consent_at);
+        $this->assertNull($profile->selfie_path);
+        $this->assertNull($profile->biometric_processing_consent_at);
+
+        $selfie = UploadedFile::fake()->createWithContent(
+            'selfie.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
+
+        $this->actingAs($user)->postJson('/trace-find/profile/selfie', [
+            'selfie' => $selfie,
+            'biometric_processing_consent' => '1',
+        ])->assertCreated()
+            ->assertJsonPath('profile.verification_status', 'pending');
+
+        $profile->refresh();
+        $this->assertNotNull($profile->selfie_path);
+        $this->assertNotNull($profile->selfie_submitted_at);
+        $this->assertNotNull($profile->biometric_processing_consent_at);
+        $this->assertSame('pending', $profile->verification_status);
+    }
+
+    public function test_selfie_cannot_be_submitted_before_location_step(): void
+    {
+        $user = $this->verifiedUser();
+        $selfie = UploadedFile::fake()->createWithContent(
+            'selfie.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
+        );
+
+        $this->actingAs($user)->postJson('/trace-find/profile/selfie', [
+            'selfie' => $selfie,
+            'biometric_processing_consent' => '1',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('trace_profiles', ['user_id' => $user->id]);
     }
 
     public function test_cross_region_case_is_accepted_for_review_but_not_published(): void
@@ -90,6 +130,14 @@ class LoopzaTraceFindFoundationTest extends TestCase
         ]);
 
         $case = TraceCase::query()->where('reporter_user_id', $user->id)->firstOrFail();
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.registered',
+            'aggregate_version' => 1,
+            'user_id' => $user->id,
+        ]);
         $this->assertSame($user->phone, $case->reporter_phone);
         $storedPhone = DB::table('trace_cases')->where('id', $case->id)->value('reporter_phone');
         $this->assertNotSame($user->phone, $storedPhone, 'Reporter phone must be encrypted at rest.');
@@ -152,4 +200,162 @@ class LoopzaTraceFindFoundationTest extends TestCase
         $this->assertSame('+254700000009', $user->fresh()->phone);
         $this->assertSame('verified', $user->fresh()->traceProfile->phone_verification_status);
     }
+
+    public function test_only_original_reporter_can_resubmit_and_reference_and_review_history_are_preserved(): void
+    {
+        $reporter = $this->verifiedUser();
+        $other = User::create([
+            'name' => 'Other Reporter', 'email' => 'other@example.test',
+            'password' => 'Strong-test-password-123', 'status' => 'active',
+        ]);
+        $other->forceFill(['email_verified_at' => now()])->save();
+        $case = TraceCase::create([
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000777',
+            'reporter_user_id' => $reporter->id, 'reporter_phone' => $reporter->phone,
+            'reporter_country_code' => 'KE', 'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE', 'incident_region_code' => 'KE-17',
+            'case_type' => 'missing_person', 'subject_name' => 'Original Subject',
+            'subject_description' => 'Original description.',
+            'last_seen_details' => 'Original last seen details.',
+            'status' => 'needs_more_information', 'publication_status' => 'private',
+            'reviewed_by' => $other->id, 'reviewed_at' => now(),
+            'review_notes' => 'Please provide a clearer recent description.',
+        ]);
+
+        $this->actingAs($other)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding requested details from the family.',
+        ])->assertNotFound();
+
+        // Simulate the original registration event already present in the primary outbox.
+        app(\App\Services\ClientChangeOutbox::class)->record(
+            'loopza',
+            'trace_case',
+            $case->id,
+            'trace_case.registered',
+            ['case_reference' => $case->case_reference, 'status' => 'needs_more_information'],
+            null,
+            $reporter->id,
+            'loopza-trace-case-registered-'.$case->public_id,
+            1
+        );
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding requested details from the family.',
+            'subject_description' => 'Updated description with additional identifying details.',
+        ])->assertOk()
+            ->assertJsonPath('case.reference', 'LTF-'.now()->format('Y').'-000777')
+            ->assertJsonPath('case.status', 'pending_review')
+            ->assertJsonPath('case.publication_status', 'private');
+
+        $this->assertDatabaseHas('trace_case_resubmissions', [
+            'trace_case_id' => $case->id,
+            'submitted_by' => $reporter->id,
+        ]);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'user_id' => $reporter->id,
+        ]);
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'aggregate_version' => 2,
+            'user_id' => $reporter->id,
+        ]);
+        $this->assertDatabaseHas('trace_cases', [
+            'id' => $case->id,
+            'case_reference' => 'LTF-'.now()->format('Y').'-000777',
+            'status' => 'pending_review',
+            'publication_status' => 'private',
+            'reviewed_by' => null,
+            'review_notes' => null,
+            'subject_description' => 'Updated description with additional identifying details.',
+        ]);
+
+        // A later reviewer request must continue the same event stream at version 3.
+        DB::table('trace_cases')->where('id', $case->id)->update([
+            'status' => 'needs_more_information',
+            'reviewed_by' => $other->id,
+            'reviewed_at' => now(),
+            'review_notes' => 'Please clarify the latest sighting.',
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'Adding the additional sighting details requested by the reviewer.',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('client_change_outbox', [
+            'product_code' => 'loopza',
+            'aggregate_type' => 'trace_case',
+            'aggregate_id' => (string) $case->id,
+            'event_type' => 'trace_case.resubmitted',
+            'aggregate_version' => 3,
+            'user_id' => $reporter->id,
+        ]);
+        $this->assertDatabaseCount('trace_case_resubmissions', 2);
+    }
+
+
+    public function test_resubmission_appends_new_evidence_without_deleting_existing_documents(): void
+    {
+        $reporter = $this->verifiedUser();
+        $case = TraceCase::create([
+            'public_id' => (string) \Illuminate\Support\Str::uuid(),
+            'case_reference' => 'LTF-'.now()->format('Y').'-000778',
+            'reporter_user_id' => $reporter->id,
+            'reporter_phone' => $reporter->phone,
+            'reporter_country_code' => 'KE',
+            'reporter_region_code' => 'KE-17',
+            'incident_country_code' => 'KE',
+            'incident_region_code' => 'KE-17',
+            'case_type' => 'missing_person',
+            'subject_name' => 'Evidence Retention Subject',
+            'subject_description' => 'Original description.',
+            'last_seen_details' => 'Original last seen details.',
+            'status' => 'rejected',
+            'publication_status' => 'private',
+            'reviewed_at' => now(),
+            'review_notes' => 'Please submit a clearer supporting document.',
+        ]);
+
+        Storage::fake('local');
+        Storage::disk('local')->put('trace-find/cases/original.pdf', '%PDF-1.4 original');
+        $original = $case->documents()->create([
+            'uploaded_by' => $reporter->id,
+            'document_type' => 'authority_report',
+            'storage_path' => 'trace-find/cases/original.pdf',
+            'original_filename' => 'original.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 18,
+            'sha256' => hash('sha256', '%PDF-1.4 original'),
+            'verification_status' => 'pending',
+        ]);
+
+        $this->actingAs($reporter)->postJson('/trace-find/cases/'.$case->id.'/resubmit', [
+            'reason' => 'I am adding the clearer supporting report requested by the reviewer.',
+            'ob_document' => UploadedFile::fake()->create('updated-report.pdf', 128, 'application/pdf'),
+        ])->assertOk()
+            ->assertJsonPath('case.reference', $case->case_reference)
+            ->assertJsonPath('case.status', 'pending_review');
+
+        $this->assertDatabaseCount('trace_case_documents', 2);
+        $this->assertDatabaseHas('trace_case_documents', [
+            'id' => $original->id,
+            'storage_path' => 'trace-find/cases/original.pdf',
+        ]);
+        $this->assertDatabaseHas('trace_case_documents', [
+            'trace_case_id' => $case->id,
+            'document_type' => 'supplementary_evidence',
+            'original_filename' => 'updated-report.pdf',
+            'verification_status' => 'pending',
+        ]);
+        $this->assertTrue(Storage::disk('local')->exists('trace-find/cases/original.pdf'));
+    }
+
 }

@@ -6,6 +6,9 @@ use App\Models\GroupStaffApprovedPhone;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
+use App\Services\ClientChangeOutboxPublisher;
+use App\Services\ClientChangeInboxProcessor;
 use Illuminate\Validation\ValidationException;
 
 Artisan::command('nexora:about', function () {
@@ -105,3 +108,72 @@ Artisan::command('nexora:bootstrap-group-ceo {email}', function (string $email) 
     $this->info('Remove NEXORA_GROUP_CEO_BOOTSTRAP_KEY from the runtime environment now.');
     return 0;
 })->purpose('Perform the one-time, secret-protected initial Nexora Group CEO and phone bootstrap.');
+
+Artisan::command('nexora:outbox:publish {--limit=100}', function (ClientChangeOutboxPublisher $publisher) {
+    $limit = (int) $this->option('limit');
+    $result = $publisher->publishPending($limit);
+
+    if (! $result['configured']) {
+        $this->warn('Replication is not configured. Set NEXORA_REPLICATION_URL and NEXORA_REPLICATION_SECRET.');
+        return 0;
+    }
+
+    $this->info("Published: {$result['published']}; failed: {$result['failed']}.");
+    return $result['failed'] > 0 ? 1 : 0;
+})->purpose('Publish durable client change events to the configured Nexora backup receiver.');
+
+Artisan::command('nexora:inbox:process {--limit=100}', function (ClientChangeInboxProcessor $processor) {
+    $result = $processor->processPending((int) $this->option('limit'));
+
+    $this->info("Processed: {$result['processed']}; failed: {$result['failed']}; waiting for earlier events: {$result['blocked']}.");
+
+    return $result['failed'] > 0 ? 1 : 0;
+})->purpose('Apply supported, ordered client identity events received from the primary.');
+
+Artisan::command('nexora:continuity:status', function () {
+    $outboxPending = DB::table('client_change_outbox')->whereNull('published_at')->count();
+    $outboxFailed = DB::table('client_change_outbox')->whereNull('published_at')->where('attempts', '>', 0)->count();
+    $inboxPending = DB::table('client_change_inbox')->whereNull('processed_at')->count();
+    $inboxFailed = DB::table('client_change_inbox')->whereNull('processed_at')->where('attempts', '>', 0)->count();
+    $oldestOutbox = DB::table('client_change_outbox')->whereNull('published_at')->min('created_at');
+    $oldestInbox = DB::table('client_change_inbox')->whereNull('processed_at')->min('received_at');
+
+    $this->table(
+        ['Continuity queue', 'Pending', 'With failed attempts', 'Oldest pending'],
+        [
+            ['Primary outbox', $outboxPending, $outboxFailed, $oldestOutbox ?: '—'],
+            ['Backup inbox', $inboxPending, $inboxFailed, $oldestInbox ?: '—'],
+        ]
+    );
+
+    $unprocessedGroups = DB::table('client_change_inbox')
+        ->select('product_code', 'aggregate_type', 'event_type', DB::raw('COUNT(*) as event_count'))
+        ->whereNull('processed_at')
+        ->groupBy('product_code', 'aggregate_type', 'event_type')
+        ->orderBy('product_code')
+        ->orderBy('event_type')
+        ->get();
+
+    if ($unprocessedGroups->isNotEmpty()) {
+        $this->warn('Unprocessed backup event types (review handler support and prerequisites):');
+        $this->table(
+            ['Product', 'Aggregate', 'Event type', 'Count'],
+            $unprocessedGroups->map(fn ($event) => [
+                $event->product_code,
+                $event->aggregate_type,
+                $event->event_type,
+                $event->event_count,
+            ])->all()
+        );
+    }
+
+    $this->comment('Read-only diagnostic. It does not publish, process, retry, or delete events.');
+    return 0;
+})->purpose('Show read-only primary outbox and backup inbox backlog and failure counts.');
+
+
+Schedule::command('nexora:outbox:publish --limit=100')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();
+
