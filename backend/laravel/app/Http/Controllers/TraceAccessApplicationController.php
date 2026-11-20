@@ -240,6 +240,17 @@ class TraceAccessApplicationController extends Controller
             'expires_at' => ['required', 'date', 'after:now'],
         ]);
 
+        if (filled($data['region_code'] ?? null)) {
+            $regionCode = strtoupper(trim($data['region_code']));
+            abort_if(
+                preg_match('/^[A-Z]{2}-[A-Z0-9-]{1,12}$/', $regionCode) !== 1
+                    || ! str_starts_with($regionCode, strtoupper($application->country_code).'-'),
+                422,
+                'The region code must be a valid country-prefixed code belonging to the application country.'
+            );
+            $data['region_code'] = $regionCode;
+        }
+
         $otp->consume($request, 'loopza.trace.access_applications.grant.'.$applicationId);
 
         $grant = DB::transaction(function () use ($request, $applicationId, $data, $countries): TraceCountryAccessGrant {
