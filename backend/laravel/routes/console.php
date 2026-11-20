@@ -130,6 +130,47 @@ Artisan::command('nexora:inbox:process {--limit=100}', function (ClientChangeInb
     return $result['failed'] > 0 ? 1 : 0;
 })->purpose('Apply supported, ordered client identity events received from the primary.');
 
+Artisan::command('nexora:continuity:status', function () {
+    $outboxPending = DB::table('client_change_outbox')->whereNull('published_at')->count();
+    $outboxFailed = DB::table('client_change_outbox')->whereNull('published_at')->where('attempts', '>', 0)->count();
+    $inboxPending = DB::table('client_change_inbox')->whereNull('processed_at')->count();
+    $inboxFailed = DB::table('client_change_inbox')->whereNull('processed_at')->where('attempts', '>', 0)->count();
+    $oldestOutbox = DB::table('client_change_outbox')->whereNull('published_at')->min('created_at');
+    $oldestInbox = DB::table('client_change_inbox')->whereNull('processed_at')->min('received_at');
+
+    $this->table(
+        ['Continuity queue', 'Pending', 'With failed attempts', 'Oldest pending'],
+        [
+            ['Primary outbox', $outboxPending, $outboxFailed, $oldestOutbox ?: '—'],
+            ['Backup inbox', $inboxPending, $inboxFailed, $oldestInbox ?: '—'],
+        ]
+    );
+
+    $unprocessedGroups = DB::table('client_change_inbox')
+        ->select('product_code', 'aggregate_type', 'event_type', DB::raw('COUNT(*) as event_count'))
+        ->whereNull('processed_at')
+        ->groupBy('product_code', 'aggregate_type', 'event_type')
+        ->orderBy('product_code')
+        ->orderBy('event_type')
+        ->get();
+
+    if ($unprocessedGroups->isNotEmpty()) {
+        $this->warn('Unprocessed backup event types (review handler support and prerequisites):');
+        $this->table(
+            ['Product', 'Aggregate', 'Event type', 'Count'],
+            $unprocessedGroups->map(fn ($event) => [
+                $event->product_code,
+                $event->aggregate_type,
+                $event->event_type,
+                $event->event_count,
+            ])->all()
+        );
+    }
+
+    $this->comment('Read-only diagnostic. It does not publish, process, retry, or delete events.');
+    return 0;
+})->purpose('Show read-only primary outbox and backup inbox backlog and failure counts.');
+
 
 Schedule::command('nexora:outbox:publish --limit=100')
     ->everyMinute()
