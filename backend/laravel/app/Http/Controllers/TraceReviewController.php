@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\GroupAuthority;
 use App\Models\TraceCase;
+use App\Models\TraceCaseDocument;
 use App\Models\TraceProfile;
 use App\Services\GroupStaffOtpConfirmation;
 use Illuminate\Http\JsonResponse;
@@ -218,6 +219,44 @@ class TraceReviewController extends Controller
                 'submitted_at' => $case->created_at?->toISOString(),
             ]),
         ]);
+    }
+
+    public function caseDocument(
+        Request $request,
+        GroupStaffOtpConfirmation $otp,
+        int $caseId,
+        int $documentId
+    ): StreamedResponse {
+        $this->assertReviewer($request);
+        $otp->consume($request, 'loopza.trace.review.case.document.'.$documentId);
+
+        $case = TraceCase::query()->findOrFail($caseId);
+        abort_unless(in_array($case->status, [
+            'pending_review', 'cross_region_review', 'urgent_provisional_review', 'needs_more_information',
+        ], true), 404);
+
+        $document = TraceCaseDocument::query()
+            ->where('trace_case_id', $case->id)
+            ->findOrFail($documentId);
+        abort_unless(Storage::disk('local')->exists($document->storage_path), 404);
+
+        $this->auditSensitiveRead(
+            $request,
+            'loopza.trace_case.document.accessed',
+            TraceCaseDocument::class,
+            (string) $document->id
+        );
+
+        return Storage::disk('local')->response(
+            $document->storage_path,
+            $document->original_filename,
+            [
+                'Content-Type' => $document->mime_type,
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+            'attachment'
+        );
     }
 
     public function decideCase(
