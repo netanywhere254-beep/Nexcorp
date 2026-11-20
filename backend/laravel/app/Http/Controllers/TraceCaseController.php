@@ -6,6 +6,10 @@ use App\Services\CaseReferenceNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use App\Models\TraceCaseResubmission;
+use App\Models\AuditLog;
 use Illuminate\Validation\Rule;
 class TraceCaseController extends Controller {
  public function store(Request $request): JsonResponse {
@@ -121,7 +125,7 @@ class TraceCaseController extends Controller {
     ]);
     return $locked->fresh();
    });
-  } catch (\\\\Throwable $exception) {
+  } catch (\Throwable $exception) {
    if ($storedPath) Storage::disk('local')->delete($storedPath);
    throw $exception;
   }
