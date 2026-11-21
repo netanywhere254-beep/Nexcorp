@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	FormatVersion = 1
+	FormatVersion  = 1
 	MaxConfigBytes = 8 << 20
-	keyBytes = 32
+	keyBytes       = 32
 )
 
 var (
-	ErrInvalidKey = errors.New("recovery: key must be exactly 32 bytes")
-	ErrIdentityMismatch = errors.New("recovery: snapshot identity does not match target")
+	ErrInvalidKey         = errors.New("recovery: key must be exactly 32 bytes")
+	ErrIdentityMismatch   = errors.New("recovery: snapshot identity does not match target")
 	ErrUnsupportedVersion = errors.New("recovery: unsupported snapshot format")
-	ErrConfigTooLarge = errors.New("recovery: configuration exceeds size limit")
+	ErrConfigTooLarge     = errors.New("recovery: configuration exceeds size limit")
 )
 
 // Metadata identifies the exact customer asset and hardware that produced a checkpoint.
@@ -46,7 +46,7 @@ type envelope struct {
 }
 
 type encryptedPayload struct {
-	SHA256      string `json:"sha256"`
+	SHA256        string `json:"sha256"`
 	Configuration []byte `json:"configuration"`
 }
 
@@ -95,7 +95,7 @@ func EncodeSnapshot(meta Metadata, configuration, key []byte) ([]byte, error) {
 	ciphertext := aead.Seal(nil, nonce, payload, aad)
 	out, err := json.Marshal(envelope{
 		Version: FormatVersion, Metadata: meta,
-		Nonce: base64.StdEncoding.EncodeToString(nonce),
+		Nonce:      base64.StdEncoding.EncodeToString(nonce),
 		Ciphertext: base64.StdEncoding.EncodeToString(ciphertext),
 	})
 	if err != nil {
