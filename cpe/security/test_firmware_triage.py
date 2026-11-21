@@ -18,29 +18,36 @@ class FirmwareTriageTests(unittest.TestCase):
         self.scope = self.root / "scope.json"
         self.scope.write_text(json.dumps({
             "engagement_id": "NP-TEST-001",
-            "target": "lab-router-01",
+            "tenant_id": "tenant-test",
+            "asset_owner": "lab-owner",
+            "targets": [{"asset_id": "lab-router-01", "manufacturer": "Test", "model": "Router", "hardware_revision": "A1", "firmware_hash_sha256": hashlib.sha256(self.payload).hexdigest()}],
             "approved_by": "security-lead",
-            "approval_reference": "CHANGE-1001",
+            "authorisation_reference": "CHANGE-1001",
+            "starts_at": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5)).isoformat(),
+            "operator_id": "operator-1",
+            "reviewer_id": "reviewer-1",
+            "stop_conditions": ["unexpected outage"],
+            "approval_status": "approved",
             "expires_at": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)).isoformat(),
             "firmware_sha256": hashlib.sha256(self.payload).hexdigest(),
-            "permitted_actions": ["static_firmware_triage"],
+            "allowed_methods": ["static_analysis"],
         }), encoding="utf-8")
 
     def tearDown(self):
         self.temp.cleanup()
 
     def test_valid_scope_produces_read_only_report(self):
-        report = inspect_firmware(self.firmware, self.scope)
+        report = inspect_firmware(self.firmware, self.scope, "lab-router-01")
         self.assertEqual(report["mode"], "offline_static_read_only")
         self.assertIn("ELF executable", report["firmware"]["detected_signatures"])
         self.assertEqual(report["firmware"]["sha256"], hashlib.sha256(self.payload).hexdigest())
 
     def test_hash_mismatch_is_rejected(self):
         scope = json.loads(self.scope.read_text())
-        scope["firmware_sha256"] = "0" * 64
+        scope["targets"][0]["firmware_hash_sha256"] = "0" * 64
         self.scope.write_text(json.dumps(scope))
         with self.assertRaisesRegex(ScopeError, "does not match"):
-            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest())
+            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest(), "lab-router-01")
 
     def test_expired_scope_is_rejected(self):
         scope = json.loads(self.scope.read_text())
@@ -51,7 +58,7 @@ class FirmwareTriageTests(unittest.TestCase):
 
     def test_scope_without_triage_permission_is_rejected(self):
         scope = json.loads(self.scope.read_text())
-        scope["permitted_actions"] = ["inventory"]
+        scope["allowed_methods"] = ["read_only_inventory"]
         self.scope.write_text(json.dumps(scope))
         with self.assertRaisesRegex(ScopeError, "does not permit"):
             validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest())
@@ -65,7 +72,7 @@ class FirmwareTriageTests(unittest.TestCase):
     def test_empty_firmware_is_rejected(self):
         self.firmware.write_bytes(b"")
         with self.assertRaisesRegex(ValueError, "size"):
-            inspect_firmware(self.firmware, self.scope)
+            inspect_firmware(self.firmware, self.scope, "lab-router-01")
 
 
 if __name__ == "__main__":
