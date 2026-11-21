@@ -146,7 +146,7 @@ def inspect_firmware(path: Path, scope_path: Path, asset_id: str) -> dict[str, A
             "asset_owner": scope["asset_owner"],
             "operator_id": scope["operator_id"],
             "reviewer_id": scope["reviewer_id"],
-            "approval_reference": scope["approval_reference"],
+            "approval_reference": scope["authorisation_reference"],
             "expires_at": scope["expires_at"],
         },
         "firmware": {
