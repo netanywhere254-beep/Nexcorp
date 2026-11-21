@@ -20,7 +20,7 @@ A plan is rejected unless:
 - Approval is active, explicitly approved, matches tenant and asset, has an authorisation reference, and names separate operator and reviewer identities.
 - Both configurations match the checkpoint's schema version.
 
-The planner returns changed section names and SHA-256 digests only. It does not return configuration values, secrets or raw settings.
+The planner returns changed section names and SHA-256 digests only. Its output contract is defined in [restore-plan.schema.json](./restore-plan.schema.json); the schema permanently constrains `execution_enabled` to `false` and the status to `dry_run_ready_for_lab_review`. It does not return configuration values, secrets or raw settings.
 
 ## Safety boundary
 
