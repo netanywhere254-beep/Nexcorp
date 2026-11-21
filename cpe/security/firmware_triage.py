@@ -51,32 +51,46 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_scope(scope_path: Path, firmware_sha256: str) -> dict[str, Any]:
+def validate_scope(scope_path: Path, firmware_sha256: str, asset_id: str) -> dict[str, Any]:
     try:
         scope = json.loads(scope_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ScopeError(f"Cannot read valid engagement scope: {exc}") from exc
 
-    required = ("engagement_id", "target", "approved_by", "approval_reference",
-                "expires_at", "firmware_sha256", "permitted_actions")
+    required = ("engagement_id", "tenant_id", "asset_owner", "authorisation_reference",
+                "targets", "allowed_methods", "starts_at", "expires_at",
+                "operator_id", "reviewer_id", "stop_conditions", "approval_status")
     missing = [key for key in required if not scope.get(key)]
     if missing:
         raise ScopeError("Missing scope fields: " + ", ".join(missing))
-    if scope["firmware_sha256"].lower() != firmware_sha256:
-        raise ScopeError("Scope hash does not match this exact firmware file")
-    if "static_firmware_triage" not in scope["permitted_actions"]:
-        raise ScopeError("Scope does not permit static_firmware_triage")
+    if scope["approval_status"] != "approved":
+        raise ScopeError("Engagement must have approved status")
+    if "static_analysis" not in scope["allowed_methods"]:
+        raise ScopeError("Scope does not permit static_analysis")
 
+    now = dt.datetime.now(dt.timezone.utc)
     try:
+        starts = dt.datetime.fromisoformat(scope["starts_at"].replace("Z", "+00:00"))
         expires = dt.datetime.fromisoformat(scope["expires_at"].replace("Z", "+00:00"))
     except (TypeError, ValueError) as exc:
-        raise ScopeError("expires_at must be an ISO-8601 timestamp") from exc
-    if expires.tzinfo is None:
-        raise ScopeError("expires_at must include a timezone")
-    if expires <= dt.datetime.now(dt.timezone.utc):
+        raise ScopeError("starts_at and expires_at must be ISO-8601 timestamps") from exc
+    if starts.tzinfo is None or expires.tzinfo is None:
+        raise ScopeError("Scope timestamps must include a timezone")
+    if starts > now:
+        raise ScopeError("Engagement scope is not active yet")
+    if expires <= now:
         raise ScopeError("Engagement scope has expired")
-    return scope
+    if expires <= starts:
+        raise ScopeError("Engagement expiry must be later than its start")
 
+    matches = [
+        target for target in scope["targets"]
+        if target.get("asset_id") == asset_id
+        and target.get("firmware_hash_sha256", "").lower() == firmware_sha256
+    ]
+    if len(matches) != 1:
+        raise ScopeError("Scope must identify this exact asset and firmware SHA-256 once")
+    return scope
 
 def entropy(data: bytes) -> float:
     if not data:
@@ -104,7 +118,7 @@ def printable_strings(data: bytes) -> list[str]:
     return output
 
 
-def inspect_firmware(path: Path, scope_path: Path) -> dict[str, Any]:
+def inspect_firmware(path: Path, scope_path: Path, asset_id: str) -> dict[str, Any]:
     if not path.is_file():
         raise ValueError("Firmware path must point to a regular file")
     size = path.stat().st_size
@@ -112,7 +126,7 @@ def inspect_firmware(path: Path, scope_path: Path) -> dict[str, Any]:
         raise ValueError(f"Firmware size must be between 1 byte and {MAX_FIRMWARE_BYTES} bytes")
 
     digest = sha256_file(path)
-    scope = validate_scope(scope_path, digest)
+    scope = validate_scope(scope_path, digest, asset_id)
     with path.open("rb") as stream:
         sample = stream.read(SAMPLE_BYTES)
         header = sample[:64]
@@ -127,7 +141,11 @@ def inspect_firmware(path: Path, scope_path: Path) -> dict[str, Any]:
         "mode": "offline_static_read_only",
         "engagement": {
             "engagement_id": scope["engagement_id"],
-            "target": scope["target"],
+            "tenant_id": scope["tenant_id"],
+            "asset_id": asset_id,
+            "asset_owner": scope["asset_owner"],
+            "operator_id": scope["operator_id"],
+            "reviewer_id": scope["reviewer_id"],
             "approval_reference": scope["approval_reference"],
             "expires_at": scope["expires_at"],
         },
@@ -154,10 +172,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--firmware", required=True, type=Path)
     parser.add_argument("--scope", required=True, type=Path)
+    parser.add_argument("--asset-id", required=True, help="Exact asset_id registered in the engagement scope")
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
     args = parser.parse_args()
     try:
-        report = inspect_firmware(args.firmware, args.scope)
+        report = inspect_firmware(args.firmware, args.scope, args.asset_id)
     except (ValueError, OSError) as exc:
         print(json.dumps({"error": str(exc), "status": "rejected"}), file=sys.stderr)
         return 2
