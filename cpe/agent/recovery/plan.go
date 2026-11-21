@@ -27,7 +27,7 @@ type DeviceProfile struct {
 	Manufacturer         string    `json:"manufacturer"`
 	Model                string    `json:"model"`
 	HardwareRevision     string    `json:"hardware_revision"`
-	HardwareFingerprint   string    `json:"hardware_fingerprint"`
+	HardwareFingerprint  string    `json:"hardware_fingerprint"`
 	BoardID              string    `json:"board_id"`
 	Status               string    `json:"status"`
 	RecoveryVerified     bool      `json:"recovery_verified"`
@@ -168,13 +168,12 @@ func BuildRestorePlan(meta Metadata, profile DeviceProfile, approval RestoreAppr
 		PlanVersion: 1, Status: "dry_run_ready_for_lab_review",
 		TenantID: meta.TenantID, AssetID: meta.AssetID,
 		HardwareFingerprint: meta.HardwareFingerprint,
-		Device: profile.Manufacturer + " " + profile.Model + " " + profile.HardwareRevision + " (" + profile.BoardID + ")",
-		CurrentSHA256: digest(currentConfig), ProposedSHA256: digest(proposedConfig),
+		Device:              profile.Manufacturer + " " + profile.Model + " " + profile.HardwareRevision + " (" + profile.BoardID + ")",
+		CurrentSHA256:       digest(currentConfig), ProposedSHA256: digest(proposedConfig),
 		ChangedSections: sections, ApprovalReference: approval.AuthorisationRef,
 		OperatorID: approval.OperatorID, ReviewerID: approval.ReviewerID,
 		RecoveryEvidence: profile.EvidenceReference, GeneratedAt: now.UTC(),
 		ExecutionEnabled: false,
-		Notice: "Dry-run only. No router connection or configuration change was performed. A device-specific restore adapter and separate execution approval are still required.",
+		Notice:           "Dry-run only. No router connection or configuration change was performed. A device-specific restore adapter and separate execution approval are still required.",
 	}, nil
 }
-
