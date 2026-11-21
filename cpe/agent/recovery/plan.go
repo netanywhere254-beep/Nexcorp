@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -27,6 +27,7 @@ type DeviceProfile struct {
 	Manufacturer         string    `json:"manufacturer"`
 	Model                string    `json:"model"`
 	HardwareRevision     string    `json:"hardware_revision"`
+	HardwareFingerprint   string    `json:"hardware_fingerprint"`
 	BoardID              string    `json:"board_id"`
 	Status               string    `json:"status"`
 	RecoveryVerified     bool      `json:"recovery_verified"`
@@ -80,12 +81,8 @@ func parseConfig(raw []byte) (configDocument, error) {
 	if err := dec.Decode(&doc); err != nil {
 		return doc, fmt.Errorf("%w: %v", ErrConfigInvalid, err)
 	}
-	if err := dec.Decode(new(any)); err != nil && !errors.Is(err, errors.New("EOF")) {
-		// A second JSON value is not permitted. The decoder's EOF is handled below
-		// using the standard library sentinel.
-		if err.Error() != "EOF" {
-			return doc, fmt.Errorf("%w: trailing JSON data", ErrConfigInvalid)
-		}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		return doc, fmt.Errorf("%w: trailing JSON data", ErrConfigInvalid)
 	}
 	if doc.SchemaVersion == "" || len(doc.Sections) == 0 {
 		return doc, ErrConfigInvalid
@@ -135,7 +132,8 @@ func changedSections(current, proposed configDocument) []string {
 func BuildRestorePlan(meta Metadata, profile DeviceProfile, approval RestoreApproval, currentConfig, proposedConfig []byte, now time.Time) (RestorePlan, error) {
 	if meta.TenantID == "" || meta.AssetID == "" || meta.HardwareFingerprint == "" ||
 		meta.ConfigSchema == "" || profile.Manufacturer == "" || profile.Model == "" ||
-		profile.HardwareRevision == "" || profile.BoardID == "" {
+		profile.HardwareRevision == "" || profile.BoardID == "" ||
+		profile.HardwareFingerprint != meta.HardwareFingerprint {
 		return RestorePlan{}, ErrRestoreNotEligible
 	}
 	if !profile.RecoveryVerified || !profile.ConfigurationRestore ||
@@ -180,4 +178,3 @@ func BuildRestorePlan(meta Metadata, profile DeviceProfile, approval RestoreAppr
 	}, nil
 }
 
-var _ = strings.Builder{}
