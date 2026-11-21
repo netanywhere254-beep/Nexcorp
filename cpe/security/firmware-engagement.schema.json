@@ -16,7 +16,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["asset_id", "manufacturer", "model", "hardware_revision"],
+        "required": ["asset_id", "manufacturer", "model", "hardware_revision", "firmware_hash_sha256"],
         "properties": {
           "asset_id": {"type": "string", "minLength": 1},
           "manufacturer": {"type": "string", "minLength": 1},
