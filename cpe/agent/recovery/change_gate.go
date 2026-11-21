@@ -8,10 +8,21 @@ import (
 	"fmt"
 )
 
+// ConfigurationCapture is a device adapter's explicit completeness assertion.
+// Complete may be true only after every configuration section supported by the
+// exact device profile has been exported and validated.
+type ConfigurationCapture struct {
+	Configuration []byte
+	Schema        string
+	Complete      bool
+	Missing       []string
+}
+
 // ConfigurationBackupSource must capture the live configuration from the exact
-// target device without changing its state.
+// target device without changing its state. It must report partial exports as
+// incomplete; a best-effort or truncated export is never a valid checkpoint.
 type ConfigurationBackupSource interface {
-	CaptureConfiguration(context.Context, Metadata) ([]byte, error)
+	CaptureConfiguration(context.Context, Metadata) (ConfigurationCapture, error)
 }
 
 // CheckpointReceipt is returned only after the storage adapter has read the
@@ -54,11 +65,17 @@ func ApplyWithCheckpoint(
 		return CheckpointReceipt{}, err
 	}
 
-	configuration, err := source.CaptureConfiguration(ctx, meta)
+	capture, err := source.CaptureConfiguration(ctx, meta)
 	if err != nil {
 		return CheckpointReceipt{}, fmt.Errorf("recovery: pre-change configuration capture failed; change blocked: %w", err)
 	}
-	snapshot, err := EncodeSnapshot(meta, configuration, key)
+	if !capture.Complete || len(capture.Missing) != 0 {
+		return CheckpointReceipt{}, fmt.Errorf("%w: configuration export is incomplete", ErrCheckpointNotVerified)
+	}
+	if capture.Schema != meta.ConfigSchema {
+		return CheckpointReceipt{}, fmt.Errorf("%w: captured configuration schema does not match the device profile", ErrCheckpointNotVerified)
+	}
+	snapshot, err := EncodeSnapshot(meta, capture.Configuration, key)
 	if err != nil {
 		return CheckpointReceipt{}, fmt.Errorf("recovery: pre-change checkpoint creation failed; change blocked: %w", err)
 	}
