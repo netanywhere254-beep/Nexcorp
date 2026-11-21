@@ -28,3 +28,12 @@ Store snapshot files with restrictive permissions (owner read/write only), encry
 ## Current safety boundary
 
 This is a format and validation library, not a router restore tool. It does not connect to routers, change settings, flash firmware, execute vendor commands, or prove that a device has a working recovery path. Never interpret a successful decrypt as proof that a configuration is compatible with a target device. Huawei WS318n remains firmware-write blocked until exact hardware identity and a lab-tested recovery procedure are recorded.
+
+
+## Restore planning
+
+See [RESTORE_PLAN.md](./RESTORE_PLAN.md) for the offline configuration restore planner. The Go API `BuildRestorePlan` validates the exact hardware fingerprint, profile recovery evidence freshness, R1-R4 restore eligibility, tenant/asset-matched approval and two-person review. It compares canonicalised configuration sections and emits only hashes and changed section names.
+
+The plan is always `dry_run_ready_for_lab_review` with `execution_enabled=false`. Approval values passed into this package are trusted caller inputs, not cryptographic proof; production NexISP services must verify signed, short-lived authorisations server-side and record tamper-evident audit events.
+
+The current Huawei WS318n profile has no known hardware fingerprint and remains ineligible.
