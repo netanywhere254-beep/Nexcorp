@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netpulse.example/schemas/firmware-engagement.schema.json",
+  "title": "NetPulse Firmware Security Engagement",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["engagement_id", "tenant_id", "asset_owner", "authorisation_reference", "targets", "allowed_methods", "starts_at", "expires_at", "operator_id", "reviewer_id", "stop_conditions"],
+  "properties": {
+    "engagement_id": {"type": "string", "minLength": 8, "maxLength": 128},
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "asset_owner": {"type": "string", "minLength": 1, "maxLength": 256},
+    "authorisation_reference": {"type": "string", "minLength": 1, "maxLength": 512},
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_id", "manufacturer", "model", "hardware_revision", "firmware_hash_sha256"],
+        "properties": {
+          "asset_id": {"type": "string", "minLength": 1},
+          "manufacturer": {"type": "string", "minLength": 1},
+          "model": {"type": "string", "minLength": 1},
+          "hardware_revision": {"type": "string", "minLength": 1},
+          "board_id": {"type": ["string", "null"]},
+          "firmware_hash_sha256": {"type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$"}
+        }
+      }
+    },
+    "allowed_methods": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["read_only_inventory", "offline_firmware_unpack", "static_analysis", "sbom_and_cve_matching", "configuration_review", "isolated_lab_validation"]}
+    },
+    "starts_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "operator_id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "minLength": 1},
+    "rate_limit_per_minute": {"type": "integer", "minimum": 1, "maximum": 60, "default": 10},
+    "stop_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "approval_status": {"enum": ["pending", "approved", "revoked", "expired"], "default": "pending"}
+  }
+}

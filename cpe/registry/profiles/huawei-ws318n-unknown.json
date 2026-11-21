@@ -1,0 +1,22 @@
+{
+  "manufacturer": "Huawei",
+  "model": "WS318n",
+  "hardwareRevision": "UNKNOWN",
+  "boardId": "UNKNOWN",
+  "soc": null,
+  "openwrtTarget": null,
+  "minimumFlashBytes": 1,
+  "minimumRamBytes": 1,
+  "status": "identification_required",
+  "supportedOpenWrtReleases": [],
+  "imageFormat": null,
+  "firmwarePartitionBytes": null,
+  "recoveryProcedure": "Not established. Obtain exact board information and validate a vendor-supported recovery path on a spare identical unit.",
+  "recoveryVerified": false,
+  "notes": [
+    "Owner-reported stock firmware: 10.0.2.6; full build suffix not yet confirmed.",
+    "Do not generate or flash an image until hardware revision, board ID, SoC, flash geometry and partition layout are verified.",
+    "This profile intentionally cannot pass firmware eligibility checks."
+  ],
+  "hardwareFingerprint": null
+}
