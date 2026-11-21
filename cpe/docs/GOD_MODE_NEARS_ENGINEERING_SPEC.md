@@ -1,0 +1,144 @@
+# GOD MODE and NEARS — Engineering Control Plane
+
+**Product scope:** NetPulse CPE OS, NetPulse Firmware Manager, NexISP Cloud  
+**Status:** Architecture contract; implementation and hardware validation are still required.
+
+## 1. Objective
+
+Provide authorised engineers with a consistent privileged workflow and a separately controlled emergency recovery path. GOD MODE is an authenticated engineering session, not a hidden account or access-control bypass. NEARS (NetPulse Emergency Access & Recovery System) permits narrowly scoped local recovery when NexISP or the normal management channel is unavailable.
+
+This specification extends the existing firmware assessment, mandatory checkpoint, and R0–R4 recovery architecture. It does not authorise firmware flashing on an unverified device.
+
+## 2. Trust boundaries and components
+
+- **NexISP Identity & Policy:** provisions engineer identities, roles, device/tenant scope, approvals, credential issuance and revocation.
+- **CPE Local Security Agent:** verifies signed offline credentials, enforces local operation policy, manages session expiry and writes tamper-evident local audit events.
+- **Firmware Manager:** provides the engineer interface and orchestrates discovery, preflight, checkpoint and supported recovery adapters.
+- **Recovery Capability Registry:** records tested recovery level per exact manufacturer, model, hardware revision and board ID.
+- **Audit Synchroniser:** uploads signed local events after connectivity returns; it must not silently overwrite or discard local records.
+
+The cloud service is not trusted to waive device-side safety gates. The local agent is not trusted to expand a credential's scope.
+
+## 3. GOD MODE activation contract
+
+Engineer command: `GOD MODE ACTIVATE`
+
+Activation is accepted only when all checks succeed:
+
+1. Engineer identity is authenticated with MFA; use hardware-backed/passkey authentication where available.
+2. The assigned engineering role and individual permissions allow the requested operation class.
+3. The target device identity is known and bound to the session.
+4. Tenant, asset, engagement and maintenance-window scope are valid.
+5. The policy service confirms the session is not revoked.
+6. A supported configuration checkpoint is captured, encrypted, read back and integrity-verified before any state-changing operation.
+7. Recovery readiness is evaluated independently from backup success.
+8. A session ID, expiry, policy version and audit chain are created.
+
+The activation phrase is only a command selector. It is not a password, secret, credential, or authentication factor. Do not expose a public unauthenticated activation endpoint.
+
+Routine read-only diagnostics can run without additional prompts. State-changing actions may run automatically only when the signed policy explicitly permits them and all preconditions pass.
+
+## 4. NEARS emergency activation contract
+
+Engineer command: `NEARS EMERGENCY ACTIVATE`
+
+NEARS is used when the normal cloud or management path is unavailable. It requires a previously issued, digitally signed emergency credential. The credential is bound to a named engineer, tenant, exact asset or explicitly bounded asset set, permitted operation classes, validity interval, policy version and unique credential ID.
+
+The local verifier must:
+
+- verify the signature against a pinned trust root and an allowed key ID;
+- reject unknown algorithms, keys, malformed claims, expired credentials and not-yet-valid credentials;
+- check exact tenant and device binding;
+- enforce permitted operations and maximum session duration;
+- reject credentials locally marked revoked or superseded;
+- maintain monotonic anti-replay/session counters where hardware permits;
+- fail closed if trustworthy time or required anti-replay state cannot be established;
+- persist signed audit events before acknowledging privileged actions.
+
+Offline access is not a general-purpose alternate login. It cannot broaden the signed scope, create new targets, issue credentials, disable audit, or perform operations that the credential excludes.
+
+On reconnection, the agent synchronises the signed event chain, checks current revocation/policy state, and terminates or quarantines sessions that are no longer valid. A disconnected device cannot learn of a new revocation until it reconnects; therefore offline credentials must be short-lived and narrowly scoped, and high-risk operations must remain unavailable offline.
+
+## 5. Mandatory pre-change gate
+
+All router-changing operations must pass through one policy-enforced execution gateway:
+
+`CONNECT → IDENTIFY → BASELINE → CHECKPOINT → VERIFY → RECOVERY GATE → AUTHORISE → EXECUTE → HEALTH CHECK → REPORT`
+
+The gateway must be the only supported path for configuration writes, package changes, firmware staging, security tests that alter state, resets and restore operations.
+
+Checkpoint requirements:
+
+- bind the checkpoint to tenant ID, asset ID, exact hardware fingerprint and schema version;
+- encrypt it using managed keys and authenticated encryption;
+- record a cryptographic digest and verify the stored copy by reading it back;
+- validate required configuration sections and reject partial or malformed exports;
+- prevent concurrent sessions from replacing the active pre-change checkpoint;
+- redact secrets in diagnostic exports without corrupting the encrypted restore copy;
+- record who initiated, approved, created and verified the checkpoint.
+
+A configuration checkpoint is not a full flash image. Backup success alone does not prove recoverability. The device must also have a tested recovery path recorded in the exact hardware revision's recovery profile.
+
+If checkpoint or recovery validation fails, protected writes are blocked. The only exception is a narrowly defined, non-destructive recovery action whose policy explicitly states why a normal checkpoint is impossible and what independent recovery evidence is available.
+
+## 6. Operation classes
+
+| Class | Examples | Default policy |
+|---|---|---|
+| Read-only | inventory, status, logs, config analysis | Autonomous within device/tenant scope |
+| Reversible configuration | approved WAN/LAN/Wi-Fi settings | Checkpoint + policy permission + health checks |
+| Agent maintenance | restart or repair supported agent | Checkpoint where state may change; signed package |
+| Firmware staging | verified image to supported inactive slot | Exact target, signature, recovery level and approval gates |
+| Destructive recovery | flash erase, factory reset, partition rewrite | Explicit, step-up approval; physical presence where required |
+| Active security test | validation against an in-scope target | Signed engagement, time window, rate limits, stop conditions |
+| Third-party equipment | customer/vendor equipment | Explicit owner authorisation and exact scope |
+
+No mode overrides tenant isolation, authorisation, audit, firmware signature checks, or the recovery gate. Credential guessing against live router logins, stealth, persistence, and out-of-scope exploitation are not autonomous agent capabilities.
+
+## 7. Recovery levels
+
+Use the existing per-hardware R0–R4 registry:
+
+- **R0:** no verified recovery; firmware writes disabled.
+- **R1:** tested configuration restore; firmware replacement disabled.
+- **R2:** vendor recovery documented and lab-tested; physical/local operator required.
+- **R3:** A/B trial boot and automatic rollback validated on the exact board.
+- **R4:** R3 plus tested fleet failover and remote recovery orchestration.
+
+Never infer recovery level from a marketing model name. An unverified hardware revision remains read-only / no-flash.
+
+## 8. Session and audit lifecycle
+
+Each session records: session ID, engineer ID, tenant ID, asset ID, activation mode, credential ID (never the credential secret), policy version, start/end time, allowed operations, checkpoint digest, recovery readiness, command/action summaries, approval references, result and synchronisation status.
+
+Audit events are append-only and hash-chained or signed. Store locally in a protected queue while offline. On reconnect, upload idempotently and retain local evidence until the server confirms durable receipt. Clock rollback, chain gaps, signature failures or storage exhaustion must suspend privileged writes and raise an incident.
+
+Provide immediate session termination, credential revocation, and a fleet emergency-access disable policy. The kill switch must not disable the minimum documented physical recovery path.
+
+## 9. Failure behaviour
+
+- Cloud outage: local NEARS may operate only within a valid cached signed credential and its original scope.
+- Invalid/expired credential: deny activation; do not fall back to a shared password.
+- Unknown device or hardware revision: read-only; no firmware write.
+- Missing or unverifiable checkpoint: block protected changes.
+- Recovery level R0: block firmware write and destructive configuration changes.
+- Audit storage unavailable or tampered: suspend privileged writes.
+- WAN loss during change: stop subsequent steps, preserve local evidence and follow only the prevalidated device-specific recovery plan.
+- Failed health gate: invoke rollback only if that exact rollback method has been tested; otherwise stop and raise an incident.
+
+## 10. Delivery milestones and acceptance tests
+
+1. Define and review identity, role and permission claims.
+2. Implement credential signing/verification and key rotation.
+3. Implement local session state, expiry, anti-replay and audit queue.
+4. Route all mutating commands through the mandatory checkpoint/recovery gateway.
+5. Add cloud issuance, revocation and audit reconciliation.
+6. Integrate Firmware Manager and CPE agent.
+7. Test cloud outage, expired/revoked credentials, wrong tenant/device, replay, clock rollback, disk-full, tampered audit, backup corruption and concurrent sessions.
+8. Validate recovery adapters on spare devices for each exact hardware revision before enabling writes.
+
+Release acceptance requires tests proving that invalid credentials are rejected, tenant/device mismatches are denied, offline scope cannot expand, all mutations pass the checkpoint/recovery gate, and audit records reconcile without loss.
+
+## 11. Current implementation boundary
+
+This document and its credential schema define the contract only. They do not establish that GOD MODE, NEARS, signed credential issuance, local audit synchronisation or hardware recovery are already implemented. Do not enable customer-facing privileged operations or firmware flashing until code, automated tests, security review and exact-hardware recovery tests pass.
