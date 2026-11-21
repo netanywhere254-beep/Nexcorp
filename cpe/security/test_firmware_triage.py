@@ -59,7 +59,7 @@ class FirmwareTriageTests(unittest.TestCase):
         scope["allowed_methods"] = ["read_only_inventory"]
         self.scope.write_text(json.dumps(scope))
         with self.assertRaisesRegex(ScopeError, "does not permit"):
-            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest())
+            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest(), "lab-router-01")
 
     def test_secret_like_strings_are_redacted(self):
         from firmware_triage import printable_strings
