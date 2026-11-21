@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netpulse.example/schemas/restore-plan.schema.json",
+  "title": "NetPulse Offline Restore Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_version",
+    "status",
+    "tenant_id",
+    "asset_id",
+    "hardware_fingerprint",
+    "device",
+    "current_configuration_sha256",
+    "proposed_configuration_sha256",
+    "changed_sections",
+    "approval_reference",
+    "operator_id",
+    "reviewer_id",
+    "recovery_evidence_reference",
+    "generated_at",
+    "execution_enabled",
+    "notice"
+  ],
+  "properties": {
+    "plan_version": { "const": 1 },
+    "status": { "const": "dry_run_ready_for_lab_review" },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "asset_id": { "type": "string", "minLength": 1 },
+    "hardware_fingerprint": { "type": "string", "minLength": 1 },
+    "device": { "type": "string", "minLength": 1 },
+    "current_configuration_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "proposed_configuration_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "changed_sections": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["wan", "lan", "wireless", "dhcp", "firewall", "routes", "dns", "management"]
+      }
+    },
+    "approval_reference": { "type": "string", "minLength": 1 },
+    "operator_id": { "type": "string", "minLength": 1 },
+    "reviewer_id": { "type": "string", "minLength": 1 },
+    "recovery_evidence_reference": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "execution_enabled": { "const": false },
+    "notice": { "type": "string", "minLength": 1 }
+  }
+}
