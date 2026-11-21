@@ -222,3 +222,60 @@ The example values are illustrative only. The implementation must use actual rec
 9. The audit summary can be retrieved by authorised auditors without exposing credential secrets.
 
 The command `GOD MODE DEACTIVATE` is mandatory in the engineering command interface and must be documented in the operator guide and training material.
+
+
+## 13. Automatic idle logout and maximum session lifetime
+
+GOD MODE must automatically deactivate when the authenticated engineer is inactive. Explicit `GOD MODE DEACTIVATE` remains available and is the preferred normal logout path.
+
+### Initial default policy
+
+These are proposed secure defaults and must be configurable by an authorised security administrator:
+
+- At **10 minutes of inactivity**: display a clear warning and countdown.
+- At **15 minutes of inactivity**: lock the privileged console, stop accepting new privileged commands, and begin the safe deactivation procedure.
+- At **8 hours maximum session lifetime**: require a fresh authentication and a new privileged session, even if the engineer has remained active.
+
+The idle warning may offer a brief authenticated “I am here” action to continue the session, subject to policy. Merely leaving a terminal open, background polling, device telemetry, automated agent activity or a running unattended job must not count as human activity or reset the engineer's idle timer.
+
+### Definition of meaningful activity
+
+Only deliberate, authenticated engineer interaction with the privileged console counts as activity, such as issuing a command, completing a step-up authentication or using an approved interactive control. The agent must not infer human presence from network traffic, keyboard focus, mouse movement alone, background jobs or another engineer's activity.
+
+### Safe handling of work in progress
+
+Idle logout must not abruptly interrupt a state-changing transaction. At the idle threshold:
+
+1. Lock the privileged interface and reject new commands.
+2. Allow an already-running operation only to reach its next defined safe checkpoint or transaction boundary.
+3. Cancel work that can be safely cancelled; otherwise follow its prevalidated completion/rollback policy.
+4. Do not leave a firmware/configuration transaction in an indeterminate state.
+5. Close the human GOD MODE session, clear its privileged credentials and record the timeout reason.
+
+Any unattended task that is permitted to continue after the engineer session closes must be separately authorised, bounded, auditable and run under a restricted service/job identity—not under the engineer's still-open GOD MODE session. It must not gain additional permissions from the engineer's session.
+
+### Session accounting
+
+Record separate timestamps and durations for:
+
+- human interactive session;
+- idle period before automatic logout;
+- any separately authorised background job;
+- safe-close/transaction-drain period.
+
+Use a monotonic clock for elapsed durations and UTC wall-clock timestamps for audit correlation. If a reboot or clock discontinuity makes a duration unknowable, mark it unknown rather than estimating it.
+
+### Acceptance tests
+
+1. The warning appears at the configured idle-warning threshold.
+2. No meaningful human activity by the idle deadline causes automatic privileged logout.
+3. Meaningful authenticated interaction resets the idle timer only when policy permits.
+4. Background polling, telemetry and automated jobs do not reset the timer.
+5. The maximum session lifetime forces re-authentication.
+6. The console locks immediately at timeout and rejects new privileged commands.
+7. In-flight changes reach a safe transaction boundary or follow their tested cancellation/rollback path.
+8. An authorised background job is separately identified and audited after human logout.
+9. Timeout closure is recorded distinctly from manual logout, revocation, crash or emergency termination.
+10. The timeout event and measured duration synchronise idempotently after an offline NEARS session reconnects.
+
+The timeout values above are defaults for initial implementation and must be reviewed through security testing and operational policy before production deployment.
