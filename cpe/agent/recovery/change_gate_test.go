@@ -83,7 +83,6 @@ func TestApplyWithCheckpointBlocksWhenCaptureFails(t *testing.T) {
 	}
 }
 
-
 func TestApplyWithCheckpointBlocksIncompleteCapture(t *testing.T) {
 	source := newFakeBackupSource([]byte("partial-config"))
 	source.capture.Complete = false
