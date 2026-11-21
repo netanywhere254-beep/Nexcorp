@@ -142,3 +142,83 @@ Release acceptance requires tests proving that invalid credentials are rejected,
 ## 11. Current implementation boundary
 
 This document and its credential schema define the contract only. They do not establish that GOD MODE, NEARS, signed credential issuance, local audit synchronisation or hardware recovery are already implemented. Do not enable customer-facing privileged operations or firmware flashing until code, automated tests, security review and exact-hardware recovery tests pass.
+
+
+## 12. Explicit deactivation, logout and time accounting
+
+Engineer command: `GOD MODE DEACTIVATE`
+
+This command is the normal, explicit end-of-session action. It must terminate the current privileged engineering session and log the engineer out of the privileged console without necessarily logging them out of their ordinary NexISP account.
+
+On deactivation, the agent must:
+
+1. Stop accepting new privileged commands for that session immediately.
+2. Finish or safely cancel in-flight work according to the operation's transaction/recovery policy; never abandon a firmware or configuration transaction halfway through.
+3. Capture the final device state and run the applicable post-change health checks.
+4. Verify that any required final checkpoint, rollback marker and local audit events are durably stored.
+5. Record a signed session-close event and synchronise it with NexISP when online.
+6. Revoke the session token, clear privileged in-memory credentials and close privileged channels.
+7. Return the console to ordinary, least-privilege mode and display a concise session summary.
+
+### Required time records
+
+Record at minimum:
+
+- session ID, engineer ID, tenant ID and device/asset IDs;
+- activation mode (GOD MODE or NEARS emergency);
+- session start and end timestamps in UTC, plus the displayed local timezone;
+- elapsed session duration, calculated using a monotonic clock while the process is running;
+- active-work duration and idle duration, where reliable activity signals are available;
+- reconnect/offline intervals for NEARS sessions;
+- commands/actions performed, outcomes, approvals and checkpoint references;
+- deactivation reason: engineer requested, timeout, revocation, policy violation, crash/reboot or emergency kill switch.
+
+Wall-clock timestamps are for audit correlation; elapsed duration must not be calculated solely by subtracting wall-clock values because system time can change. If the device reboots or its monotonic clock resets during an offline session, record separate measured segments and mark any unmeasurable interval as unknown rather than inventing a duration.
+
+### Idle timeout and unexpected termination
+
+- Apply a configurable inactivity timeout and a maximum session lifetime.
+- Warn the engineer before an idle timeout where the interface is available.
+- On timeout, invoke the same safe close procedure as explicit deactivation.
+- On crash, power loss or forced termination, persist a recovery/unclean-shutdown marker and reconcile the session as interrupted on next startup; do not fabricate a normal logout event.
+- A lost cloud connection must not by itself end a valid NEARS local session, but the local credential expiry and operation scope remain enforced.
+
+### Example console interaction
+
+```text
+> GOD MODE DEACTIVATE
+
+[OK] New privileged commands blocked
+[OK] In-flight operations safely closed
+[OK] Final health checks recorded
+[OK] Audit events persisted
+[OK] Privileged credentials cleared
+[OK] Engineering session closed
+
+Engineer: engineer-identifier
+Session: session-identifier
+Started: 2026-11-21T17:00:00Z
+Ended:   2026-11-21T18:12:30Z
+Duration: 01:12:30
+Active work: 01:04:10
+Idle: 00:08:20
+Actions: 14 completed, 0 failed
+Audit sync: pending (offline) / confirmed (online)
+Status: LOGGED OUT OF GOD MODE
+```
+
+The example values are illustrative only. The implementation must use actual recorded timestamps and measured durations.
+
+### Acceptance tests for logout and accounting
+
+1. Explicit deactivation blocks further privileged commands.
+2. Session duration matches monotonic elapsed time within test tolerance.
+3. Time-zone display changes do not alter stored UTC timestamps or elapsed duration.
+4. Clock rollback/forward changes do not create negative or inflated duration.
+5. Idle timeout safely closes a session without interrupting an unsafe in-flight transaction.
+6. Reboot/crash is recorded as interrupted, not as a successful user logout.
+7. Offline NEARS close events synchronise idempotently after reconnection.
+8. Session tokens and privileged in-memory secrets are invalidated on close.
+9. The audit summary can be retrieved by authorised auditors without exposing credential secrets.
+
+The command `GOD MODE DEACTIVATE` is mandatory in the engineering command interface and must be documented in the operator guide and training material.
