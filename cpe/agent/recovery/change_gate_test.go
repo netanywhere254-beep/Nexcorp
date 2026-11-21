@@ -10,14 +10,20 @@ import (
 )
 
 type fakeBackupSource struct {
-	config []byte
-	err    error
-	calls  int
+	capture ConfigurationCapture
+	err     error
+	calls   int
 }
 
-func (f *fakeBackupSource) CaptureConfiguration(_ context.Context, _ Metadata) ([]byte, error) {
+func newFakeBackupSource(config []byte) *fakeBackupSource {
+	return &fakeBackupSource{capture: ConfigurationCapture{
+		Configuration: config, Schema: "openwrt-uci-v1", Complete: true,
+	}}
+}
+
+func (f *fakeBackupSource) CaptureConfiguration(_ context.Context, _ Metadata) (ConfigurationCapture, error) {
 	f.calls++
-	return f.config, f.err
+	return f.capture, f.err
 }
 
 type fakeCheckpointStore struct {
@@ -44,7 +50,7 @@ func gateTestMetadata() Metadata {
 }
 
 func TestApplyWithCheckpointBacksUpBeforeChange(t *testing.T) {
-	source := &fakeBackupSource{config: []byte(`{"network":{"wan":"pppoe"}}`)}
+	source := newFakeBackupSource([]byte(`{"network":{"wan":"pppoe"}}`))
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
@@ -77,8 +83,40 @@ func TestApplyWithCheckpointBlocksWhenCaptureFails(t *testing.T) {
 	}
 }
 
+
+func TestApplyWithCheckpointBlocksIncompleteCapture(t *testing.T) {
+	source := newFakeBackupSource([]byte("partial-config"))
+	source.capture.Complete = false
+	source.capture.Missing = []string{"firewall", "wireless"}
+	store := &fakeCheckpointStore{verified: true}
+	applied := false
+
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+		applied = true
+		return nil
+	})
+	if !errors.Is(err, ErrCheckpointNotVerified) || applied || store.calls != 0 {
+		t.Fatal("incomplete configuration export must block the change")
+	}
+}
+
+func TestApplyWithCheckpointBlocksSchemaMismatch(t *testing.T) {
+	source := newFakeBackupSource([]byte("config"))
+	source.capture.Schema = "unknown-schema"
+	store := &fakeCheckpointStore{verified: true}
+	applied := false
+
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+		applied = true
+		return nil
+	})
+	if !errors.Is(err, ErrCheckpointNotVerified) || applied || store.calls != 0 {
+		t.Fatal("configuration schema mismatch must block the change")
+	}
+}
+
 func TestApplyWithCheckpointBlocksWhenStoreFails(t *testing.T) {
-	source := &fakeBackupSource{config: []byte("config")}
+	source := newFakeBackupSource([]byte("config"))
 	store := &fakeCheckpointStore{err: errors.New("disk full")}
 	applied := false
 
