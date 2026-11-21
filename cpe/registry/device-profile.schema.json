@@ -14,7 +14,8 @@
     "minimumFlashBytes",
     "minimumRamBytes",
     "recoveryProcedure",
-    "recoveryVerified"
+    "recoveryVerified",
+    "hardwareFingerprint"
   ],
   "properties": {
     "manufacturer": {
@@ -95,6 +96,14 @@
       "items": {
         "type": "string"
       }
+    },
+    "hardwareFingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "description": "Stable fingerprint of the exact board revision; null until identified."
     }
   }
 }
