@@ -1,6 +1,7 @@
 package recovery
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -23,45 +24,45 @@ var allowedSections = map[string]bool{
 }
 
 type DeviceProfile struct {
-	Manufacturer       string    `json:"manufacturer"`
-	Model              string    `json:"model"`
-	HardwareRevision   string    `json:"hardware_revision"`
-	BoardID            string    `json:"board_id"`
-	Status             string    `json:"status"`
-	RecoveryVerified   bool      `json:"recovery_verified"`
-	ConfigurationRestore bool    `json:"configuration_restore"`
-	SupportLevel       string    `json:"support_level"`
-	LastLabTest        time.Time `json:"last_lab_test"`
-	EvidenceReference  string    `json:"evidence_reference"`
+	Manufacturer         string    `json:"manufacturer"`
+	Model                string    `json:"model"`
+	HardwareRevision     string    `json:"hardware_revision"`
+	BoardID              string    `json:"board_id"`
+	Status               string    `json:"status"`
+	RecoveryVerified     bool      `json:"recovery_verified"`
+	ConfigurationRestore bool      `json:"configuration_restore"`
+	SupportLevel         string    `json:"support_level"`
+	LastLabTest          time.Time `json:"last_lab_test"`
+	EvidenceReference    string    `json:"evidence_reference"`
 }
 
 type RestoreApproval struct {
-	TenantID            string    `json:"tenant_id"`
-	AssetID             string    `json:"asset_id"`
-	AuthorisationRef    string    `json:"authorisation_reference"`
-	OperatorID          string    `json:"operator_id"`
-	ReviewerID          string    `json:"reviewer_id"`
-	Approved             bool      `json:"approved"`
-	ExpiresAt            time.Time `json:"expires_at"`
+	TenantID         string    `json:"tenant_id"`
+	AssetID          string    `json:"asset_id"`
+	AuthorisationRef string    `json:"authorisation_reference"`
+	OperatorID       string    `json:"operator_id"`
+	ReviewerID       string    `json:"reviewer_id"`
+	Approved         bool      `json:"approved"`
+	ExpiresAt        time.Time `json:"expires_at"`
 }
 
 type RestorePlan struct {
-	PlanVersion       int       `json:"plan_version"`
-	Status            string    `json:"status"`
-	TenantID          string    `json:"tenant_id"`
-	AssetID           string    `json:"asset_id"`
-	HardwareFingerprint string  `json:"hardware_fingerprint"`
-	Device            string    `json:"device"`
-	CurrentSHA256     string    `json:"current_configuration_sha256"`
-	ProposedSHA256    string    `json:"proposed_configuration_sha256"`
-	ChangedSections   []string  `json:"changed_sections"`
-	ApprovalReference string    `json:"approval_reference"`
-	OperatorID        string    `json:"operator_id"`
-	ReviewerID        string    `json:"reviewer_id"`
-	RecoveryEvidence  string    `json:"recovery_evidence_reference"`
-	GeneratedAt       time.Time `json:"generated_at"`
-	ExecutionEnabled  bool      `json:"execution_enabled"`
-	Notice            string    `json:"notice"`
+	PlanVersion         int       `json:"plan_version"`
+	Status              string    `json:"status"`
+	TenantID            string    `json:"tenant_id"`
+	AssetID             string    `json:"asset_id"`
+	HardwareFingerprint string    `json:"hardware_fingerprint"`
+	Device              string    `json:"device"`
+	CurrentSHA256       string    `json:"current_configuration_sha256"`
+	ProposedSHA256      string    `json:"proposed_configuration_sha256"`
+	ChangedSections     []string  `json:"changed_sections"`
+	ApprovalReference   string    `json:"approval_reference"`
+	OperatorID          string    `json:"operator_id"`
+	ReviewerID          string    `json:"reviewer_id"`
+	RecoveryEvidence    string    `json:"recovery_evidence_reference"`
+	GeneratedAt         time.Time `json:"generated_at"`
+	ExecutionEnabled    bool      `json:"execution_enabled"`
+	Notice              string    `json:"notice"`
 }
 
 type configDocument struct {
@@ -74,10 +75,17 @@ func parseConfig(raw []byte) (configDocument, error) {
 	if len(raw) == 0 || len(raw) > MaxConfigBytes {
 		return doc, ErrConfigInvalid
 	}
-	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&doc); err != nil {
 		return doc, fmt.Errorf("%w: %v", ErrConfigInvalid, err)
+	}
+	if err := dec.Decode(new(any)); err != nil && !errors.Is(err, errors.New("EOF")) {
+		// A second JSON value is not permitted. The decoder's EOF is handled below
+		// using the standard library sentinel.
+		if err.Error() != "EOF" {
+			return doc, fmt.Errorf("%w: trailing JSON data", ErrConfigInvalid)
+		}
 	}
 	if doc.SchemaVersion == "" || len(doc.Sections) == 0 {
 		return doc, ErrConfigInvalid
@@ -86,6 +94,15 @@ func parseConfig(raw []byte) (configDocument, error) {
 		if !allowedSections[name] || len(value) == 0 || !json.Valid(value) {
 			return doc, fmt.Errorf("%w: unsupported or malformed section %q", ErrConfigInvalid, name)
 		}
+		var decoded any
+		if err := json.Unmarshal(value, &decoded); err != nil {
+			return doc, fmt.Errorf("%w: malformed section %q", ErrConfigInvalid, name)
+		}
+		canonical, err := json.Marshal(decoded)
+		if err != nil {
+			return doc, fmt.Errorf("%w: cannot canonicalise section %q", ErrConfigInvalid, name)
+		}
+		doc.Sections[name] = canonical
 	}
 	return doc, nil
 }
@@ -97,12 +114,16 @@ func digest(raw []byte) string {
 
 func changedSections(current, proposed configDocument) []string {
 	set := make(map[string]bool)
-	for k := range current.Sections { set[k] = true }
-	for k := range proposed.Sections { set[k] = true }
+	for key := range current.Sections {
+		set[key] = true
+	}
+	for key := range proposed.Sections {
+		set[key] = true
+	}
 	changed := make([]string, 0)
-	for k := range set {
-		if string(current.Sections[k]) != string(proposed.Sections[k]) {
-			changed = append(changed, k)
+	for key := range set {
+		if string(current.Sections[key]) != string(proposed.Sections[key]) {
+			changed = append(changed, key)
 		}
 	}
 	sort.Strings(changed)
@@ -131,9 +152,13 @@ func BuildRestorePlan(meta Metadata, profile DeviceProfile, approval RestoreAppr
 		return RestorePlan{}, ErrApprovalInvalid
 	}
 	current, err := parseConfig(currentConfig)
-	if err != nil { return RestorePlan{}, err }
+	if err != nil {
+		return RestorePlan{}, err
+	}
 	proposed, err := parseConfig(proposedConfig)
-	if err != nil { return RestorePlan{}, err }
+	if err != nil {
+		return RestorePlan{}, err
+	}
 	if current.SchemaVersion != proposed.SchemaVersion || current.SchemaVersion != meta.ConfigSchema {
 		return RestorePlan{}, fmt.Errorf("%w: configuration schema mismatch", ErrConfigInvalid)
 	}
@@ -154,3 +179,5 @@ func BuildRestorePlan(meta Metadata, profile DeviceProfile, approval RestoreAppr
 		Notice: "Dry-run only. No router connection or configuration change was performed. A device-specific restore adapter and separate execution approval are still required.",
 	}, nil
 }
+
+var _ = strings.Builder{}
