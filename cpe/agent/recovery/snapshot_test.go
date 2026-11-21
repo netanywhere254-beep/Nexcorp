@@ -22,8 +22,8 @@ func testMetadata() Metadata {
 	return Metadata{
 		TenantID: "tenant-1", AssetID: "router-9",
 		HardwareFingerprint: "board:rev-a:serial-hash",
-		ConfigSchema: "netpulse-config-v1",
-		CreatedAt: time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC),
+		ConfigSchema:        "netpulse-config-v1",
+		CreatedAt:           time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC),
 	}
 }
 
