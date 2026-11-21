@@ -29,13 +29,13 @@ hardware revision, flash layout, image format and recovery procedure must match.
 4. Select and test a maintained CWMP client against a lab ACS.
 5. Implement per-device credentials, TLS validation and parameter allow-lists.
 6. Add signed firmware artifacts and a reproducible build pipeline.
-7. Test recovery on a spare identical device before any customer deployment.
+7. Test recovery on a spare identical device before any customer deployment.\n8. Register the exact hardware revision's recovery capability and enforce its support level before permitting changes.\n\n## Recovery guarantee\n\nRollback options are selected per exact hardware revision. A/B automatic rollback is available only where dual-slot boot and watchdog behavior have been lab-verified. Devices without a verified rollback route remain on agent-only, cloud-only or external-gateway mode; firmware writes are blocked. The current codebase documents this target architecture but does not yet implement firmware flashing or automated rollback.
 
 ## Directory guide
 
 - `registry/`: device profile schema and initial model records.
 - `security/`: fail-closed firmware eligibility logic.
-- `docs/`: architecture, build gates and lab test plan.
+- `docs/`: architecture, build gates, lab test plan and rollback/recovery design.\n- `registry/recovery-capability.schema.json`: per-hardware recovery capability record.\n- `docs/ROLLBACK_AND_RECOVERY_ARCHITECTURE.md`: recovery levels, snapshots, A/B rollback and vendor recovery.\n- `docs/RECOVERY_USER_EXPERIENCE.md`: customer/operator recovery choices.
 
 ## Future desktop program
 
