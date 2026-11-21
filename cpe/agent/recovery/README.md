@@ -37,3 +37,10 @@ See [RESTORE_PLAN.md](./RESTORE_PLAN.md) for the offline configuration restore p
 The plan is always `dry_run_ready_for_lab_review` with `execution_enabled=false`. Approval values passed into this package are trusted caller inputs, not cryptographic proof; production NexISP services must verify signed, short-lived authorisations server-side and record tamper-evident audit events.
 
 The current Huawei WS318n profile has no known hardware fingerprint and remains ineligible.
+
+
+## Mandatory pre-change gate
+
+See [INSTANT_PRECHANGE_BACKUP.md](./INSTANT_PRECHANGE_BACKUP.md) for the required connect/inventory/backup/verify/change sequence. The `ApplyWithCheckpoint` API in `change_gate.go` is the fail-closed orchestration primitive: no protected mutation callback is invoked until a fresh configuration has been captured, encrypted, authenticated, durably stored and read-back verified. Capture, encryption, storage, verification or identity failures block the operation. Unit tests exercise these stop conditions.
+
+This gate is not yet wired to production router mutation adapters because the current CPE agent is read-only. The production adapter must implement `ConfigurationBackupSource` and `DurableCheckpointStore`, then route every protected mutation through `ApplyWithCheckpoint`. Do not expose a write endpoint before that integration, tenant-scoped key management, concurrency control and tamper-evident audit are implemented.
