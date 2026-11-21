@@ -35,7 +35,7 @@ func (f *fakeCheckpointStore) SaveAndVerify(_ context.Context, _ Metadata, snaps
 	return CheckpointReceipt{SnapshotID: "checkpoint-001", SHA256: hex.EncodeToString(sum[:]), Verified: f.verified}, nil
 }
 
-func testMetadata() Metadata {
+func gateTestMetadata() Metadata {
 	return Metadata{
 		TenantID: "tenant-a", AssetID: "router-1",
 		HardwareFingerprint: "sha256:hardware", ConfigSchema: "openwrt-uci-v1",
@@ -48,7 +48,7 @@ func TestApplyWithCheckpointBacksUpBeforeChange(t *testing.T) {
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
-	receipt, err := ApplyWithCheckpoint(context.Background(), testMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+	receipt, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
 		if source.calls != 1 || store.calls != 1 {
 			t.Fatal("change ran before backup capture and verification")
 		}
@@ -68,7 +68,7 @@ func TestApplyWithCheckpointBlocksWhenCaptureFails(t *testing.T) {
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
-	_, err := ApplyWithCheckpoint(context.Background(), testMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
 		applied = true
 		return nil
 	})
@@ -82,7 +82,7 @@ func TestApplyWithCheckpointBlocksWhenStoreFails(t *testing.T) {
 	store := &fakeCheckpointStore{err: errors.New("disk full")}
 	applied := false
 
-	_, err := ApplyWithCheckpoint(context.Background(), testMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
 		applied = true
 		return nil
 	})
@@ -96,7 +96,7 @@ func TestApplyWithCheckpointBlocksUnverifiedReceipt(t *testing.T) {
 	store := &fakeCheckpointStore{verified: false}
 	applied := false
 
-	_, err := ApplyWithCheckpoint(context.Background(), testMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
 		applied = true
 		return nil
 	})
@@ -110,7 +110,7 @@ func TestApplyWithCheckpointBlocksInvalidKey(t *testing.T) {
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
-	_, err := ApplyWithCheckpoint(context.Background(), testMetadata(), []byte("weak"), source, store, func(context.Context) error {
+	_, err := ApplyWithCheckpoint(context.Background(), gateTestMetadata(), []byte("weak"), source, store, func(context.Context) error {
 		applied = true
 		return nil
 	})
@@ -126,7 +126,7 @@ func TestApplyWithCheckpointDoesNotRunAfterContextCancellation(t *testing.T) {
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
-	_, err := ApplyWithCheckpoint(ctx, testMetadata(), make([]byte, 32), source, store, func(context.Context) error {
+	_, err := ApplyWithCheckpoint(ctx, gateTestMetadata(), make([]byte, 32), source, store, func(context.Context) error {
 		applied = true
 		return nil
 	})
