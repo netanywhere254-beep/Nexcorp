@@ -33,7 +33,6 @@ Create a scope file for the exact file hash. Example only; replace every value w
     "hardware_revision": "Exact revision",
     "firmware_hash_sha256": "REPLACE_WITH_EXACT_64_CHARACTER_SHA256"
   }],
-  "approved_by": "authorised-security-lead",
   "authorisation_reference": "approved-ticket-or-contract-reference",
   "operator_id": "named-operator",
   "reviewer_id": "independent-reviewer",
@@ -41,7 +40,6 @@ Create a scope file for the exact file hash. Example only; replace every value w
   "stop_conditions": ["unexpected service impact", "scope mismatch"],
   "approval_status": "approved",
   "expires_at": "2027-01-01T12:00:00+00:00",
-  
   "allowed_methods": ["static_analysis"]
 }
 ```
