@@ -17,5 +17,6 @@
     "Owner-reported stock firmware: 10.0.2.6; full build suffix not yet confirmed.",
     "Do not generate or flash an image until hardware revision, board ID, SoC, flash geometry and partition layout are verified.",
     "This profile intentionally cannot pass firmware eligibility checks."
-  ]
+  ],
+  "hardwareFingerprint": null
 }
