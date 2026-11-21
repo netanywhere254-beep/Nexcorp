@@ -7,7 +7,7 @@ When a router first connects to NetPulse, the agent performs a read-only identit
 The required sequence is:
 
 1. Discover the device and bind the session to tenant ID, asset ID, exact hardware fingerprint and configuration schema.
-2. Read the current configuration through a supported device adapter.
+2. Read the current configuration through a supported device adapter. The adapter must explicitly attest that every configuration section supported by the exact device profile was exported; missing sections or a schema mismatch invalidate the capture.
 3. Encrypt the complete supported configuration snapshot with AES-256-GCM using a fresh random nonce and a protected 32-byte key.
 4. Persist the encrypted snapshot to durable, tenant-isolated storage.
 5. Read the stored object back and verify its SHA-256 digest and authenticated envelope.
