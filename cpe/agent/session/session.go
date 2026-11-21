@@ -10,20 +10,20 @@ import (
 )
 
 var (
-	ErrSessionClosed = errors.New("god mode session is not active")
-	ErrInvalidPolicy = errors.New("invalid god mode session policy")
+	ErrSessionClosed     = errors.New("god mode session is not active")
+	ErrInvalidPolicy     = errors.New("invalid god mode session policy")
 	ErrInvalidTransition = errors.New("invalid god mode session transition")
 )
 
 type Policy struct {
-	WarnAfter time.Duration
+	WarnAfter   time.Duration
 	IdleTimeout time.Duration
 	MaxLifetime time.Duration
 }
 
 func DefaultPolicy() Policy {
 	return Policy{
-		WarnAfter: 10 * time.Minute,
+		WarnAfter:   10 * time.Minute,
 		IdleTimeout: 15 * time.Minute,
 		MaxLifetime: 8 * time.Hour,
 	}
@@ -40,50 +40,50 @@ func (p Policy) Validate() error {
 type CloseReason string
 
 const (
-	CloseManual CloseReason = "engineer_requested"
-	CloseIdleTimeout CloseReason = "idle_timeout"
-	CloseMaxLifetime CloseReason = "maximum_lifetime"
-	CloseRevoked CloseReason = "revoked"
+	CloseManual          CloseReason = "engineer_requested"
+	CloseIdleTimeout     CloseReason = "idle_timeout"
+	CloseMaxLifetime     CloseReason = "maximum_lifetime"
+	CloseRevoked         CloseReason = "revoked"
 	ClosePolicyViolation CloseReason = "policy_violation"
-	CloseInterrupted CloseReason = "interrupted"
+	CloseInterrupted     CloseReason = "interrupted"
 )
 
 type State string
 
 const (
-	StateActive State = "active"
+	StateActive  State = "active"
 	StateClosing State = "closing"
-	StateClosed State = "closed"
+	StateClosed  State = "closed"
 )
 
 type Snapshot struct {
-	SessionID string
-	EngineerID string
-	State State
-	StartedAtUTC time.Time
+	SessionID         string
+	EngineerID        string
+	State             State
+	StartedAtUTC      time.Time
 	LastActivityAtUTC time.Time
-	EndedAtUTC *time.Time
-	Elapsed time.Duration
-	IdleFor time.Duration
-	Warning bool
-	Locked bool
-	CloseReason CloseReason
+	EndedAtUTC        *time.Time
+	Elapsed           time.Duration
+	IdleFor           time.Duration
+	Warning           bool
+	Locked            bool
+	CloseReason       CloseReason
 }
 
 // Session tracks authenticated human interaction only. Background jobs,
 // telemetry and agent polling have no method to refresh the idle timer.
 type Session struct {
-	mu sync.Mutex
-	id string
-	engineerID string
-	policy Policy
-	started time.Time
+	mu           sync.Mutex
+	id           string
+	engineerID   string
+	policy       Policy
+	started      time.Time
 	lastActivity time.Time
-	state State
-	locked bool
-	inFlight bool
-	closeReason CloseReason
-	ended *time.Time
+	state        State
+	locked       bool
+	inFlight     bool
+	closeReason  CloseReason
+	ended        *time.Time
 }
 
 func New(sessionID, engineerID string, policy Policy, now time.Time) (*Session, error) {
@@ -124,10 +124,10 @@ func (s *Session) SetOperationInFlight(inFlight bool) error {
 }
 
 type Evaluation struct {
-	Warning bool
-	LockNow bool
+	Warning    bool
+	LockNow    bool
 	CloseReady bool
-	Reason CloseReason
+	Reason     CloseReason
 }
 
 // Evaluate enforces idle and maximum lifetime. At timeout it locks the console
@@ -210,15 +210,19 @@ func (s *Session) Snapshot(now time.Time) Snapshot {
 	}
 	if s.ended != nil {
 		elapsed = s.ended.Sub(s.started)
-		if elapsed < 0 { elapsed = 0 }
+		if elapsed < 0 {
+			elapsed = 0
+		}
 		idle = s.ended.Sub(s.lastActivity)
-		if idle < 0 { idle = 0 }
+		if idle < 0 {
+			idle = 0
+		}
 	}
 	return Snapshot{
 		SessionID: s.id, EngineerID: s.engineerID, State: s.state,
 		StartedAtUTC: s.started.UTC(), LastActivityAtUTC: s.lastActivity.UTC(),
 		EndedAtUTC: s.ended, Elapsed: elapsed, IdleFor: idle,
 		Warning: s.state == StateActive && idle >= s.policy.WarnAfter,
-		Locked: s.locked, CloseReason: s.closeReason,
+		Locked:  s.locked, CloseReason: s.closeReason,
 	}
 }
