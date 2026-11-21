@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://netpulse.example/schemas/recovery-capability.schema.json",
+  "title": "NetPulse CPE Recovery Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manufacturer",
+    "model",
+    "hardware_revision",
+    "board_id",
+    "support_level",
+    "configuration_restore",
+    "firmware_rollback",
+    "vendor_recovery",
+    "external_gateway_fallback",
+    "last_lab_test",
+    "evidence_reference"
+  ],
+  "properties": {
+    "manufacturer": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "hardware_revision": {"type": "string", "minLength": 1},
+    "board_id": {"type": "string", "minLength": 1},
+    "support_level": {"enum": ["R0", "R1", "R2", "R3", "R4"]},
+    "configuration_restore": {"type": "boolean"},
+    "firmware_rollback": {"enum": ["none", "manual_vendor", "ab_automatic"]},
+    "vendor_recovery": {"type": "boolean"},
+    "external_gateway_fallback": {"type": "boolean"},
+    "requires_physical_access": {"type": "boolean", "default": true},
+    "power_loss_protection": {"type": "boolean", "default": false},
+    "last_lab_test": {"type": ["string", "null"], "format": "date"},
+    "evidence_reference": {"type": "string", "minLength": 1},
+    "known_limitations": {"type": "array", "items": {"type": "string"}},
+    "approved_firmware_targets": {"type": "array", "items": {"type": "string"}},
+    "notes": {"type": "string"}
+  }
+}
