@@ -111,7 +111,7 @@ func TestManualDeactivationAndClockRollback(t *testing.T) {
 	if err := s.Deactivate(start.Add(2*time.Minute), CloseManual); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Evaluate(start.Add(time.Minute)); !errors.Is(err, ErrSessionClosed) {
+	if _, err := s.Evaluate(start.Add(time.Minute)); !errors.Is(err, ErrSessionClosed) {
 		t.Fatalf("expected closed state: %v", err)
 	}
 
