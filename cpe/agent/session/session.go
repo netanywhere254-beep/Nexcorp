@@ -116,7 +116,7 @@ func (s *Session) RecordHumanActivity(now time.Time) error {
 func (s *Session) SetOperationInFlight(inFlight bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.state == StateClosed {
+	if s.state == StateClosed || (s.state == StateClosing && inFlight) {
 		return ErrSessionClosed
 	}
 	s.inFlight = inFlight
