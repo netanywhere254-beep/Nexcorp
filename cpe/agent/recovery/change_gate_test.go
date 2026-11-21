@@ -129,7 +129,7 @@ func TestApplyWithCheckpointBlocksWhenStoreFails(t *testing.T) {
 }
 
 func TestApplyWithCheckpointBlocksUnverifiedReceipt(t *testing.T) {
-	source := &fakeBackupSource{config: []byte("config")}
+	source := newFakeBackupSource([]byte("config"))
 	store := &fakeCheckpointStore{verified: false}
 	applied := false
 
@@ -143,7 +143,7 @@ func TestApplyWithCheckpointBlocksUnverifiedReceipt(t *testing.T) {
 }
 
 func TestApplyWithCheckpointBlocksInvalidKey(t *testing.T) {
-	source := &fakeBackupSource{config: []byte("config")}
+	source := newFakeBackupSource([]byte("config"))
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
@@ -159,7 +159,7 @@ func TestApplyWithCheckpointBlocksInvalidKey(t *testing.T) {
 func TestApplyWithCheckpointDoesNotRunAfterContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	source := &fakeBackupSource{config: []byte("config")}
+	source := newFakeBackupSource([]byte("config"))
 	store := &fakeCheckpointStore{verified: true}
 	applied := false
 
