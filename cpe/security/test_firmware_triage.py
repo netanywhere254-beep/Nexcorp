@@ -46,7 +46,7 @@ class FirmwareTriageTests(unittest.TestCase):
         scope = json.loads(self.scope.read_text())
         scope["targets"][0]["firmware_hash_sha256"] = "0" * 64
         self.scope.write_text(json.dumps(scope))
-        with self.assertRaisesRegex(ScopeError, "does not match"):
+        with self.assertRaisesRegex(ScopeError, "exact asset and firmware"):
             validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest(), "lab-router-01")
 
     def test_expired_scope_is_rejected(self):
