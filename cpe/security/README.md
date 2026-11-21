@@ -4,8 +4,8 @@
 
 `firmware_triage.py` is the first local firmware-analysis worker. It performs bounded, offline, read-only triage:
 
-- Requires an engagement scope file and an exact SHA-256 match.
-- Rejects expired scopes and scopes without the `static_firmware_triage` permission.
+- Requires an approved engagement scope, exact tenant asset ID and exact firmware SHA-256 match.
+- Rejects pending/revoked scopes, scopes outside their time window, mismatched assets or hashes, and scopes without `static_analysis` permission.
 - Enforces a 512 MiB input limit and analyses at most the first 8 MiB for signatures, entropy and readable strings.
 - Redacts strings that look like credentials or secrets.
 - Emits a JSON report; it never executes or flashes the submitted file.
@@ -24,22 +24,35 @@ Create a scope file for the exact file hash. Example only; replace every value w
 ```json
 {
   "engagement_id": "NP-ENG-0001",
-  "target": "customer-router-under-approved-test",
+  "tenant_id": "tenant-identifier",
+  "asset_owner": "customer-or-asset-owner",
+  "targets": [{
+    "asset_id": "router-asset-001",
+    "manufacturer": "Manufacturer",
+    "model": "Exact model",
+    "hardware_revision": "Exact revision",
+    "firmware_hash_sha256": "REPLACE_WITH_EXACT_64_CHARACTER_SHA256"
+  }],
   "approved_by": "authorised-security-lead",
-  "approval_reference": "approved-ticket-or-contract-reference",
+  "authorisation_reference": "approved-ticket-or-contract-reference",
+  "operator_id": "named-operator",
+  "reviewer_id": "independent-reviewer",
+  "starts_at": "2026-11-21T00:00:00+00:00",
+  "stop_conditions": ["unexpected service impact", "scope mismatch"],
+  "approval_status": "approved",
   "expires_at": "2027-01-01T12:00:00+00:00",
-  "firmware_sha256": "REPLACE_WITH_EXACT_64_CHARACTER_SHA256",
-  "permitted_actions": ["static_firmware_triage"]
+  
+  "allowed_methods": ["static_analysis"]
 }
 ```
 
 Then run:
 
 ```sh
-python firmware_triage.py --firmware ./vendor-firmware.bin --scope ./scope.json --output ./triage-report.json
+python firmware_triage.py --firmware ./vendor-firmware.bin --scope ./scope.json --asset-id router-asset-001 --output ./triage-report.json
 ```
 
-The scope file is currently a local workflow guard, not a cryptographically authenticated authorisation. Do not treat it as proof of customer consent. Before production use, NexISP must issue signed, short-lived engagement tokens, verify signatures against a managed trust root, enforce tenant and operator permissions server-side, and retain tamper-evident audit events.
+The scope file is currently a local workflow guard, not a cryptographically authenticated authorisation. Do not treat it as proof of customer consent. The current worker validates the approved status, time window, tenant, exact asset ID and exact firmware hash. Before production use, NexISP must issue signed, short-lived engagement tokens, verify signatures against a managed trust root, enforce tenant and operator permissions server-side, and retain tamper-evident audit events.
 
 ## Planned security modules
 
