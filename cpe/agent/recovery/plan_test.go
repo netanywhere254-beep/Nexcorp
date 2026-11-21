@@ -16,7 +16,8 @@ func planFixtures() (Metadata, DeviceProfile, RestoreApproval, []byte, []byte, t
 	}
 	profile := DeviceProfile{
 		Manufacturer: "LabVendor", Model: "Router-X", HardwareRevision: "2",
-		BoardID: "board-x", Status: "lab_only", RecoveryVerified: true,
+		BoardID: "board-x", HardwareFingerprint: "board-x-rev2",
+		Status: "lab_only", RecoveryVerified: true,
 		ConfigurationRestore: true, SupportLevel: "R1",
 		LastLabTest: now.Add(-24 * time.Hour), EvidenceReference: "LAB-RECOVERY-TEST-2026-004",
 	}
