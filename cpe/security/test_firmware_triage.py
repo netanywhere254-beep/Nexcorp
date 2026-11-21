@@ -21,7 +21,6 @@ class FirmwareTriageTests(unittest.TestCase):
             "tenant_id": "tenant-test",
             "asset_owner": "lab-owner",
             "targets": [{"asset_id": "lab-router-01", "manufacturer": "Test", "model": "Router", "hardware_revision": "A1", "firmware_hash_sha256": hashlib.sha256(self.payload).hexdigest()}],
-            "approved_by": "security-lead",
             "authorisation_reference": "CHANGE-1001",
             "starts_at": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5)).isoformat(),
             "operator_id": "operator-1",
@@ -29,7 +28,6 @@ class FirmwareTriageTests(unittest.TestCase):
             "stop_conditions": ["unexpected outage"],
             "approval_status": "approved",
             "expires_at": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)).isoformat(),
-            "firmware_sha256": hashlib.sha256(self.payload).hexdigest(),
             "allowed_methods": ["static_analysis"],
         }), encoding="utf-8")
 
@@ -54,7 +52,7 @@ class FirmwareTriageTests(unittest.TestCase):
         scope["expires_at"] = "2000-01-01T00:00:00+00:00"
         self.scope.write_text(json.dumps(scope))
         with self.assertRaisesRegex(ScopeError, "expired"):
-            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest())
+            validate_scope(self.scope, hashlib.sha256(self.payload).hexdigest(), "lab-router-01")
 
     def test_scope_without_triage_permission_is_rejected(self):
         scope = json.loads(self.scope.read_text())
