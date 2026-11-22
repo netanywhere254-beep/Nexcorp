@@ -67,6 +67,18 @@ Route::middleware(['auth', 'verified', 'organization.active'])
             ->middleware('throttle:30,1');
     });
 
+// NexISP accounting integrations are organization-scoped and billing-admin only.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/accounting')
+    ->group(function () {
+        Route::get('/providers', [AccountingIntegrationController::class, 'providers']);
+        Route::get('/connections', [AccountingIntegrationController::class, 'connections']);
+        Route::post('/connections/{connectionId}/invoices/{invoiceId}/export', [AccountingIntegrationController::class, 'queueInvoiceExport'])
+            ->whereNumber('connectionId')
+            ->whereNumber('invoiceId')
+            ->middleware('throttle:20,1');
+    });
+
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
 Route::middleware(['auth','verified','organization.active'])->prefix('organization/staff-security')->group(function(){
  Route::post('/approved-phones',[OrganizationStaffOtpController::class,'approveNumber'])->middleware('throttle:10,1');
