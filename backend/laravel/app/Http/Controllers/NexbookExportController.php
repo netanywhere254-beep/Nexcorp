@@ -157,7 +157,7 @@ class NexbookExportController extends Controller
                 $invoice->total,
                 $invoice->amount_paid,
                 $invoice->credited_total,
-                number_format(((int) round(((float) $invoice->total - (float) $invoice->amount_paid - (float) $invoice->credited_total) * 100)) / 100, 2, '.', ''),
+                $this->decimalMinor($this->minor($invoice->total) - $this->minor($invoice->amount_paid) - $this->minor($invoice->credited_total)),
             ];
         }
 
@@ -226,6 +226,22 @@ class NexbookExportController extends Controller
             'Receipt number', 'Payment date', 'Currency', 'Method',
             'Reference', 'Allocated invoices', 'Amount received', 'Amount allocated',
         ], $rows);
+    }
+
+
+    private function minor(mixed $amount): int
+    {
+        $value = (string) $amount;
+        if (!preg_match('/^(?:0|[1-9][0-9]{0,13})(?:\.[0-9]{1,2})?$/', $value)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Exported monetary values must be valid decimals.']);
+        }
+        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
+        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
+    }
+
+    private function decimalMinor(int $minor): string
+    {
+        return intdiv($minor, 100) . '.' . str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT);
     }
 
 }
