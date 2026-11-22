@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountingConnection;
 use App\Models\AuditLog;
 use App\Models\NexispAccountingSetting;
 use App\Models\NexispChartOfAccount;
@@ -30,7 +31,18 @@ class NexispBooksController
             ['operating_mode' => 'native', 'base_currency' => 'KES'],
         );
 
-        return response()->json([\n            'data' => $settings,\n            'feature_catalog' => [\n                ['key' => 'native_ledger', 'available' => true, 'required' => true],\n                ['key' => 'expenses', 'available' => true, 'enabled' => $settings->expenses_enabled],\n                ['key' => 'tax', 'available' => true, 'enabled' => $settings->tax_enabled],\n                ['key' => 'bank_reconciliation', 'available' => false, 'enabled' => false, 'status' => 'planned'],\n                ['key' => 'budgets', 'available' => false, 'enabled' => false, 'status' => 'planned'],\n                ['key' => 'recurring_invoices', 'available' => false, 'enabled' => false, 'status' => 'planned'],\n                ['key' => 'external_sync', 'available' => true, 'enabled' => $settings->external_sync_enabled],\n            ],\n        ]);
+        return response()->json([
+            'data' => $settings,
+            'feature_catalog' => [
+                ['key' => 'native_ledger', 'available' => true, 'required' => true],
+                ['key' => 'expenses', 'available' => true, 'enabled' => $settings->expenses_enabled],
+                ['key' => 'tax', 'available' => true, 'enabled' => $settings->tax_enabled],
+                ['key' => 'bank_reconciliation', 'available' => false, 'enabled' => false, 'status' => 'planned'],
+                ['key' => 'budgets', 'available' => false, 'enabled' => false, 'status' => 'planned'],
+                ['key' => 'recurring_invoices', 'available' => false, 'enabled' => false, 'status' => 'planned'],
+                ['key' => 'external_sync', 'available' => true, 'enabled' => $settings->external_sync_enabled],
+            ],
+        ]);
     }
 
     public function updateSettings(Request $request): JsonResponse
@@ -53,7 +65,12 @@ class NexispBooksController
             'feature_preferences' => ['sometimes', 'array', 'max:40'],
         ]);
 
-        if (in_array($data['operating_mode'] ?? null, ['hybrid', 'external_mirror'], true)\n            && ! AccountingConnection::query()->where('organization_id', $organization->id)->where('status', 'connected')->exists()) {\n            throw ValidationException::withMessages(['operating_mode' => 'Connect an accounting provider before switching to hybrid or external mirror mode.']);\n        }\n\n        $settings = NexispAccountingSetting::updateOrCreate(
+        if (in_array($data['operating_mode'] ?? null, ['hybrid', 'external_mirror'], true)
+            && ! AccountingConnection::query()->where('organization_id', $organization->id)->where('status', 'connected')->exists()) {
+            throw ValidationException::withMessages(['operating_mode' => 'Connect an accounting provider before switching to hybrid or external mirror mode.']);
+        }
+
+        $settings = NexispAccountingSetting::updateOrCreate(
             ['organization_id' => $organization->id],
             array_merge($data, ['native_ledger_enabled' => true]),
         );
