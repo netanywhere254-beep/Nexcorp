@@ -414,7 +414,7 @@ class NexispAccountingService
                 ? $this->toCents((string) $payment->amount)
                 : $this->toCents((string) $invoice->amount);
 
-            if ($payment === null && $previouslyReceiptedCents > 0) {
+            if ($newReceiptCents <= 0) {\n                throw ValidationException::withMessages(['payment' => 'Receipt amount must be greater than zero.']);\n            }\n            if ($payment === null && $previouslyReceiptedCents > 0) {
                 throw ValidationException::withMessages(['payment' => 'A verified payment record is required for additional or partial receipts.']);
             }
             if ($previouslyReceiptedCents + $newReceiptCents > $this->toCents((string) $invoice->amount)) {
