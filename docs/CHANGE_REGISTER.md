@@ -1,4 +1,4 @@
-# Nexora Group — Change and Replacement Register
+﻿# Nexora Group â€” Change and Replacement Register
 
 Last updated: 2026-11-22
 Working branch: `implementation/organization-audit-log-api`
@@ -10,15 +10,15 @@ This register distinguishes a committed source update from a verified build or w
 
 | ID | Previous file / implementation | Current replacement | Status | Verification |
 |---|---|---|---|---|
-| CHG-001 | Laravel Tinker dependency constraint | Updated Laravel dependency manifest | VERIFIED — PR #1 | Composer, migrations and PHPUnit passed in CI #131. |
-| CHG-002 | Express API | NestJS TypeScript API reference foundation | VERIFIED — PR #1 | NestJS build and tests passed in CI #131. |
-| CHG-004 | Earlier parent branding | Nexora Group branding | UPDATED — PR #1 | Source updated; live visual validation pending. |
-| CHG-007 | Organization membership without central authorization | Active-organization middleware and policy foundation | VERIFIED — PR #1 | Laravel authorization tests passed in CI #131. |
-| CHG-012 | Public registration with privilege boundary | Account-only registration; no public admin assignment | UPDATED — PR #1 | Registration hardening committed; email verification remains a launch gate. |
-| CHG-013 | Governance schema without approval workflow | Transactional staged approval service and tests | UPDATED — PR #1 | No HTTP endpoint, CEO bootstrap, MFA or NestJS parity yet. |
-| CHG-014 | No tenant-aware commerce tables | NexISP plans/subscriptions, Loopza products/orders, payment transaction records | UPDATED — PR #4 | Schema and models committed; payment verification and fulfillment remain outstanding. |
-| CHG-015 | AI only referenced in planning documents | NexCore AI provider adapter, authenticated tenant-scoped gateway, usage metering, feature allow-list, tenant monthly budgets, and service tests | IMPLEMENTED FOUNDATION — CI pending | Added /ai/assist, provider configuration, ai_usage_logs, tenant budget policy table, locked monthly request reservations, output-token ceilings, service tests, and endpoint authentication/tenant-context security tests. Provider and tenant budgets are disabled by default. No UI, RAG, autonomous agents, orchestration, provider cost reconciliation, per-user quotas, or NestJS parity yet. |
-| CHG-016 | Audit logs stored but not exposed to tenant admins | Tenant-scoped organization audit log read API | IMPLEMENTED FOUNDATION — CI pending | Added GET /organization/audit-logs for manageMembers roles, tenant-scoped filtering, actor summary, and feature tests. No export, retention policy, tamper-evidence, or UI yet. |
+| CHG-001 | Laravel Tinker dependency constraint | Updated Laravel dependency manifest | VERIFIED â€” PR #1 | Composer, migrations and PHPUnit passed in CI #131. |
+| CHG-002 | Express API | NestJS TypeScript API reference foundation | VERIFIED â€” PR #1 | NestJS build and tests passed in CI #131. |
+| CHG-004 | Earlier parent branding | Nexora Group branding | UPDATED â€” PR #1 | Source updated; live visual validation pending. |
+| CHG-007 | Organization membership without central authorization | Active-organization middleware and policy foundation | VERIFIED â€” PR #1 | Laravel authorization tests passed in CI #131. |
+| CHG-012 | Public registration with privilege boundary | Account-only registration; no public admin assignment | UPDATED â€” PR #1 | Registration hardening committed; email verification remains a launch gate. |
+| CHG-013 | Governance schema without approval workflow | Transactional staged approval service and tests | UPDATED â€” PR #1 | No HTTP endpoint, CEO bootstrap, MFA or NestJS parity yet. |
+| CHG-014 | No tenant-aware commerce tables | NexISP plans/subscriptions, Loopza products/orders, payment transaction records | UPDATED â€” PR #4 | Schema and models committed; payment verification and fulfillment remain outstanding. |
+| CHG-015 | AI only referenced in planning documents | NexCore AI provider adapter, authenticated tenant-scoped gateway, usage metering, feature allow-list, tenant monthly budgets, and service tests | IMPLEMENTED FOUNDATION â€” CI pending | Added /ai/assist, provider configuration, ai_usage_logs, tenant budget policy table, locked monthly request reservations, output-token ceilings, service tests, and endpoint authentication/tenant-context security tests. Provider and tenant budgets are disabled by default. No UI, RAG, autonomous agents, orchestration, provider cost reconciliation, per-user quotas, or NestJS parity yet. |
+| CHG-016 | Audit logs stored but not exposed to tenant admins | Tenant-scoped organization audit log read API | IMPLEMENTED FOUNDATION â€” CI pending | Added GET /organization/audit-logs for manageMembers roles, tenant-scoped filtering, actor summary, and feature tests. No export, retention policy, tamper-evidence, or UI yet. |
 
 ## Architecture status
 
@@ -37,3 +37,4 @@ This register distinguishes a committed source update from a verified build or w
 ## Archive policy
 
 Superseded source snapshots are kept under archive/replaced-code/YYYY-MM-DD/. Never overwrite historical snapshots; create a new dated subfolder for each subsequent replacement.
+

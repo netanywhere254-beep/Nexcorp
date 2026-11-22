@@ -1,4 +1,4 @@
-# Nexora Group — Implementation Report
+﻿# Nexora Group â€” Implementation Report
 
 Last updated: 2026-11-22
 Primary branch inspected: `main` at `0fc7c19`
@@ -20,3 +20,4 @@ Working branch for this report: `implementation/organization-audit-log-api`
 ## Not yet implemented
 
 - Audit log export, retention policy, tamper-evidence, pagination cursor, or UI.
+
