@@ -118,22 +118,30 @@ class NexbookExportController extends Controller
         $validated = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'status' => ['nullable', 'in:draft,issued,partially_paid,paid,void'],
+            'status' => ['nullable', 'in:draft,issued,partially_paid,paid'],
         ]);
 
-        $query = DB::table('nexbook_invoices')
+        $credited = DB::table('nexbook_credit_notes')
             ->where('organization_id', (int) $organization->id)
-            ->orderBy('issue_date')
-            ->orderBy('invoice_number');
-        if (!empty($validated['from'])) $query->whereDate('issue_date', '>=', $validated['from']);
-        if (!empty($validated['to'])) $query->whereDate('issue_date', '<=', $validated['to']);
-        if (!empty($validated['status'])) $query->where('status', $validated['status']);
+            ->where('status', 'issued')
+            ->select('invoice_id', DB::raw('SUM(total) as credited_total'))
+            ->groupBy('invoice_id');
+
+        $query = DB::table('nexbook_invoices as invoices')
+            ->leftJoinSub($credited, 'credits', fn ($join) => $join->on('credits.invoice_id', '=', 'invoices.id'))
+            ->where('invoices.organization_id', (int) $organization->id)
+            ->orderBy('invoices.issue_date')
+            ->orderBy('invoices.invoice_number');
+        if (!empty($validated['from'])) $query->whereDate('invoices.issue_date', '>=', $validated['from']);
+        if (!empty($validated['to'])) $query->whereDate('invoices.issue_date', '<=', $validated['to']);
+        if (!empty($validated['status'])) $query->where('invoices.status', $validated['status']);
 
         $rows = [];
         foreach ($query->get([
-            'invoice_number', 'status', 'customer_name', 'customer_email',
-            'customer_phone', 'issue_date', 'due_date', 'currency',
-            'subtotal', 'tax_total', 'total', 'amount_paid',
+            'invoices.invoice_number', 'invoices.status', 'invoices.customer_name', 'invoices.customer_email',
+            'invoices.customer_phone', 'invoices.issue_date', 'invoices.due_date', 'invoices.currency',
+            'invoices.subtotal', 'invoices.tax_total', 'invoices.total', 'invoices.amount_paid',
+            DB::raw('COALESCE(credits.credited_total, 0) as credited_total'),
         ]) as $invoice) {
             $rows[] = [
                 $csv->safeText($invoice->invoice_number),
@@ -148,13 +156,15 @@ class NexbookExportController extends Controller
                 $invoice->tax_total,
                 $invoice->total,
                 $invoice->amount_paid,
+                $invoice->credited_total,
+                number_format(((int) round(((float) $invoice->total - (float) $invoice->amount_paid - (float) $invoice->credited_total) * 100)) / 100, 2, '.', ''),
             ];
         }
 
         return $csv->download('nexbook-invoices-' . now()->format('Ymd-His') . '.csv', [
             'Invoice number', 'Status', 'Customer', 'Email', 'Phone',
             'Issue date', 'Due date', 'Currency', 'Subtotal', 'Tax',
-            'Total', 'Amount paid',
+            'Total', 'Amount paid', 'Credited', 'Outstanding',
         ], $rows);
     }
 
