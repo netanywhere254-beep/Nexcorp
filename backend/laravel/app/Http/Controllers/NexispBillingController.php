@@ -73,7 +73,7 @@ class NexispBillingController
         $org = $this->organization($request);
         Gate::authorize('manageBilling', $org);
         $invoice = $this->find($org->id, $id);
-        $voided = $this->billing->voidInvoice($invoice->id, $request->user());
+        $voided = $this->billing->voidInvoice($org, $invoice->id, $request->user());
         return response()->json(['data' => $this->present($voided)]);
     }
 
