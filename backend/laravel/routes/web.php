@@ -73,6 +73,11 @@ Route::middleware(['auth', 'verified', 'organization.active'])
     ->group(function () {
         Route::get('/providers', [AccountingIntegrationController::class, 'providers']);
         Route::get('/connections', [AccountingIntegrationController::class, 'connections']);
+        Route::put('/connections/{connectionId}/mappings', [AccountingIntegrationController::class, 'saveMappings'])
+            ->whereNumber('connectionId')
+            ->middleware('throttle:20,1');
+        Route::get('/connections/{connectionId}/sync-runs', [AccountingIntegrationController::class, 'syncRuns'])
+            ->whereNumber('connectionId');
         Route::post('/connections/{connectionId}/invoices/{invoiceId}/export', [AccountingIntegrationController::class, 'queueInvoiceExport'])
             ->whereNumber('connectionId')
             ->whereNumber('invoiceId')
