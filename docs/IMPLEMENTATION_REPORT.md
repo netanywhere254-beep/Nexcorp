@@ -32,6 +32,14 @@ existing in the repository is not evidence that a business feature works.
   - Tenant-scoped list/create/show/activate/suspend/cancel endpoints.
   - Server-calculated plan snapshot/pricing; client price/status ignored.
   - Idempotent create, status-transition guards, audit events, and feature tests.
+- NexISP payment intent and verification foundation (from
+  `implementation/nexisp-payment-intents`, CI run 44996933446):
+  - Tenant-scoped payment intent create/list/show endpoints.
+  - Server-calculated amount/currency from payable subscription; idempotent
+    creation; manageBilling authorization.
+  - `PaymentProviderVerifier` contract and service-level verification requiring
+    provider-confirmed amount/currency match. No real provider adapter, no
+    public callback endpoint, no settlement claim.
 
 ## Verification
 
@@ -41,7 +49,7 @@ existing in the repository is not evidence that a business feature works.
 
 ## Not yet implemented
 
-- Payment initiation/verification/callbacks, invoices, receipts, credits,
-  reconciliation, router/MikroTik provisioning, and admin UI.
-- Payment-provider adapters and verified M-Pesa callback handling.
+- Real payment provider adapters (M-Pesa/Daraja), signed public callbacks,
+  invoices/receipts, credits/refunds, reconciliation, router/MikroTik
+  provisioning, and admin UI.
 - Production deployment, monitoring, backups, and disaster-recovery drills.
