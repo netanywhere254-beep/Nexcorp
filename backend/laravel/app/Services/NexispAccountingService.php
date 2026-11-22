@@ -442,12 +442,21 @@ class NexispAccountingService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (NexispReceipt::query()
+            $hasReceipts = NexispReceipt::query()
                 ->where('organization_id', $organization->id)
                 ->where('invoice_id', $lockedInvoice->id)
-                ->exists()) {
+                ->exists();
+            $hasVerifiedPayments = PaymentTransaction::query()
+                ->where('organization_id', $organization->id)
+                ->where('payable_type', NexispInvoice::class)
+                ->where('payable_id', $lockedInvoice->id)
+                ->where('status', 'succeeded')
+                ->whereNotNull('verified_at')
+                ->exists();
+
+            if ($hasReceipts || $hasVerifiedPayments) {
                 throw ValidationException::withMessages([
-                    'invoice' => 'An invoice with recorded receipts cannot be voided until its payments are refunded or reversed.',
+                    'invoice' => 'An invoice with recorded or verified payments cannot be voided until its payments are refunded or reversed.',
                 ]);
             }
 
