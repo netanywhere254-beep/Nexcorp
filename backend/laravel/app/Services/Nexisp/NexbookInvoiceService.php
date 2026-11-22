@@ -20,7 +20,7 @@ class NexbookInvoiceService
      */
     public function createDraft(int $organizationId, array $data, ?int $actorUserId = null): NexbookInvoice
     {
-        return DB::transaction(function () use ($organizationId, $data) {
+        return DB::transaction(function () use ($organizationId, $data, $actorUserId) {
             Organization::query()->whereKey($organizationId)->lockForUpdate()->firstOrFail();
 
             $issueDate = $data['issue_date'] ?? null;
@@ -28,6 +28,13 @@ class NexbookInvoiceService
             $currency = strtoupper((string) ($data['currency'] ?? 'KES'));
             $taxRate = (int) ($data['tax_rate_basis_points'] ?? 0);
             $lines = $data['lines'] ?? [];
+            $customerName = trim((string) ($data['customer_name'] ?? ''));
+            if ($customerName === '' || mb_strlen($customerName) > 160) {
+                throw ValidationException::withMessages(['customer_name' => 'A customer name of 1 to 160 characters is required.']);
+            }
+            if (!empty($data['customer_email']) && !filter_var($data['customer_email'], FILTER_VALIDATE_EMAIL)) {
+                throw ValidationException::withMessages(['customer_email' => 'Enter a valid customer email address.']);
+            }
 
             if (!$this->validDate($issueDate) || !$this->validDate($dueDate) || $dueDate < $issueDate) {
                 throw ValidationException::withMessages(['due_date' => 'Issue and due dates must be valid ISO dates, and the due date cannot precede the issue date.']);
@@ -98,10 +105,11 @@ class NexbookInvoiceService
 
             $invoice = NexbookInvoice::query()->create([
                 'organization_id' => $organizationId,
+                'created_by' => $actorUserId,
                 'customer_user_id' => $data['customer_user_id'] ?? null,
                 'invoice_number' => $invoiceNumber,
                 'status' => 'draft',
-                'customer_name' => trim((string) ($data['customer_name'] ?? '')),
+                'customer_name' => $customerName,
                 'customer_email' => $data['customer_email'] ?? null,
                 'customer_phone' => $data['customer_phone'] ?? null,
                 'issue_date' => $issueDate,
@@ -115,6 +123,17 @@ class NexbookInvoiceService
             ]);
 
             $invoice->lines()->createMany($normalisedLines);
+
+            DB::table('audit_logs')->insert([
+                'organization_id' => $organizationId,
+                'actor_user_id' => $actorUserId,
+                'action' => 'nexbook.invoice.draft_created',
+                'subject_type' => NexbookInvoice::class,
+                'subject_id' => (string) $invoice->id,
+                'metadata' => json_encode(['invoice_number' => $invoiceNumber, 'currency' => $currency, 'total' => $invoice->total], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             return $invoice->load('lines.revenueAccount');
         });
@@ -255,7 +274,7 @@ class NexbookInvoiceService
     private function moneyMinor(mixed $amount): int
     {
         $value = (string) $amount;
-        if (!preg_match('/^(?:0|[1-9][0-9]{0,11})(?:\\.[0-9]{1,2})?$/', $value)) {
+        if (!preg_match('/^(?:0|[1-9][0-9]{0,8})(?:\\.[0-9]{1,2})?$/', $value)) {
             throw ValidationException::withMessages(['amount' => 'Amounts must be positive decimal values with no more than two decimal places.']);
         }
         [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
@@ -265,7 +284,7 @@ class NexbookInvoiceService
     private function quantityMilli(mixed $quantity): int
     {
         $value = (string) $quantity;
-        if (!preg_match('/^(?:0|[1-9][0-9]{0,4})(?:\\.[0-9]{1,3})?$/', $value)) {
+        if (!preg_match('/^(?:0|[1-9][0-9]{0,3})(?:\\.[0-9]{1,3})?$/', $value)) {
             throw ValidationException::withMessages(['quantity' => 'Quantity must be a positive number with no more than three decimal places.']);
         }
         [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
