@@ -10,6 +10,7 @@ use App\Models\NexispExpense;
 use App\Models\NexispInvoice;
 use App\Models\NexispJournalEntry;
 use App\Models\NexispReceipt;
+use App\Models\NexispSubscription;
 use App\Models\Organization;
 use App\Models\PaymentTransaction;
 use App\Models\User;
