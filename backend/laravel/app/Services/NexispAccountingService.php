@@ -384,9 +384,9 @@ class NexispAccountingService
                     ->whereNotNull('verified_at')
                     ->firstOrFail();
 
-                if ($this->toCents((string) $payment->amount) !== $this->toCents((string) $invoice->amount)
+                if ($this->toCents((string) $payment->amount) > $this->toCents((string) $invoice->amount)
                     || strtoupper($payment->currency) !== strtoupper($invoice->currency)) {
-                    throw ValidationException::withMessages(['payment' => 'Verified payment amount and currency must match the invoice before a receipt can be issued.']);
+                    throw ValidationException::withMessages(['payment' => 'Verified payment cannot exceed the invoice balance and must use the invoice currency.']);
                 }
             } elseif (! in_array($invoice->status, ['paid', 'partially_paid'], true) || $invoice->paid_at === null) {
                 throw ValidationException::withMessages(['invoice' => 'A receipt can only be issued for an invoice with a recorded payment.']);
@@ -403,6 +403,22 @@ class NexispAccountingService
                 ->first();
             if ($existingReceipt) {
                 return $existingReceipt;
+            }
+
+            $previouslyReceipted = (string) NexispReceipt::query()
+                ->where('organization_id', $organization->id)
+                ->where('invoice_id', $invoice->id)
+                ->sum('amount');
+            $previouslyReceiptedCents = $previouslyReceipted === '' ? 0 : $this->toCents($previouslyReceipted);
+            $newReceiptCents = $payment !== null
+                ? $this->toCents((string) $payment->amount)
+                : $this->toCents((string) $invoice->amount);
+
+            if ($payment === null && $previouslyReceiptedCents > 0) {
+                throw ValidationException::withMessages(['payment' => 'A verified payment record is required for additional or partial receipts.']);
+            }
+            if ($previouslyReceiptedCents + $newReceiptCents > $this->toCents((string) $invoice->amount)) {
+                throw ValidationException::withMessages(['payment' => 'This receipt would exceed the remaining invoice balance.']);
             }
 
             if ($payment !== null) {
@@ -465,6 +481,12 @@ class NexispAccountingService
                     'currency' => $invoice->currency,
                 ],
                 'issued_by_user_id' => $actor->id,
+            ]);
+
+            $totalReceipted = $previouslyReceiptedCents + $newReceiptCents;
+            $invoice->update([
+                'status' => $totalReceipted >= $this->toCents((string) $invoice->amount) ? 'paid' : 'partially_paid',
+                'paid_at' => $totalReceipted >= $this->toCents((string) $invoice->amount) ? now() : null,
             ]);
 
             AuditLog::create([
