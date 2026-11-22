@@ -6,6 +6,7 @@ use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexispBooksController;
+use App\Http\Controllers\NexispBillingController;
 use App\Http\Controllers\NexispCustomerController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
@@ -97,6 +98,18 @@ Route::middleware(['auth', 'verified', 'organization.active'])
             ->whereNumber('invoiceId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
         Route::get('/receipts/{receiptId}/export/{format}', [NexispBooksController::class, 'exportReceipt'])
             ->whereNumber('receiptId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
+    });
+
+// Subscription checkout and invoice lifecycle use NexISP Books as the accounting source of truth.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp')
+    ->group(function () {
+        Route::post('/customers/{customerId}/subscriptions', [NexispBillingController::class, 'subscribe'])
+            ->whereNumber('customerId')->middleware('throttle:30,1');
+        Route::get('/invoices', [NexispBillingController::class, 'index']);
+        Route::get('/invoices/{id}', [NexispBillingController::class, 'show'])->whereNumber('id');
+        Route::post('/invoices/{id}/void', [NexispBillingController::class, 'void'])
+            ->whereNumber('id')->middleware('throttle:20,1');
     });
 
 // NexISP accounting integrations are organization-scoped and billing-admin only.
