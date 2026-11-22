@@ -4,6 +4,11 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexbookCustomerStatementController;
+use App\Http\Controllers\NexbookExportController;
+use App\Http\Controllers\NexbookCreditNoteController;
+use App\Http\Controllers\NexbookPaymentRefundController;
+use App\Http\Controllers\NexbookReceivablesAgingController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -67,3 +72,19 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
 });
+
+
+// NexBook customer statements are always scoped to the active organisation.
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/customer-statement',[NexbookCustomerStatementController::class,'show'])->middleware('throttle:30,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/receivables-ageing',[NexbookReceivablesAgingController::class,'show'])->middleware('throttle:30,1');
+
+Route::middleware(['auth','verified','organization.active'])->post('/nexbook/credit-notes',[NexbookCreditNoteController::class,'store'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->post('/nexbook/payment-refunds',[NexbookPaymentRefundController::class,'store'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/customer-statement.csv',[NexbookExportController::class,'customerStatement'])->middleware('throttle:20,1');
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receivables-ageing.csv',[NexbookExportController::class,'receivablesAging'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/invoices.csv',[NexbookExportController::class,'invoices'])->middleware('throttle:20,1');
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receipts.csv',[NexbookExportController::class,'receipts'])->middleware('throttle:20,1');
