@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 class NexispInvoiceItem extends Model
 {
@@ -24,6 +25,26 @@ class NexispInvoiceItem extends Model
             'tax_amount' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $guard = static function (self $item): void {
+            $posted = NexispJournalEntry::query()
+                ->where('organization_id', $item->organization_id)
+                ->where('source_type', NexispInvoice::class)
+                ->where('source_id', $item->invoice_id)
+                ->where('status', 'posted')
+                ->exists();
+
+            if ($posted) {
+                throw new LogicException('Issued invoice items are immutable. Use a credit note or replacement invoice.');
+            }
+        };
+
+        static::creating($guard);
+        static::updating($guard);
+        static::deleting($guard);
     }
 
     public function invoice(): BelongsTo
