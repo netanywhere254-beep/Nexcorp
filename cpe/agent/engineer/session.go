@@ -12,10 +12,10 @@ import (
 const DeactivateCommand = "GOLD MODE DEACTIVATE"
 
 var (
-	ErrNoSession       = errors.New("no active engineer session")
-	ErrWrongActor      = errors.New("session belongs to a different engineer")
-	ErrInvalidCommand  = errors.New("deactivation command not recognised")
-	ErrSessionExpired  = errors.New("engineer session expired")
+	ErrNoSession        = errors.New("no active engineer session")
+	ErrWrongActor       = errors.New("session belongs to a different engineer")
+	ErrInvalidCommand   = errors.New("deactivation command not recognised")
+	ErrSessionExpired   = errors.New("engineer session expired")
 	ErrAuditUnavailable = errors.New("audit sink unavailable")
 )
 
