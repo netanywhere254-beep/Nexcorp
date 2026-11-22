@@ -1,4 +1,6 @@
-# NexISP Books — native accounting system
+# NexISP Books (NexBook) — native accounting system
+
+**Product naming:** NexISP Books is the formal product name. NexBook is the concise UI and brand shorthand.
 
 NexISP Books is the primary accounting and bookkeeping system for every ISP tenant. Zoho Books, QuickBooks Online, Xero and Sage are optional external integrations. They are not prerequisites for billing, invoicing, bookkeeping or financial reporting, and connecting or disconnecting one must never remove or replace the ISP's NexISP source records.
 
@@ -16,6 +18,9 @@ The native ledger is deliberately not user-disableable. Optional features can be
 - Tenant-owned chart of accounts with a standard starter set for cash, bank, receivables, payables, tax, equity, revenue and operating expenses.
 - Double-entry journal entries. Every posted journal must contain at least two lines, each line must be either a debit or a credit, and total debits must equal total credits in integer cents.
 - Itemized invoices with quantity, unit price, optional tax rate, tax amount and immutable customer/item snapshots.
+- Subscription checkout creates the subscription and its invoice in one transaction, uses the ISP's active plan price (never a client-supplied amount), and posts the invoice to the native ledger.
+- Subscription activation is gated by a persisted payment transaction that is bound to the invoice, marked successful and independently verified. The service does not accept raw callback amounts as proof of payment.
+- Subscription activation and receipt issuance are idempotent; a verified payment is posted once and the plan validity period starts only after full settlement.
 - Tax-exclusive and tax-inclusive calculations using the tax rate configured for the ISP.
 - Automatic invoice journal posting: debit receivables, credit revenue and (when applicable) tax payable.
 - Expense capture with an automatic balanced journal: debit the selected expense account and credit the selected cash, bank or payable account.
@@ -71,6 +76,10 @@ All endpoints require an authenticated, verified user and active organization. B
 - \`POST /nexisp/books/invoices/{invoiceId}/receipts\`
 - \`GET /nexisp/books/invoices/{invoiceId}/export/{csv|xlsx|pdf}\`
 - \`GET /nexisp/books/receipts/{receiptId}/export/{csv|xlsx|pdf}\`
+
+## Subscription and invoice lifecycle
+
+A subscription starts as `pending_payment`; it becomes `active` only after a successful, verified payment transaction is tied to its invoice and the invoice is fully settled. Voiding an unpaid invoice cancels its pending subscription. A paid invoice cannot be voided through this basic workflow. Payment-provider callbacks must authenticate and verify provider signatures/references before creating or marking a `PaymentTransaction` as successful; this subscription service is not a substitute for provider verification.
 
 ## Planned expansion
 
