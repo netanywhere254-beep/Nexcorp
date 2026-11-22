@@ -85,3 +85,6 @@ Route::middleware(['auth','verified','organization.active'])->post('/nexbook/pay
 
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/customer-statement.csv',[NexbookExportController::class,'customerStatement'])->middleware('throttle:20,1');
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receivables-ageing.csv',[NexbookExportController::class,'receivablesAging'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/invoices.csv',[NexbookExportController::class,'invoices'])->middleware('throttle:20,1');
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receipts.csv',[NexbookExportController::class,'receipts'])->middleware('throttle:20,1');
