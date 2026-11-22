@@ -55,10 +55,17 @@ All endpoints require an authenticated, verified user and active organization. B
 - \`PUT /nexisp/books/settings\`
 - \`POST /nexisp/books/bootstrap\`
 - \`GET /nexisp/books/accounts\`
+- \`POST /nexisp/books/accounts\`
+- \`GET /nexisp/books/tax-rates\`
+- \`POST /nexisp/books/tax-rates\`
 - \`GET /nexisp/books/journals\`
 - \`POST /nexisp/books/journals\`
+- \`GET /nexisp/books/reports/trial-balance\`
+- \`GET /nexisp/books/reports/profit-and-loss\`
+- \`GET /nexisp/books/reports/aged-receivables\`
 - \`GET /nexisp/books/invoices\`
 - \`POST /nexisp/books/invoices\`
+- \`GET /nexisp/books/receipts\`
 - \`GET /nexisp/books/expenses\`
 - \`POST /nexisp/books/expenses\`
 - \`POST /nexisp/books/invoices/{invoiceId}/receipts\`
