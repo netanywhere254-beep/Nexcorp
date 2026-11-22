@@ -33,8 +33,18 @@ class NexbookReceivablesAgingService
                 'issue_date', 'due_date', 'total', 'amount_paid',
             ]);
 
+        $creditedByInvoice = DB::table('nexbook_credit_notes')
+            ->where('organization_id', $organizationId)
+            ->where('status', 'issued')
+            ->whereIn('invoice_id', $invoices->pluck('id'))
+            ->select('invoice_id', DB::raw('SUM(total) as credited_total'))
+            ->groupBy('invoice_id')
+            ->get()
+            ->keyBy('invoice_id');
+
         foreach ($invoices as $invoice) {
-            $outstanding = $this->minorUnits($invoice->total) - $this->minorUnits($invoice->amount_paid);
+            $credited = $this->minorUnits($creditedByInvoice->get($invoice->id)->credited_total ?? '0.00');
+            $outstanding = $this->minorUnits($invoice->total) - $this->minorUnits($invoice->amount_paid) - $credited;
             if ($outstanding <= 0) {
                 continue;
             }
