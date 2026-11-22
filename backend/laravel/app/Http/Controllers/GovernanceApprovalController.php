@@ -73,7 +73,7 @@ class GovernanceApprovalController
                     $data['comment'] ?? null,
                 );
             });
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             // Session state is not part of the database transaction. Restore it
             // when the decision fails so an approver can retry safely.
             if ($otpSession !== null) {
