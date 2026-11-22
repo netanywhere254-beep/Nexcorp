@@ -137,6 +137,32 @@ class EngineerSessionServiceTest extends TestCase
         ]);
     }
 
+    public function test_revoking_engineer_grant_revokes_the_active_session_on_next_check(): void
+    {
+        [$actor, $organization] = $this->makeTenant();
+        $service = app(EngineerSessionService::class);
+        $result = $service->start($actor, $organization);
+
+        EngineerAccessGrant::query()
+            ->where('organization_id', $organization->id)
+            ->where('user_id', $actor->id)
+            ->update(['revoked_at' => now(), 'status' => 'revoked']);
+
+        try {
+            $service->touch($actor, $organization, $result['token']);
+            $this->fail('A revoked engineer grant must invalidate the session.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('missing, expired, or revoked', $exception->getMessage());
+        }
+
+        $this->assertSame('engineer_grant_missing_or_expired', EngineerSession::firstOrFail()->revocation_reason);
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $organization->id,
+            'actor_user_id' => $actor->id,
+            'action' => 'engineer.session_revoked',
+        ]);
+    }
+
     public function test_timeout_configuration_is_bounded(): void
     {
         [$actor, $organization] = $this->makeTenant();
