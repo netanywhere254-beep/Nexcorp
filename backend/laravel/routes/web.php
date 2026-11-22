@@ -40,6 +40,8 @@ Route::middleware(['auth', 'verified'])->prefix('account/phone')->group(function
 });
 
 // Nexora Group governance staff security is group-scoped, not tenant-scoped.
+Route::middleware(['auth','verified','organization.active'])->patch('/organization/profile', [OrganizationContextController::class, 'update']);
+
 Route::middleware(['auth','verified'])->prefix('group/staff-security')->group(function(){
  Route::post('/approved-phones',[GroupStaffOtpController::class,'approveNumber'])->middleware('throttle:10,1');
  Route::delete('/approved-phones/{id}',[GroupStaffOtpController::class,'revokeNumber'])->middleware('throttle:10,1');
