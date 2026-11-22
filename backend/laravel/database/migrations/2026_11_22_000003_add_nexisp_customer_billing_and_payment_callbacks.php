@@ -75,7 +75,6 @@ return new class extends Migration
     {
         Schema::table('nexisp_invoices', function (Blueprint $table) {
             $table->dropForeign('nexisp_invoices_customer_tenant_fk');
-            $table->dropForeign('nexisp_invoices_subscription_tenant_fk');
         });
 
         Schema::table('payment_transactions', function (Blueprint $table) {
