@@ -5,6 +5,7 @@ use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexbookCustomerStatementController;
+use App\Http\Controllers\NexbookExportController;
 use App\Http\Controllers\NexbookCreditNoteController;
 use App\Http\Controllers\NexbookPaymentRefundController;
 use App\Http\Controllers\NexbookReceivablesAgingController;
@@ -81,3 +82,6 @@ Route::middleware(['auth','verified','organization.active'])->get('/nexbook/rece
 Route::middleware(['auth','verified','organization.active'])->post('/nexbook/credit-notes',[NexbookCreditNoteController::class,'store'])->middleware('throttle:20,1');
 
 Route::middleware(['auth','verified','organization.active'])->post('/nexbook/payment-refunds',[NexbookPaymentRefundController::class,'store'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/customer-statement.csv',[NexbookExportController::class,'customerStatement'])->middleware('throttle:20,1');
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receivables-ageing.csv',[NexbookExportController::class,'receivablesAging'])->middleware('throttle:20,1');
