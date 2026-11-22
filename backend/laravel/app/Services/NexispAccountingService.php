@@ -92,7 +92,18 @@ class NexispAccountingService
                 ->where('status', 'active')
                 ->firstOrFail();
 
-            if (! empty($data['subscription_id'])) {\n                $subscription = NexispSubscription::query()\n                    ->where('organization_id', $organization->id)\n                    ->whereKey($data['subscription_id'])\n                    ->firstOrFail();\n                if (($subscription->customer_id !== null && (int) $subscription->customer_id !== (int) $customer->id)\n                    || ($subscription->customer_id === null && (int) $subscription->user_id !== (int) ($customer->user_id ?? 0))) {\n                    throw ValidationException::withMessages(['subscription_id' => 'The selected subscription does not belong to this customer.']);\n                }\n            }\n\n            if (! empty($data['idempotency_key'])) {
+            if (! empty($data['subscription_id'])) {
+                $subscription = NexispSubscription::query()
+                    ->where('organization_id', $organization->id)
+                    ->whereKey($data['subscription_id'])
+                    ->firstOrFail();
+                if (($subscription->customer_id !== null && (int) $subscription->customer_id !== (int) $customer->id)
+                    || ($subscription->customer_id === null && (int) $subscription->user_id !== (int) ($customer->user_id ?? 0))) {
+                    throw ValidationException::withMessages(['subscription_id' => 'The selected subscription does not belong to this customer.']);
+                }
+            }
+
+            if (! empty($data['idempotency_key'])) {
                 $existing = NexispInvoice::query()
                     ->where('organization_id', $organization->id)
                     ->where('idempotency_key', $data['idempotency_key'])
@@ -416,7 +427,8 @@ class NexispAccountingService
 
             if ($newReceiptCents <= 0) {
                 throw ValidationException::withMessages(['payment' => 'Receipt amount must be greater than zero.']);
-            }\n            if ($payment === null && $previouslyReceiptedCents > 0) {
+            }
+            if ($payment === null && $previouslyReceiptedCents > 0) {
                 throw ValidationException::withMessages(['payment' => 'A verified payment record is required for additional or partial receipts.']);
             }
             if ($previouslyReceiptedCents + $newReceiptCents > $this->toCents((string) $invoice->amount)) {
