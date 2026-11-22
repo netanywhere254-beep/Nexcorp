@@ -80,6 +80,8 @@ Route::middleware(['auth', 'verified', 'organization.active'])
         Route::get('/accounts', [NexispBooksController::class, 'accounts']);
         Route::get('/journals', [NexispBooksController::class, 'journalEntries']);
         Route::post('/journals', [NexispBooksController::class, 'postJournal'])->middleware('throttle:30,1');
+        Route::get('/invoices', [NexispBooksController::class, 'invoices']);
+        Route::post('/invoices', [NexispBooksController::class, 'createInvoice'])->middleware('throttle:30,1');
         Route::get('/expenses', [NexispBooksController::class, 'expenses']);
         Route::post('/expenses', [NexispBooksController::class, 'createExpense'])->middleware('throttle:30,1');
         Route::post('/invoices/{invoiceId}/receipts', [NexispBooksController::class, 'issueReceipt'])
