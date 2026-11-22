@@ -309,6 +309,15 @@ class NexispAccountingService
         };
         $year = now($organization->timezone ?: 'UTC')->format('Y');
 
+        DB::table('nexisp_document_sequences')->insertOrIgnore([
+            'organization_id' => $organization->id,
+            'document_type' => $kind,
+            'period' => $year,
+            'next_number' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $sequence = DB::table('nexisp_document_sequences')
             ->where('organization_id', $organization->id)
             ->where('document_type', $kind)
@@ -316,22 +325,10 @@ class NexispAccountingService
             ->lockForUpdate()
             ->first();
 
-        if ($sequence === null) {
-            DB::table('nexisp_document_sequences')->insert([
-                'organization_id' => $organization->id,
-                'document_type' => $kind,
-                'period' => $year,
-                'next_number' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            $number = 1;
-        } else {
-            $number = (int) $sequence->next_number;
-            DB::table('nexisp_document_sequences')
-                ->where('id', $sequence->id)
-                ->update(['next_number' => $number + 1, 'updated_at' => now()]);
-        }
+        $number = (int) $sequence->next_number;
+        DB::table('nexisp_document_sequences')
+            ->where('id', $sequence->id)
+            ->update(['next_number' => $number + 1, 'updated_at' => now()]);
 
         return sprintf('%s-%s-%06d', $prefix, $year, $number);
     }
