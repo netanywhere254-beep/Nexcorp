@@ -55,6 +55,10 @@ class EngineerSessionService
                 throw new RuntimeException('Active organization membership is required.');
             }
 
+            if (! $this->hasActiveGrant($actor, $lockedOrganization, $now)) {
+                throw new RuntimeException('A current, dual-approved engineer access grant is required.');
+            }
+
             $expired = EngineerSession::query()
                 ->where('organization_id', $lockedOrganization->id)
                 ->where('actor_user_id', $actor->id)
@@ -168,6 +172,17 @@ class EngineerSessionService
                 return ['session' => null, 'error' => 'Engineer organization membership is no longer active.'];
             }
 
+            if (! $this->hasActiveGrant($actor, $organization, $now)) {
+                $session->forceFill([
+                    'revoked_at' => $now,
+                    'revocation_reason' => 'engineer_grant_missing_or_expired',
+                ])->save();
+
+                $this->audit($organization, $actor, 'engineer.session_revoked', $session, ['reason' => 'engineer_grant_missing_or_expired']);
+
+                return ['session' => null, 'error' => 'Engineer access grant is missing, expired, or revoked.'];
+            }
+
             $idleExpiry = $now->copy()->addSeconds($idleTimeoutSeconds);
             if ($idleExpiry->greaterThan($session->absolute_expires_at)) {
                 $idleExpiry = $session->absolute_expires_at;
@@ -218,6 +233,21 @@ class EngineerSessionService
 
             $this->audit($organization, $actor, 'engineer.session_deactivated', $session, ['reason' => 'operator_command']);
         });
+    }
+
+    private function hasActiveGrant(User $actor, Organization $organization, Carbon $at): bool
+    {
+        return EngineerAccessGrant::query()
+            ->where('organization_id', $organization->getKey())
+            ->where('user_id', $actor->getKey())
+            ->where('status', 'active')
+            ->whereNull('revoked_at')
+            ->where('starts_at', '<=', $at)
+            ->where(function ($query) use ($at) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', $at);
+            })
+            ->whereColumn('granted_by_user_id', '!=', 'approved_by_user_id')
+            ->exists();
     }
 
     private function audit(Organization $organization, User $actor, string $action, EngineerSession $session, array $metadata = []): void
