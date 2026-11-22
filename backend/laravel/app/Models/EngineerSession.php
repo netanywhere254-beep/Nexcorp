@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EngineerSession extends Model
 {
+    protected $hidden = [
+        'token_hash',
+    ];
+
     protected $fillable = [
         'public_id',
         'organization_id',
