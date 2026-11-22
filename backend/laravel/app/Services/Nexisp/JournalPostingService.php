@@ -82,8 +82,8 @@ class JournalPostingService
                 $normalised[] = [
                     'account_id' => (int) $line['account_id'],
                     'memo' => $line['memo'] ?? null,
-                    'debit' => number_format($debit / 100, 2, '.', ''),
-                    'credit' => number_format($credit / 100, 2, '.', ''),
+                    'debit' => $this->decimalAmount($debit),
+                    'credit' => $this->decimalAmount($credit),
                 ];
             }
 
@@ -129,6 +129,12 @@ class JournalPostingService
 
             return $entry->load('lines.account');
         });
+    }
+
+
+    private function decimalAmount(int $minorUnits): string
+    {
+        return intdiv($minorUnits, 100) . '.' . str_pad((string) ($minorUnits % 100), 2, '0', STR_PAD_LEFT);
     }
 
     private function minorUnits(string|int $amount): int
