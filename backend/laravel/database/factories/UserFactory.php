@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<\\App\\Models\\User>
+ * @extends Factory<\App\Models\User>
  */
 class UserFactory extends Factory
 {
-    protected $model = \\App\\Models\\User::class;
+    protected $model = \App\Models\User::class;
 
     public function definition(): array
     {
