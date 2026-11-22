@@ -107,7 +107,7 @@ class AccountingSyncServiceTest extends TestCase
 
     public function test_accounting_oauth_tokens_are_encrypted_and_hidden_from_serialization(): void
     {
-        [$actor, $organization, $connection] = $this->makeBillingActor();
+        [$actor, $organization] = $this->makeBillingActor();
         $connection = AccountingConnection::create([
             'organization_id' => $organization->id,
             'connected_by_user_id' => $actor->id,
