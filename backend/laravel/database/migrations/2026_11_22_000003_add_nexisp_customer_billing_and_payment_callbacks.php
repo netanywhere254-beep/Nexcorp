@@ -69,10 +69,6 @@ return new class extends Migration
             $table->index(['provider', 'external_id']);
         });
 
-        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
-            $table->dropUnique('nexisp_subscriptions_org_id_unique');
-        });
-
         Schema::table('payment_transactions', function (Blueprint $table) {
             $table->unsignedBigInteger('user_id')->nullable()->change();
             $table->dropUnique(['idempotency_key']);
@@ -85,6 +81,10 @@ return new class extends Migration
         Schema::table('nexisp_invoices', function (Blueprint $table) {
             $table->dropForeign('nexisp_invoices_customer_tenant_fk');
             $table->dropForeign('nexisp_invoices_subscription_tenant_fk');
+        });
+
+        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
+            $table->dropUnique('nexisp_subscriptions_org_id_unique');
         });
 
         Schema::table('payment_transactions', function (Blueprint $table) {
