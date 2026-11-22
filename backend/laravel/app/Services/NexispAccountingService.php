@@ -130,6 +130,9 @@ class NexispAccountingService
             foreach ($data['items'] as $line) {
                 $quantity = (int) $line['quantity'];
                 $unitCents = $this->toCents((string) $line['unit_price']);
+                if ($unitCents <= 0) {
+                    throw ValidationException::withMessages(['items' => 'Invoice item prices must be greater than zero.']);
+                }
                 $grossCents = $quantity * $unitCents;
                 $rateBasisPoints = 0;
                 $taxInclusive = false;
@@ -261,6 +264,9 @@ class NexispAccountingService
             }
 
             $amountCents = $this->toCents($data['amount']);
+            if ($amountCents <= 0) {
+                throw ValidationException::withMessages(['amount' => 'Expense amount must be greater than zero.']);
+            }
             $number = $this->nextNumber($organization, 'expense');
 
             $expense = NexispExpense::create([
@@ -564,10 +570,6 @@ class NexispAccountingService
 
         [$whole, $fraction] = array_pad(explode('.', (string) $amount, 2), 2, '0');
         $cents = ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
-
-        if ($cents <= 0) {
-            throw ValidationException::withMessages(['amount' => 'Amount must be greater than zero.']);
-        }
 
         return $cents;
     }
