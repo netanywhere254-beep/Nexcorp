@@ -162,6 +162,39 @@ class NexispBooksTest extends TestCase
         ]);
     }
 
+    public function test_partial_verified_payments_issue_separate_receipts_and_settle_invoice(): void
+    {
+        [$actor, $organization, $customer] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $invoice = $service->createInvoice($actor, $organization, [
+            'customer_id' => $customer->id,
+            'currency' => 'KES',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ]);
+
+        foreach ([['500.00', 'PART-1'], ['1000.00', 'PART-2']] as [$amount, $reference]) {
+            $payment = PaymentTransaction::create([
+                'organization_id' => $organization->id,
+                'user_id' => $actor->id,
+                'provider' => 'mpesa',
+                'provider_reference' => $reference.'-'.uniqid(),
+                'idempotency_key' => $reference.'-'.uniqid(),
+                'status' => 'succeeded',
+                'amount' => $amount,
+                'currency' => 'KES',
+                'verified_at' => now(),
+                'payable_type' => NexispInvoice::class,
+                'payable_id' => $invoice->id,
+            ]);
+            $service->issueReceipt($actor, $organization, $invoice->id, $payment->id);
+        }
+
+        $this->assertDatabaseCount('nexisp_receipts', 2);
+        $this->assertSame('paid', $invoice->fresh()->status);
+        $this->assertNotNull($invoice->fresh()->paid_at);
+    }
+
     public function test_receipt_rejects_unverified_payment(): void
     {
         [$actor, $organization, $customer] = $this->fixture();
