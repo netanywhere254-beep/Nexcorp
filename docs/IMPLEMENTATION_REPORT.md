@@ -44,8 +44,9 @@ existing in the repository is not evidence that a business feature works.
 ## Verification
 
 - Component branches were individually CI-verified before integration.
-- This integration branch must pass full Laravel tests and GitHub CI after
-  conflict resolution before any merge/deploy claim.
+- `php -l` passed on resolved integration files.
+- Full Laravel suite on integration branch: **98 tests, 336 assertions, pass**.
+- GitHub CI for this integration branch: pending push/run.
 
 ## Not yet implemented
 
