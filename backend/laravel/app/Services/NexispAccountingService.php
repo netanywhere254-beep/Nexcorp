@@ -382,14 +382,51 @@ class NexispAccountingService
                 throw ValidationException::withMessages(['invoice' => 'A receipt can only be issued for an invoice with a recorded payment.']);
             }
 
+            $existingReceipt = NexispReceipt::query()
+                ->where('organization_id', $organization->id)
+                ->where('invoice_id', $invoice->id)
+                ->when(
+                    $payment !== null,
+                    fn ($query) => $query->where('payment_transaction_id', $payment->id),
+                    fn ($query) => $query->whereNull('payment_transaction_id'),
+                )
+                ->first();
+            if ($existingReceipt) {
+                return $existingReceipt;
+            }
+
             if ($payment !== null) {
-                $existing = NexispReceipt::query()
+                $alreadyPosted = NexispJournalEntry::query()
                     ->where('organization_id', $organization->id)
-                    ->where('invoice_id', $invoice->id)
-                    ->where('payment_transaction_id', $payment->id)
-                    ->first();
-                if ($existing) {
-                    return $existing;
+                    ->where('source_type', PaymentTransaction::class)
+                    ->where('source_id', $payment->id)
+                    ->where('status', 'posted')
+                    ->exists();
+
+                if (! $alreadyPosted) {
+                    $cashCode = str_contains(strtolower($payment->provider), 'cash') ? '1000' : '1010';
+                    $cashAccount = NexispChartOfAccount::query()
+                        ->where('organization_id', $organization->id)->where('code', $cashCode)->where('active', true)->first();
+                    $receivable = NexispChartOfAccount::query()
+                        ->where('organization_id', $organization->id)->where('code', '1100')->where('active', true)->first();
+
+                    if (! $cashAccount || ! $receivable) {
+                        throw ValidationException::withMessages(['ledger' => 'Initialize the cash/bank and receivables accounts before issuing a receipt.']);
+                    }
+
+                    $paymentCents = $this->toCents((string) $payment->amount);
+                    $this->postJournal($organization, $actor, [
+                        'entry_number' => 'JE-'.strtoupper(bin2hex(random_bytes(8))),
+                        'description' => 'Payment received for '.$invoice->invoice_number,
+                        'currency' => $payment->currency,
+                        'entry_date' => now($organization->timezone ?: 'UTC')->toDateString(),
+                        'source_type' => PaymentTransaction::class,
+                        'source_id' => $payment->id,
+                        'lines' => [
+                            ['account_id' => $cashAccount->id, 'debit' => $paymentCents, 'credit' => 0, 'description' => 'Verified payment received'],
+                            ['account_id' => $receivable->id, 'debit' => 0, 'credit' => $paymentCents, 'description' => 'Settle invoice '.$invoice->invoice_number],
+                        ],
+                    ]);
                 }
             }
 
