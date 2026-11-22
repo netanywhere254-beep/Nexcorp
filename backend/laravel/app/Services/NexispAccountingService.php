@@ -133,6 +133,9 @@ class NexispAccountingService
                 if ($unitCents <= 0) {
                     throw ValidationException::withMessages(['items' => 'Invoice item prices must be greater than zero.']);
                 }
+                if ($unitCents > intdiv(99999999999999, $quantity)) {
+                    throw ValidationException::withMessages(['items' => 'An invoice line exceeds the supported monetary limit.']);
+                }
                 $grossCents = $quantity * $unitCents;
                 $rateBasisPoints = 0;
                 $taxInclusive = false;
@@ -146,13 +149,13 @@ class NexispAccountingService
                         ->whereKey($line['tax_rate_id'])
                         ->where('active', true)
                         ->firstOrFail();
-                    $rateBasisPoints = (int) round(((float) $taxRate->rate_percent) * 100);
+                    $rateBasisPoints = $this->taxRateUnits((string) $taxRate->rate_percent);
                     $taxInclusive = (bool) $taxRate->inclusive;
                 }
 
                 $lineTax = $taxInclusive
-                    ? intdiv(($grossCents * $rateBasisPoints) + intdiv(10000 + $rateBasisPoints, 2), 10000 + $rateBasisPoints)
-                    : intdiv(($grossCents * $rateBasisPoints) + 5000, 10000);
+                    ? $this->percentageOfCents($grossCents, $rateBasisPoints, 10000000 + $rateBasisPoints)
+                    : $this->percentageOfCents($grossCents, $rateBasisPoints, 10000000);
                 $lineSubtotal = $taxInclusive ? $grossCents - $lineTax : $grossCents;
                 $lineTotal = $taxInclusive ? $grossCents : $grossCents + $lineTax;
                 if ($lineTotal > 99999999999999) {
@@ -164,7 +167,7 @@ class NexispAccountingService
                     'description' => $line['description'],
                     'quantity' => $quantity,
                     'unit_price' => number_format($unitCents / 100, 2, '.', ''),
-                    'tax_rate_percent' => number_format($rateBasisPoints / 100, 4, '.', ''),
+                    'tax_rate_percent' => (string) $taxRate->rate_percent,
                     'line_subtotal' => number_format($lineSubtotal / 100, 2, '.', ''),
                     'tax_amount' => number_format($lineTax / 100, 2, '.', ''),
                     'line_total' => number_format($lineTotal / 100, 2, '.', ''),
@@ -217,7 +220,7 @@ class NexispAccountingService
                 'entry_number' => 'JE-'.strtoupper(bin2hex(random_bytes(8))),
                 'description' => 'Invoice issued '.$invoiceNumber,
                 'currency' => $currency,
-                'entry_date' => now($organization->timezone ?: 'UTC')->toDateString(),
+                'entry_date' => $invoice->issued_at->toDateString(),
                 'source_type' => NexispInvoice::class,
                 'source_id' => $invoice->id,
                 'lines' => $journalLines,
@@ -560,6 +563,25 @@ class NexispAccountingService
             ->update(['next_number' => $number + 1, 'updated_at' => now()]);
 
         return sprintf('%s-%s-%06d', $prefix, $year, $number);
+    }
+
+    private function taxRateUnits(string $rate): int
+    {
+        if (! preg_match('/^(\d{1,3})(?:\.(\d{1,4}))?$/', $rate, $matches)) {
+            throw ValidationException::withMessages(['tax_rate' => 'Tax rate is outside the supported range.']);
+        }
+        $whole = (int) $matches[1];
+        $fraction = (int) str_pad($matches[2] ?? '', 4, '0');
+        return ($whole * 100000) + ($fraction * 10);
+    }
+
+    private function percentageOfCents(int $amountCents, int $rateUnits, int $denominator): int
+    {
+        $whole = intdiv($amountCents, $denominator);
+        $remainder = $amountCents % $denominator;
+
+        return ($whole * $rateUnits)
+            + intdiv(($remainder * $rateUnits) + intdiv($denominator, 2), $denominator);
     }
 
     private function toCents(string|int|float $amount): int
