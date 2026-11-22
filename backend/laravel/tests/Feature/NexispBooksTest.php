@@ -315,7 +315,7 @@ class NexispBooksTest extends TestCase
             'status' => 'posted',
         ]);
 
-        $this->expectException(\\LogicException::class);
+        $this->expectException(\LogicException::class);
         $receipt->update(['amount' => '1.00']);
     }
 
