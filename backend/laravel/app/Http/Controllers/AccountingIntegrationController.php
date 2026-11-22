@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountingAccountMapping;
 use App\Models\AccountingConnection;
+use App\Models\AccountingSyncRun;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Services\AccountingSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class AccountingIntegrationController
