@@ -24,6 +24,17 @@ return new class extends Migration
             $table->index(['organization_id', 'status']);
         });
 
+        // Composite keys ensure a customer can only be attached to a subscription
+        // belonging to the same organization.
+        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
+            $table->foreignId('customer_id')->nullable()->after('user_id')
+                ->constrained('nexisp_customers')->nullOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable()->change();
+            $table->unique(['organization_id', 'id'], 'nexisp_subscriptions_org_id_unique');
+            $table->foreign(['organization_id', 'customer_id'], 'nexisp_subscriptions_customer_tenant_fk')
+                ->references(['organization_id', 'id'])->on('nexisp_customers');
+        });
+
         Schema::create('nexisp_invoices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
@@ -60,15 +71,15 @@ return new class extends Migration
             $table->index(['provider', 'external_id']);
         });
 
-        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
-            $table->foreignId('customer_id')->nullable()->after('user_id')
-                ->constrained('nexisp_customers')->nullOnDelete();
+        Schema::table('payment_transactions', function (Blueprint $table) {
             $table->unsignedBigInteger('user_id')->nullable()->change();
-            $table->unique(['organization_id', 'id'], 'nexisp_subscriptions_org_id_unique');
-            $table->foreign(['organization_id', 'customer_id'], 'nexisp_subscriptions_customer_tenant_fk')
-                ->references(['organization_id', 'id'])->on('nexisp_customers');
+            $table->dropUnique(['idempotency_key']);
+            $table->unique(['organization_id', 'idempotency_key']);
         });
+    }
 
+    public function down(): void
+    {
         Schema::table('nexisp_invoices', function (Blueprint $table) {
             $table->dropForeign('nexisp_invoices_customer_tenant_fk');
             $table->dropForeign('nexisp_invoices_subscription_tenant_fk');
@@ -80,17 +91,9 @@ return new class extends Migration
         });
 
         Schema::table('payment_transactions', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->nullable()->change();
-            $table->dropUnique(['idempotency_key']);
-            $table->unique(['organization_id', 'idempotency_key']);
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('payment_transactions', function (Blueprint $table) {
             $table->dropUnique(['organization_id', 'idempotency_key']);
             $table->unique(['idempotency_key']);
+            // Rollback requires customer-only payments to be reassigned to a user first.
             $table->unsignedBigInteger('user_id')->nullable(false)->change();
         });
 
