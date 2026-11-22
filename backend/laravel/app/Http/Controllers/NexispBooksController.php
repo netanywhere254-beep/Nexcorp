@@ -14,6 +14,7 @@ use App\Services\NexispAccountingService;
 use App\Services\NexispDocumentExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -257,7 +258,7 @@ class NexispBooksController
         $organization = $this->organization($request);
         Gate::authorize('manageBilling', $organization);
 
-        $revenue = (float) \DB::table('nexisp_journal_entry_lines as lines')
+        $revenue = (float) DB::table('nexisp_journal_entry_lines as lines')
             ->join('nexisp_chart_of_accounts as accounts', function ($join) {
                 $join->on('accounts.id', '=', 'lines.account_id')
                     ->on('accounts.organization_id', '=', 'lines.organization_id');
@@ -272,7 +273,7 @@ class NexispBooksController
             ->selectRaw('COALESCE(SUM(lines.credit - lines.debit), 0) as total')
             ->value('total');
 
-        $expensesTotal = (float) \DB::table('nexisp_journal_entry_lines as lines')
+        $expensesTotal = (float) DB::table('nexisp_journal_entry_lines as lines')
             ->join('nexisp_chart_of_accounts as accounts', function ($join) {
                 $join->on('accounts.id', '=', 'lines.account_id')
                     ->on('accounts.organization_id', '=', 'lines.organization_id');
