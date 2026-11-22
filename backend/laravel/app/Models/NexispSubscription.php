@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class NexispSubscription extends Model
 {
     protected $fillable = [
-        'organization_id', 'user_id', 'bandwidth_plan_id',
+        'organization_id', 'user_id', 'customer_id', 'bandwidth_plan_id',
         'subscription_number', 'status', 'price_amount', 'currency',
         'starts_at', 'ends_at', 'activated_at', 'plan_snapshot',
     ];
