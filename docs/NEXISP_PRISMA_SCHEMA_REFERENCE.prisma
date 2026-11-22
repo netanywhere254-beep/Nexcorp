@@ -35,8 +35,19 @@ model Tenant {
   subscriptions Subscription[]
   invoices      Invoice[]
   transactions  Transaction[]
+  receipts Receipt[]
+  items InvoiceItem[]
   accountingConnections AccountingConnection[]
   accountingSyncRuns AccountingSyncRun[]
+  chartOfAccounts ChartOfAccount[]
+  journalEntries JournalEntry[]
+  expenses Expense[]
+  receipts Receipt[]
+  taxRates TaxRate[]
+  bankAccounts BankAccount[]
+  bankTransactions BankTransaction[]
+  accountingSettings AccountingSetting?
+  documentSequences DocumentSequence[]
 
   @@map("tenants")
 }
@@ -52,6 +63,10 @@ model User {
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
   accountingConnections AccountingConnection[] @relation("AccountingConnectionActor")
   accountingSyncRuns AccountingSyncRun[] @relation("AccountingSyncActor")
+  createdJournalEntries JournalEntry[] @relation("JournalCreatedBy")
+  postedJournalEntries JournalEntry[] @relation("JournalPostedBy")
+  createdExpenses Expense[]
+  issuedReceipts Receipt[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, email])
@@ -220,6 +235,7 @@ model Transaction {
   createdAt         DateTime          @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime          @updatedAt @db.Timestamptz(6)
 
+  @@unique([id, tenantId])
   @@unique([tenantId, provider, providerReference])
   @@unique([tenantId, mpesaReceipt])
   @@index([tenantId, status, createdAt])
@@ -329,4 +345,255 @@ model AccountingSyncItem {
   @@unique([tenantId, connectionId, idempotencyKey])
   @@index([tenantId, localType, localId])
   @@map("accounting_sync_items")
+}
+
+
+// Native NexISP Books models. This is a standby/reference representation;
+// the active Laravel migrations remain the authoritative application schema.
+model AccountingSetting {
+  id                       String   @id @default(uuid()) @db.Uuid
+  tenantId                 String   @unique @db.Uuid
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operatingMode            String   @default("native") @db.VarChar(20)
+  baseCurrency             String   @default("KES") @db.VarChar(3)
+  fiscalYearStart          String   @default("01-01") @db.VarChar(5)
+  invoicePrefix            String   @default("INV") @db.VarChar(16)
+  receiptPrefix            String   @default("RCT") @db.VarChar(16)
+  expensePrefix            String   @default("EXP") @db.VarChar(16)
+  nativeLedgerEnabled      Boolean  @default(true)
+  expensesEnabled          Boolean  @default(true)
+  taxEnabled               Boolean  @default(true)
+  bankReconciliationEnabled Boolean @default(false)
+  budgetsEnabled           Boolean  @default(false)
+  recurringInvoicesEnabled Boolean  @default(false)
+  externalSyncEnabled      Boolean  @default(false)
+  featurePreferences       Json?
+  createdAt                DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("nexisp_accounting_settings")
+}
+
+model ChartOfAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  code           String   @db.VarChar(32)
+  name           String   @db.VarChar(120)
+  accountType    String   @db.VarChar(24)
+  normalBalance  String   @db.VarChar(8)
+  parentId       String?  @db.Uuid
+  parent         ChartOfAccount? @relation("ChartAccountTree", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict)
+  children       ChartOfAccount[] @relation("ChartAccountTree")
+  systemAccount  Boolean  @default(false)
+  active         Boolean  @default(true)
+  journalLines   JournalEntryLine[]
+  bankAccounts   BankAccount[]
+  expenses       Expense[]
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, accountType, active])
+  @@map("nexisp_chart_of_accounts")
+}
+
+model JournalEntry {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @db.Uuid
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  entryNumber        String   @db.VarChar(64)
+  status             String   @default("draft") @db.VarChar(16)
+  sourceType         String?  @db.VarChar(100)
+  sourceId           BigInt?
+  reversalOfEntryId  String?  @db.Uuid
+  reversalOf         JournalEntry? @relation("JournalReversals", fields: [tenantId, reversalOfEntryId], references: [tenantId, id], onDelete: Restrict)
+  reversals          JournalEntry[] @relation("JournalReversals")
+  description        String   @db.VarChar(255)
+  currency           String   @db.VarChar(3)
+  entryDate          DateTime @db.Date
+  totalDebit         Decimal  @default(0) @db.Decimal(14, 2)
+  totalCredit        Decimal  @default(0) @db.Decimal(14, 2)
+  createdByUserId    String?  @db.Uuid
+  createdBy          User?    @relation("JournalCreatedBy", fields: [createdByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  postedByUserId     String?  @db.Uuid
+  postedBy           User?    @relation("JournalPostedBy", fields: [postedByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  postedAt           DateTime? @db.Timestamptz(6)
+  voidedAt           DateTime? @db.Timestamptz(6)
+  lines              JournalEntryLine[]
+  expenses           Expense[]
+  matchedBankTransactions BankTransaction[]
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, entryNumber])
+  @@unique([tenantId, reversalOfEntryId])
+  @@index([tenantId, entryDate, status])
+  @@index([tenantId, sourceType, sourceId])
+  @@map("nexisp_journal_entries")
+}
+
+model JournalEntryLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  journalEntryId String   @db.Uuid
+  entry          JournalEntry @relation(fields: [tenantId, journalEntryId], references: [tenantId, id], onDelete: Cascade)
+  accountId      String   @db.Uuid
+  account        ChartOfAccount @relation(fields: [tenantId, accountId], references: [tenantId, id], onDelete: Restrict)
+  description    String?  @db.VarChar(255)
+  debit          Decimal  @default(0) @db.Decimal(14, 2)
+  credit         Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([tenantId, accountId])
+  @@map("nexisp_journal_entry_lines")
+}
+
+model InvoiceItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
+  invoiceId       String   @db.Uuid
+  invoice         Invoice  @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  description     String   @db.VarChar(255)
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(14, 2)
+  taxRatePercent  Decimal  @default(0) @db.Decimal(7, 4)
+  lineSubtotal    Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @db.Decimal(14, 2)
+  lineTotal       Decimal  @db.Decimal(14, 2)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([tenantId, invoiceId])
+  @@map("nexisp_invoice_items")
+}
+
+model Receipt {
+  id                   String   @id @default(uuid()) @db.Uuid
+  tenantId             String   @db.Uuid
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  invoiceId            String   @db.Uuid
+  invoice              Invoice  @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  paymentTransactionId String?  @db.Uuid
+  paymentTransaction   Transaction? @relation(fields: [paymentTransactionId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  receiptNumber        String   @db.VarChar(64)
+  amount               Decimal  @db.Decimal(14, 2)
+  currency             String   @db.VarChar(3)
+  paymentMethod        String?  @db.VarChar(40)
+  paymentReference     String?  @db.VarChar(150)
+  issuedAt             DateTime @db.Timestamptz(6)
+  snapshot             Json
+  issuedByUserId       String?  @db.Uuid
+  issuedBy             User?    @relation(fields: [issuedByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  createdAt            DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, receiptNumber])
+  @@unique([tenantId, invoiceId, paymentTransactionId])
+  @@index([tenantId, issuedAt])
+  @@map("nexisp_receipts")
+}
+
+model Expense {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @db.Uuid
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  expenseNumber    String   @db.VarChar(64)
+  expenseAccountId String   @db.Uuid
+  expenseAccount   ChartOfAccount @relation(fields: [tenantId, expenseAccountId], references: [tenantId, id], onDelete: Restrict)
+  vendorName       String?  @db.VarChar(160)
+  description      String   @db.VarChar(255)
+  amount           Decimal  @db.Decimal(14, 2)
+  currency         String   @db.VarChar(3)
+  status           String   @default("draft") @db.VarChar(20)
+  expenseDate      DateTime @db.Date
+  reference        String?  @db.VarChar(120)
+  createdByUserId  String?  @db.Uuid
+  createdBy        User?    @relation(fields: [createdByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  journalEntryId   String?  @db.Uuid
+  journalEntry     JournalEntry? @relation(fields: [tenantId, journalEntryId], references: [tenantId, id], onDelete: Restrict)
+  metadata         Json?
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, expenseNumber])
+  @@unique([tenantId, journalEntryId])
+  @@index([tenantId, expenseDate, status])
+  @@map("nexisp_expenses")
+}
+
+model TaxRate {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  code         String   @db.VarChar(32)
+  name         String   @db.VarChar(100)
+  ratePercent  Decimal  @db.Decimal(7, 4)
+  inclusive    Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, active])
+  @@map("nexisp_tax_rates")
+}
+
+model BankAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  ledgerAccountId String  @db.Uuid
+  ledgerAccount  ChartOfAccount @relation(fields: [tenantId, ledgerAccountId], references: [tenantId, id], onDelete: Restrict)
+  name           String   @db.VarChar(120)
+  provider       String?  @db.VarChar(40)
+  accountReference String? @db.VarChar(120)
+  currency       String   @db.VarChar(3)
+  status         String   @default("active") @db.VarChar(20)
+  transactions   BankTransaction[]
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@map("nexisp_bank_accounts")
+}
+
+model BankTransaction {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @db.Uuid
+  bankAccountId         String   @db.Uuid
+  bankAccount           BankAccount @relation(fields: [bankAccountId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  externalReference     String?  @db.VarChar(150)
+  transactionDate       DateTime @db.Date
+  description           String   @db.VarChar(255)
+  amount                Decimal  @db.Decimal(14, 2)
+  currency              String   @db.VarChar(3)
+  direction             String   @db.VarChar(8)
+  reconciliationStatus  String   @default("unmatched") @db.VarChar(20)
+  matchedJournalEntryId String?  @db.Uuid
+  matchedJournalEntry   JournalEntry? @relation(fields: [matchedJournalEntryId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, bankAccountId, externalReference])
+  @@index([tenantId, transactionDate, reconciliationStatus])
+  @@map("nexisp_bank_transactions")
+}
+
+model DocumentSequence {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  documentType String   @db.VarChar(20)
+  period       String   @db.VarChar(8)
+  nextNumber   BigInt   @default(1)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, documentType, period])
+  @@map("nexisp_document_sequences")
 }
