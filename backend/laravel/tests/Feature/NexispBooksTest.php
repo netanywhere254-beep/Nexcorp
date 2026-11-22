@@ -218,6 +218,43 @@ class NexispBooksTest extends TestCase
         ]);
     }
 
+    public function test_posted_journal_entries_cannot_be_edited(): void
+    {
+        [$actor, $organization, $customer] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $invoice = $service->createInvoice($actor, $organization, [
+            'customer_id' => $customer->id,
+            'currency' => 'KES',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ]);
+        $entry = NexispJournalEntry::where('source_type', NexispInvoice::class)
+            ->where('source_id', $invoice->id)->firstOrFail();
+
+        $this->expectException(\LogicException::class);
+        $entry->update(['description' => 'Silently changed']);
+    }
+
+    public function test_posted_expenses_cannot_be_edited(): void
+    {
+        [$actor, $organization] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $expenseAccount = NexispChartOfAccount::where('organization_id', $organization->id)->where('code', '5200')->firstOrFail();
+        $cashAccount = NexispChartOfAccount::where('organization_id', $organization->id)->where('code', '1000')->firstOrFail();
+        $expense = $service->createExpense($actor, $organization, [
+            'expense_account_id' => $expenseAccount->id,
+            'payment_account_id' => $cashAccount->id,
+            'description' => 'Monthly bandwidth',
+            'amount' => '1000.00',
+            'currency' => 'KES',
+            'expense_date' => now()->toDateString(),
+        ]);
+
+        $this->expectException(\LogicException::class);
+        $expense->update(['amount' => '1.00']);
+    }
+
     public function test_invoice_cannot_post_to_another_tenant_account(): void
     {
         [$actor, $organization, $customer] = $this->fixture();
