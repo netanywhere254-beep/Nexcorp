@@ -100,8 +100,20 @@ class EngineerSessionServiceTest extends TestCase
         $this->assertEquals($result['session']->absolute_expires_at, $touched->absolute_expires_at);
 
         $this->travel(71)->seconds();
-        $this->expectException(RuntimeException::class);
-        $service->touch($actor, $organization, $result['token'], 60);
+
+        try {
+            $service->touch($actor, $organization, $result['token'], 60);
+            $this->fail('An absolutely expired session must be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('expired', $exception->getMessage());
+        }
+
+        $this->assertNotNull(EngineerSession::firstOrFail()->revoked_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $organization->id,
+            'actor_user_id' => $actor->id,
+            'action' => 'engineer.session_expired',
+        ]);
     }
 
     public function test_timeout_configuration_is_bounded(): void
