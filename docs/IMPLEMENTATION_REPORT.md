@@ -20,7 +20,10 @@ Working branch for this report: `implementation/nexisp-bandwidth-plans`
 
 - `php -l` passed on changed PHP files.
 - `php vendor/bin/phpunit --filter NexispPlanTest`: 5 tests, 29 assertions, pass.
-- Full suite / GitHub CI: pending at report creation time.
+- `php vendor/bin/phpunit` full suite: 79 tests, 249 assertions, pass.
+- GitHub Actions [run 44993942151](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44993942151)
+  passed all five jobs on commit `cf8c3df`.
+- CI proves checked-in build/tests pass; not production deployment or UI.
 
 ## Not yet implemented
 
