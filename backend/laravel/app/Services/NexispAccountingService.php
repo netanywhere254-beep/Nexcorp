@@ -391,6 +391,7 @@ class NexispAccountingService
                 'status' => 'draft',
                 'source_type' => $data['source_type'] ?? null,
                 'source_id' => $data['source_id'] ?? null,
+                'reversal_of_entry_id' => $data['reversal_of_entry_id'] ?? null,
                 'description' => $data['description'],
                 'currency' => strtoupper($data['currency']),
                 'entry_date' => $data['entry_date'],
@@ -417,6 +418,86 @@ class NexispAccountingService
             ]);
 
             return $entry->load('lines.account');
+        });
+    }
+
+    public function reverseInvoice(
+        User $actor,
+        Organization $organization,
+        NexispInvoice $invoice,
+    ): ?NexispJournalEntry {
+        Gate::forUser($actor)->authorize('manageBilling', $organization);
+
+        return DB::transaction(function () use ($actor, $organization, $invoice): ?NexispJournalEntry {
+            $lockedInvoice = NexispInvoice::query()
+                ->where('organization_id', $organization->id)
+                ->whereKey($invoice->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (NexispReceipt::query()
+                ->where('organization_id', $organization->id)
+                ->where('invoice_id', $lockedInvoice->id)
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'invoice' => 'An invoice with recorded receipts cannot be voided until its payments are refunded or reversed.',
+                ]);
+            }
+
+            $original = NexispJournalEntry::query()
+                ->where('organization_id', $organization->id)
+                ->where('source_type', NexispInvoice::class)
+                ->where('source_id', $lockedInvoice->id)
+                ->where('status', 'posted')
+                ->whereNull('reversal_of_entry_id')
+                ->with('lines')
+                ->lockForUpdate()
+                ->first();
+
+            if ($original === null) {
+                return null;
+            }
+
+            $existingReversal = NexispJournalEntry::query()
+                ->where('organization_id', $organization->id)
+                ->where('reversal_of_entry_id', $original->id)
+                ->where('status', 'posted')
+                ->first();
+            if ($existingReversal !== null) {
+                return $existingReversal->load('lines.account');
+            }
+
+            $reversalLines = $original->lines->map(fn ($line): array => [
+                'account_id' => $line->account_id,
+                'debit' => $this->toCents((string) $line->credit),
+                'credit' => $this->toCents((string) $line->debit),
+                'description' => 'Reversal: '.($line->description ?? $original->description),
+            ])->all();
+
+            $reversal = $this->postJournal($organization, $actor, [
+                'entry_number' => 'JE-REV-'.strtoupper(bin2hex(random_bytes(8))),
+                'description' => 'Reversal of '.$original->entry_number.' for voided invoice '.$lockedInvoice->invoice_number,
+                'currency' => $original->currency,
+                'entry_date' => now($organization->timezone ?: 'UTC')->toDateString(),
+                'source_type' => NexispInvoice::class,
+                'source_id' => $lockedInvoice->id,
+                'reversal_of_entry_id' => $original->id,
+                'lines' => $reversalLines,
+            ]);
+
+            AuditLog::create([
+                'organization_id' => $organization->id,
+                'actor_user_id' => $actor->id,
+                'action' => 'nexisp.accounting.invoice_journal_reversed',
+                'subject_type' => NexispInvoice::class,
+                'subject_id' => (string) $lockedInvoice->id,
+                'metadata' => [
+                    'original_journal_entry_id' => $original->id,
+                    'reversal_journal_entry_id' => $reversal->id,
+                ],
+            ]);
+
+            return $reversal;
         });
     }
 
