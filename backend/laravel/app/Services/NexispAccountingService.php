@@ -312,7 +312,7 @@ class NexispAccountingService
                 'description' => $data['description'],
                 'amount' => number_format($amountCents / 100, 2, '.', ''),
                 'currency' => strtoupper($data['currency'] ?? $settings->base_currency),
-                'status' => 'posted',
+                'status' => 'draft',
                 'expense_date' => $data['expense_date'],
                 'reference' => $data['reference'] ?? null,
                 'created_by_user_id' => $actor->id,
@@ -331,7 +331,7 @@ class NexispAccountingService
                 ],
             ]);
 
-            $expense->update(['journal_entry_id' => $entry->id]);
+            $expense->update(['journal_entry_id' => $entry->id, 'status' => 'posted']);
 
             AuditLog::create([
                 'organization_id' => $organization->id,
