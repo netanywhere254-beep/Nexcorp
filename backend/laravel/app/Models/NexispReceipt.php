@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class NexispReceipt extends Model
+{
+    protected $table = 'nexisp_receipts';
+
+    protected $fillable = [
+        'organization_id', 'invoice_id', 'payment_transaction_id', 'receipt_number',
+        'amount', 'currency', 'payment_method', 'payment_reference', 'issued_at',
+        'snapshot', 'issued_by_user_id',
+    ];
+
+    protected function casts(): array
+    {
+        return ['amount' => 'decimal:2', 'issued_at' => 'datetime', 'snapshot' => 'array'];
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(NexispInvoice::class, 'invoice_id');
+    }
+
+    public function paymentTransaction(): BelongsTo
+    {
+        return $this->belongsTo(PaymentTransaction::class, 'payment_transaction_id');
+    }
+}
