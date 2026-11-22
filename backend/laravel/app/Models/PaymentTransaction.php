@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class PaymentTransaction extends Model
 {
     protected $fillable = [
-        'organization_id', 'user_id', 'provider', 'provider_reference',
+        'organization_id', 'user_id', 'payable_type', 'payable_id', 'provider', 'provider_reference',
         'idempotency_key', 'status', 'amount', 'currency', 'verified_at',
         'provider_payload',
     ];
