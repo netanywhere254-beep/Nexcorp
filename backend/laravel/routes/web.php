@@ -5,6 +5,7 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexispBooksController;
 use App\Http\Controllers\NexispCustomerController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
@@ -66,6 +67,27 @@ Route::middleware(['auth', 'verified', 'organization.active'])
         Route::patch('/{id}', [NexispCustomerController::class, 'update'])
             ->whereNumber('id')
             ->middleware('throttle:30,1');
+    });
+
+// NexISP Books is the primary ISP bookkeeping system; third-party accounting is optional.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/books')
+    ->group(function () {
+        Route::get('/overview', [NexispBooksController::class, 'overview']);
+        Route::get('/settings', [NexispBooksController::class, 'settings']);
+        Route::put('/settings', [NexispBooksController::class, 'updateSettings'])->middleware('throttle:20,1');
+        Route::post('/bootstrap', [NexispBooksController::class, 'bootstrap'])->middleware('throttle:5,1');
+        Route::get('/accounts', [NexispBooksController::class, 'accounts']);
+        Route::get('/journals', [NexispBooksController::class, 'journalEntries']);
+        Route::post('/journals', [NexispBooksController::class, 'postJournal'])->middleware('throttle:30,1');
+        Route::get('/expenses', [NexispBooksController::class, 'expenses']);
+        Route::post('/expenses', [NexispBooksController::class, 'createExpense'])->middleware('throttle:30,1');
+        Route::post('/invoices/{invoiceId}/receipts', [NexispBooksController::class, 'issueReceipt'])
+            ->whereNumber('invoiceId')->middleware('throttle:20,1');
+        Route::get('/invoices/{invoiceId}/export/{format}', [NexispBooksController::class, 'exportInvoice'])
+            ->whereNumber('invoiceId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
+        Route::get('/receipts/{receiptId}/export/{format}', [NexispBooksController::class, 'exportReceipt'])
+            ->whereNumber('receiptId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
     });
 
 // NexISP accounting integrations are organization-scoped and billing-admin only.
