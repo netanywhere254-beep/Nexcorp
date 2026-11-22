@@ -89,7 +89,9 @@ func (m *Manager) Start(actorID string) (Session, error) {
 		}
 		expired := *m.active
 		m.active = nil // Always revoke locally, even if audit storage is unavailable.
-		_ = m.append(AuditEvent{SessionID: expired.ID, ActorID: expired.ActorID, Action: "session_expired", At: now, Reason: "idle_or_max_duration"})
+		if err := m.append(AuditEvent{SessionID: expired.ID, ActorID: expired.ActorID, Action: "session_expired", At: now, Reason: "idle_or_max_duration"}); err != nil {
+			return Session{}, err // Do not start a new privileged session with an incomplete audit trail.
+		}
 	}
 
 	id, err := newID()
