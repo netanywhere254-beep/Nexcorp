@@ -10,6 +10,7 @@ use App\Http\Controllers\NexispServiceAreaController;
 use App\Http\Controllers\NexispSubscriptionController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
+use App\Http\Controllers\PaymentReceiptController;
 use App\Http\Controllers\PaymentTransactionController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
@@ -61,6 +62,9 @@ Route::middleware(['auth','verified','organization.active'])->prefix('nexisp')->
     Route::get('/payments', [PaymentTransactionController::class, 'index']);
     Route::get('/payments/{payment}', [PaymentTransactionController::class, 'show']);
     Route::post('/subscriptions/{subscription}/payments', [PaymentTransactionController::class, 'storeForSubscription']);
+
+    Route::get('/receipts', [PaymentReceiptController::class, 'index']);
+    Route::get('/receipts/{receipt}', [PaymentReceiptController::class, 'show']);
 });
 
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));

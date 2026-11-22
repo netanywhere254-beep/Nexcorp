@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-22
 Primary branch inspected: `main` at `0fc7c19`
-Working branch for this report: `integration/nexisp-foundation`
+Working branch for this report: `implementation/nexisp-verified-payment-receipts`
 
 This report records verifiable work being integrated on this branch. A file
 existing in the repository is not evidence that a business feature works.
@@ -40,16 +40,19 @@ existing in the repository is not evidence that a business feature works.
   - `PaymentProviderVerifier` contract and service-level verification requiring
     provider-confirmed amount/currency match. No real provider adapter, no
     public callback endpoint, no settlement claim.
+- Verified-payment receipt foundation (this branch):
+  - `payment_receipts` table/model with unique receipt per payment transaction.
+  - Idempotent receipt issuance when a payment becomes verified.
+  - Tenant-scoped `GET /nexisp/receipts` and `GET /nexisp/receipts/{receipt}`
+    endpoints, manageBilling authorization, audit event, and feature tests.
 
 ## Verification
 
 - Component branches were individually CI-verified before integration.
-- `php -l` passed on resolved integration files.
-- Full Laravel suite on integration branch: **98 tests, 336 assertions, pass**.
-- GitHub Actions [run 45001606842](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/45001606842)
-  passed all five jobs on commit `afa11d6` (verified via
-  `implementation/nexisp-foundation-integration` CI trigger ref; same commit as
-  `integration/nexisp-foundation`).
+- `php -l` passed on changed files.
+- `phpunit --filter NexispPaymentReceiptTest`: 2 tests, 10 assertions, pass.
+- Full Laravel suite: **100 tests, 346 assertions, pass**.
+- GitHub CI: pending.
 
 ## Not yet implemented
 

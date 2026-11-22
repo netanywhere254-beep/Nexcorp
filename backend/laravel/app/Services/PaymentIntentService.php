@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Contracts\PaymentProviderVerifier;
 use App\Models\AuditLog;
 use App\Models\NexispSubscription;
+use App\Models\PaymentReceipt;
 use App\Models\PaymentTransaction;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class PaymentIntentService
@@ -99,6 +101,7 @@ class PaymentIntentService
             $tx = PaymentTransaction::query()->whereKey($transaction->id)->lockForUpdate()->firstOrFail();
 
             if ($tx->status === self::STATUS_VERIFIED) {
+                $this->ensureReceipt($tx, $actorUserId);
                 return $tx; // idempotent
             }
 
@@ -136,8 +139,49 @@ class PaymentIntentService
                 'provider_reference' => $tx->provider_reference,
             ]);
 
+            $this->ensureReceipt($tx, $actorUserId);
+
             return $tx;
         });
+    }
+
+    private function ensureReceipt(PaymentTransaction $tx, int $actorUserId): PaymentReceipt
+    {
+        $existing = PaymentReceipt::query()->where('payment_transaction_id', $tx->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $receipt = PaymentReceipt::create([
+            'organization_id' => $tx->organization_id,
+            'payment_transaction_id' => $tx->id,
+            'user_id' => $tx->user_id,
+            'receipt_number' => $this->generateReceiptNumber(),
+            'amount' => $tx->amount,
+            'currency' => $tx->currency,
+            'provider' => $tx->provider,
+            'provider_reference' => $tx->provider_reference,
+            'payable_type' => $tx->payable_type,
+            'payable_id' => $tx->payable_id,
+            'issued_at' => $tx->verified_at ?? now(),
+            'snapshot' => [
+                'payment_transaction_id' => $tx->id,
+                'provider' => $tx->provider,
+                'provider_reference' => $tx->provider_reference,
+            ],
+        ]);
+
+        $this->audit($tx, $actorUserId, 'payment.receipt_issued', [
+            'receipt_id' => $receipt->id,
+            'receipt_number' => $receipt->receipt_number,
+        ]);
+
+        return $receipt;
+    }
+
+    private function generateReceiptNumber(): string
+    {
+        return 'RCT-'.now()->format('Ymd').'-'.strtoupper(Str::random(10));
     }
 
     private function assertSamePayable(PaymentTransaction $existing, NexispSubscription $subscription): void

@@ -1,7 +1,7 @@
 # Nexora Group — Change and Replacement Register
 
 Last updated: 2026-11-22
-Working branch: `integration/nexisp-foundation`
+Working branch: `implementation/nexisp-verified-payment-receipts`
 Pull request: pending
 
 This register distinguishes a committed source update from a verified build or working production feature.
@@ -22,6 +22,7 @@ This register distinguishes a committed source update from a verified build or w
 | CHG-017 | NexISP commerce schema without tenant admin workflows | Tenant-scoped NexISP service-area and customer management foundation | VERIFIED — CI run 44992344119 | Added nexisp_service_areas/nexisp_customers tables, models, tenant-scoped controllers/routes, network-role authorization, same-tenant service-area validation, audit events, and feature tests. No plan CRUD API, subscriptions, invoices, payments, provisioning, imports, or UI yet. |
 | CHG-018 | Subscription schema without lifecycle API | Tenant-scoped NexISP subscription lifecycle foundation | VERIFIED — CI run 44995042659 | Added idempotency key migration, server-calculated plan snapshot/pricing, create/list/show/activate/suspend/cancel endpoints, tenant-scoped authorization, invalid-transition guards, audit events, and feature tests. No payments, invoices, receipts, reconciliation, provisioning, or UI yet. |
 | CHG-019 | Payment transactions schema without intent/verification workflow | NexISP payment intent and verification foundation | VERIFIED — CI run 44996933446 | Added tenant-scoped payment intent create/list/show endpoints, server-calculated amount/currency from payable subscription, idempotency, manageBilling authorization, PaymentProviderVerifier contract, and service-level verification that requires provider-confirmed amount/currency match. No real provider adapter, no public callback endpoint, no M-Pesa settlement claim, no invoices/receipts/reconciliation. |
+| CHG-020 | Verified payments without receipt records | Verified-payment receipt foundation | IMPLEMENTED FOUNDATION — CI pending | Added payment_receipts table/model, idempotent receipt issuance on verified payment, tenant-scoped receipt list/show endpoints, manageBilling authorization, audit event, and feature tests. No printable invoice, tax logic, refunds, or provider settlement claim. |
 
 ## Architecture status
 
