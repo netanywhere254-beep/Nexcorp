@@ -1,19 +1,19 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\\Feature;
 
-use App\Models\NexispAccount;
-use App\Models\Organization;
-use App\Services\Nexisp\FinancialReportingService;
-use App\Services\Nexisp\JournalPostingService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use App\\Models\\NexispAccount;
+use App\\Models\\Organization;
+use App\\Services\\Nexisp\\FinancialReportingService;
+use App\\Services\\Nexisp\\JournalPostingService;
+use Illuminate\\Foundation\\Testing\\RefreshDatabase;
+use Tests\\TestCase;
 
 class NexispFinancialReportingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_income_statement_uses_only_posted_journals_from_the_requested_tenant(): void
+    public function test_income_statement_uses_only_posted_journals_from_the_requested_tenant_and_currency(): void
     {
         $organization = Organization::create([
             'name' => 'NetPulse WiFi',
@@ -34,6 +34,17 @@ class NexispFinancialReportingTest extends TestCase
             ['account_id' => $expense->id, 'debit' => '200.00'],
             ['account_id' => $cash->id, 'credit' => '200.00'],
         ]);
+        $posting->post(
+            $organization->id,
+            'JE-USD-1',
+            '2026-11-22',
+            'Foreign currency revenue',
+            [
+                ['account_id' => $cash->id, 'debit' => '5000.00'],
+                ['account_id' => $revenue->id, 'credit' => '5000.00'],
+            ],
+            currency: 'USD',
+        );
 
         $other = Organization::create([
             'name' => 'Other ISP',
@@ -51,16 +62,30 @@ class NexispFinancialReportingTest extends TestCase
         $report = app(FinancialReportingService::class)
             ->incomeStatement($organization->id, '2026-11-01', '2026-11-30');
 
+        $this->assertSame('KES', $report['currency']);
         $this->assertSame('1500.00', $report['revenue']);
         $this->assertSame('200.00', $report['expenses']);
         $this->assertSame('1300.00', $report['net_profit']);
+
+        $balanceSheet = app(FinancialReportingService::class)
+            ->balanceSheet($organization->id, '2026-11-30');
+        $this->assertSame('1300.00', $balanceSheet['assets']);
+        $this->assertSame('1300.00', $balanceSheet['current_earnings']);
+        $this->assertSame('1300.00', $balanceSheet['liabilities_and_equity']);
     }
 
     public function test_invalid_report_date_range_is_rejected(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(\\InvalidArgumentException::class);
         app(FinancialReportingService::class)
             ->trialBalance(1, '2026-12-01', '2026-11-01');
+    }
+
+    public function test_invalid_currency_code_is_rejected(): void
+    {
+        $this->expectException(\\InvalidArgumentException::class);
+        app(FinancialReportingService::class)
+            ->trialBalance(1, '2026-11-01', '2026-11-30', 'US');
     }
 
     private function account(int $organizationId, string $code, string $name, string $type, string $normalBalance): NexispAccount
