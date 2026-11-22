@@ -169,6 +169,7 @@ class NexbookCustomerStatementService
                 'credits' => '0.00',
                 'closing_balance' => '0.00',
                 'transactions' => [],
+                '_period_started' => false,
             ];
 
             if ($event['date'] < $from) {
@@ -180,6 +181,11 @@ class NexbookCustomerStatementService
 
             if ($event['date'] > $to) {
                 continue;
+            }
+
+            if (!$currencies[$currency]['_period_started']) {
+                $currencies[$currency]['closing_balance'] = $currencies[$currency]['opening_balance'];
+                $currencies[$currency]['_period_started'] = true;
             }
 
             $debits = $this->minorUnits($currencies[$currency]['debits']) + $event['debit_minor'];
@@ -212,6 +218,11 @@ class NexbookCustomerStatementService
             }
             $currencies[$currency]['closing_balance'] = $this->decimalAmount($running);
         }
+
+        foreach ($currencies as &$statement) {
+            unset($statement['_period_started']);
+        }
+        unset($statement);
 
         ksort($currencies);
 
