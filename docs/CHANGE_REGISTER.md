@@ -1,7 +1,7 @@
 # Nexora Group — Change and Replacement Register
 
-Last updated: 2026-11-17  
-Working branch: `implementation/nexcore-ai-foundation`  
+Last updated: 2026-11-22
+Working branch: `implementation/organization-audit-log-api`
 Pull request: pending
 
 This register distinguishes a committed source update from a verified build or working production feature.
@@ -18,6 +18,7 @@ This register distinguishes a committed source update from a verified build or w
 | CHG-013 | Governance schema without approval workflow | Transactional staged approval service and tests | UPDATED — PR #1 | No HTTP endpoint, CEO bootstrap, MFA or NestJS parity yet. |
 | CHG-014 | No tenant-aware commerce tables | NexISP plans/subscriptions, Loopza products/orders, payment transaction records | UPDATED — PR #4 | Schema and models committed; payment verification and fulfillment remain outstanding. |
 | CHG-015 | AI only referenced in planning documents | NexCore AI provider adapter, authenticated tenant-scoped gateway, usage metering, feature allow-list, tenant monthly budgets, and service tests | IMPLEMENTED FOUNDATION — CI pending | Added /ai/assist, provider configuration, ai_usage_logs, tenant budget policy table, locked monthly request reservations, output-token ceilings, service tests, and endpoint authentication/tenant-context security tests. Provider and tenant budgets are disabled by default. No UI, RAG, autonomous agents, orchestration, provider cost reconciliation, per-user quotas, or NestJS parity yet. |
+| CHG-016 | Audit logs stored but not exposed to tenant admins | Tenant-scoped organization audit log read API | IMPLEMENTED FOUNDATION — CI pending | Added GET /organization/audit-logs for manageMembers roles, tenant-scoped filtering, actor summary, and feature tests. No export, retention policy, tamper-evidence, or UI yet. |
 
 ## Architecture status
 

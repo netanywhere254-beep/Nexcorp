@@ -4,6 +4,7 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\OrganizationAuditLogController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -55,6 +56,10 @@ Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->
 });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
+Route::middleware(['auth','verified','organization.active'])->prefix('organization/audit-logs')->group(function () {
+    Route::get('/', [OrganizationAuditLogController::class, 'index']);
+});
+
 Route::middleware(['auth','verified','organization.active'])->prefix('organization/staff-security')->group(function(){
  Route::post('/approved-phones',[OrganizationStaffOtpController::class,'approveNumber'])->middleware('throttle:10,1');
  Route::delete('/approved-phones/{id}',[OrganizationStaffOtpController::class,'revokeNumber'])->middleware('throttle:10,1');
