@@ -128,6 +128,38 @@ class NexispBillingServiceTest extends TestCase
 
         $this->assertSame('void', $voided->status);
         $this->assertSame('cancelled', $voided->subscription->status);
+        $original = NexispJournalEntry::where('organization_id', $org->id)
+            ->where('source_type', NexispInvoice::class)->where('source_id', $invoice->id)
+            ->whereNull('reversal_of_entry_id')->firstOrFail();
+        $reversal = NexispJournalEntry::where('organization_id', $org->id)
+            ->where('reversal_of_entry_id', $original->id)->firstOrFail();
+        $this->assertSame('posted', $reversal->status);
+        $this->assertSame($original->total_debit, $reversal->total_credit);
+        $this->assertSame($original->total_credit, $reversal->total_debit);
+    }
+
+    public function test_invoice_with_partial_receipt_cannot_be_voided_without_refund_flow(): void
+    {
+        [$org, $actor, $customer, $plan] = $this->fixture();
+        $billing = app(NexispBillingService::class);
+        $invoice = $billing->subscribe($org, $customer, $plan, $actor);
+        $payment = PaymentTransaction::create([
+            'organization_id' => $org->id,
+            'user_id' => $actor->id,
+            'payable_type' => NexispInvoice::class,
+            'payable_id' => $invoice->id,
+            'provider' => 'mpesa',
+            'provider_reference' => 'PARTIAL-'.uniqid(),
+            'idempotency_key' => 'PARTIAL-'.uniqid(),
+            'status' => 'succeeded',
+            'amount' => '500.00',
+            'currency' => 'KES',
+            'verified_at' => now(),
+        ]);
+        app(NexispAccountingService::class)->issueReceipt($actor, $org, $invoice->id, $payment->id);
+
+        $this->expectException(ValidationException::class);
+        $billing->voidInvoice($invoice->id, $actor);
     }
 
     private function fixture(): array
