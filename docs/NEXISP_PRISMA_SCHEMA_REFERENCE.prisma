@@ -35,6 +35,8 @@ model Tenant {
   subscriptions Subscription[]
   invoices      Invoice[]
   transactions  Transaction[]
+  accountingConnections AccountingConnection[]
+  accountingSyncRuns AccountingSyncRun[]
 
   @@map("tenants")
 }
@@ -48,7 +50,10 @@ model User {
   role         Role     @default(STAFF)
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+  accountingConnections AccountingConnection[] @relation("AccountingConnectionActor")
+  accountingSyncRuns AccountingSyncRun[] @relation("AccountingSyncActor")
 
+  @@unique([id, tenantId])
   @@unique([tenantId, email])
   @@index([tenantId, role])
   @@map("users")
@@ -227,4 +232,101 @@ enum TransactionStatus {
   SUCCESSFUL
   FAILED
   REVERSED
+}
+
+
+model AccountingConnection {
+  id                     String   @id @default(uuid()) @db.Uuid
+  tenantId               String   @db.Uuid
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connectedByUserId      String?  @db.Uuid
+  connectedBy            User?    @relation("AccountingConnectionActor", fields: [connectedByUserId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  provider               String   @db.VarChar(40)
+  displayName            String   @db.VarChar(120)
+  externalAccountId      String?  @db.VarChar(160)
+  status                 String   @default("pending") @db.VarChar(24)
+  accessTokenCiphertext  String?
+  refreshTokenCiphertext String?
+  tokenExpiresAt         DateTime? @db.Timestamptz(6)
+  grantedScopes          Json?
+  settings               Json?
+  lastSyncedAt           DateTime? @db.Timestamptz(6)
+  createdAt              DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @db.Timestamptz(6)
+  mappings               AccountingAccountMapping[]
+  syncRuns               AccountingSyncRun[]
+  syncItems              AccountingSyncItem[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, provider, externalAccountId])
+  @@index([tenantId, status])
+  @@map("accounting_connections")
+}
+
+model AccountingAccountMapping {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @db.Uuid
+  connectionId          String   @db.Uuid
+  connection            AccountingConnection @relation(fields: [connectionId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  mappingType           String   @db.VarChar(40)
+  localCode             String   @db.VarChar(80)
+  externalAccountId     String   @db.VarChar(160)
+  externalAccountName   String?  @db.VarChar(160)
+  enabled               Boolean  @default(true)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([connectionId, mappingType, localCode])
+  @@index([tenantId, connectionId])
+  @@map("accounting_account_mappings")
+}
+
+model AccountingSyncRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connectionId    String   @db.Uuid
+  connection      AccountingConnection @relation(fields: [connectionId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  startedByUserId String?  @db.Uuid
+  startedBy       User?    @relation("AccountingSyncActor", fields: [startedByUserId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  direction       String   @default("export") @db.VarChar(16)
+  status          String   @default("queued") @db.VarChar(24)
+  itemsTotal      Int      @default(0)
+  itemsSucceeded  Int      @default(0)
+  itemsFailed     Int      @default(0)
+  summary         Json?
+  startedAt       DateTime? @db.Timestamptz(6)
+  finishedAt      DateTime? @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+  items           AccountingSyncItem[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt])
+  @@map("accounting_sync_runs")
+}
+
+model AccountingSyncItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  connectionId   String   @db.Uuid
+  connection     AccountingConnection @relation(fields: [connectionId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  runId          String?  @db.Uuid
+  run            AccountingSyncRun? @relation(fields: [runId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  localType      String   @db.VarChar(80)
+  localId        String   @db.Uuid
+  operation      String   @default("upsert") @db.VarChar(24)
+  idempotencyKey String   @db.VarChar(190)
+  payloadHash    String   @db.Char(64)
+  externalId     String?  @db.VarChar(190)
+  status         String   @default("queued") @db.VarChar(24)
+  attempts       Int      @default(0)
+  lastError      String?
+  syncedAt       DateTime? @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([tenantId, connectionId, idempotencyKey])
+  @@index([tenantId, localType, localId])
+  @@map("accounting_sync_items")
 }
