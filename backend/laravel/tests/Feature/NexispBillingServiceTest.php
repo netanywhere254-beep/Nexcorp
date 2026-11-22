@@ -98,6 +98,48 @@ class NexispBillingServiceTest extends TestCase
         $this->assertDatabaseCount('nexisp_receipts', 1);
     }
 
+    public function test_subscription_activates_after_verified_final_installment(): void
+    {
+        [$org, $actor, $customer, $plan] = $this->fixture();
+        $billing = app(NexispBillingService::class);
+        $invoice = $billing->subscribe($org, $customer, $plan, $actor);
+
+        $firstPayment = PaymentTransaction::create([
+            'organization_id' => $org->id,
+            'user_id' => $actor->id,
+            'payable_type' => NexispInvoice::class,
+            'payable_id' => $invoice->id,
+            'provider' => 'mpesa',
+            'provider_reference' => 'INSTALLMENT-1-'.uniqid(),
+            'idempotency_key' => 'INSTALLMENT-1-'.uniqid(),
+            'status' => 'succeeded',
+            'amount' => '500.00',
+            'currency' => 'KES',
+            'verified_at' => now(),
+        ]);
+        app(NexispAccountingService::class)->issueReceipt($actor, $org, $invoice->id, $firstPayment->id);
+        $this->assertSame('partially_paid', $invoice->fresh()->status);
+
+        $finalPayment = PaymentTransaction::create([
+            'organization_id' => $org->id,
+            'user_id' => $actor->id,
+            'payable_type' => NexispInvoice::class,
+            'payable_id' => $invoice->id,
+            'provider' => 'mpesa',
+            'provider_reference' => 'INSTALLMENT-2-'.uniqid(),
+            'idempotency_key' => 'INSTALLMENT-2-'.uniqid(),
+            'status' => 'succeeded',
+            'amount' => '1000.00',
+            'currency' => 'KES',
+            'verified_at' => now(),
+        ]);
+
+        $settled = $billing->settleInvoice($invoice->id, $finalPayment->id, $actor);
+        $this->assertSame('paid', $settled->status);
+        $this->assertSame('active', $settled->subscription->status);
+        $this->assertDatabaseCount('nexisp_receipts', 2);
+    }
+
     public function test_pending_or_mismatched_payment_cannot_activate_subscription(): void
     {
         [$org, $actor, $customer, $plan] = $this->fixture();
