@@ -196,6 +196,9 @@ class NexispAccountingService
 
             $totalCents = $subtotalCents + $taxCents;
             $currency = strtoupper($data['currency'] ?? $settings->base_currency);
+            if ($currency !== strtoupper($settings->base_currency)) {
+                throw ValidationException::withMessages(['currency' => 'Invoices must use the ISP base currency until multi-currency accounting is enabled.']);
+            }
             $invoiceNumber = $this->nextNumber($organization, 'invoice');
 
             $invoice = NexispInvoice::create([
@@ -298,6 +301,10 @@ class NexispAccountingService
                 throw ValidationException::withMessages(['accounts' => 'Choose an expense account and a valid cash, bank or payable account.']);
             }
 
+            $currency = strtoupper($data['currency'] ?? $settings->base_currency);
+            if ($currency !== strtoupper($settings->base_currency)) {
+                throw ValidationException::withMessages(['currency' => 'Expenses must use the ISP base currency until multi-currency accounting is enabled.']);
+            }
             $amountCents = $this->toCents($data['amount']);
             if ($amountCents <= 0) {
                 throw ValidationException::withMessages(['amount' => 'Expense amount must be greater than zero.']);
@@ -311,7 +318,7 @@ class NexispAccountingService
                 'vendor_name' => $data['vendor_name'] ?? null,
                 'description' => $data['description'],
                 'amount' => number_format($amountCents / 100, 2, '.', ''),
-                'currency' => strtoupper($data['currency'] ?? $settings->base_currency),
+                'currency' => $currency,
                 'status' => 'draft',
                 'expense_date' => $data['expense_date'],
                 'reference' => $data['reference'] ?? null,
