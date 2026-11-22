@@ -1,6 +1,8 @@
 # NexISP accounting integrations
 
-NexISP provides an organization-owned accounting integration boundary. Each ISP can connect its own bookkeeping account, map NexISP financial categories to the accounting provider's chart of accounts, and synchronize records without sharing credentials or financial data with another tenant.
+NexISP Books is the primary accounting and bookkeeping system and remains the ISP's source of truth. External services such as Zoho Books, QuickBooks Online, Xero and Sage are optional connections for ISPs that want to mirror or synchronize selected records. An ISP can run NexISP Books without connecting any third-party accounting product.
+
+NexISP also provides an organization-owned accounting integration boundary. Each ISP can connect its own bookkeeping account, map NexISP financial categories to the accounting provider's chart of accounts, and synchronize records without sharing credentials or financial data with another tenant.
 
 ## Provider roadmap
 
