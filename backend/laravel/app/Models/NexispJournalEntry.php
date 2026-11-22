@@ -11,7 +11,7 @@ class NexispJournalEntry extends Model
     protected $table = 'nexisp_journal_entries';
 
     protected $fillable = [
-        'organization_id', 'entry_number', 'status', 'source_type', 'source_id',
+        'organization_id', 'entry_number', 'status', 'source_type', 'source_id', 'reversal_of_entry_id',
         'description', 'currency', 'entry_date', 'total_debit', 'total_credit',
         'created_by_user_id', 'posted_by_user_id', 'posted_at', 'voided_at',
     ];
@@ -40,6 +40,16 @@ class NexispJournalEntry extends Model
                 throw new LogicException('Posted journal entries cannot be deleted. Create a reversal entry instead.');
             }
         });
+    }
+
+    public function reversalOf(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reversal_of_entry_id');
+    }
+
+    public function reversals(): HasMany
+    {
+        return $this->hasMany(self::class, 'reversal_of_entry_id');
     }
 
     public function lines(): HasMany
