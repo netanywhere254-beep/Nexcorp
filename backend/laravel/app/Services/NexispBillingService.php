@@ -138,10 +138,16 @@ class NexispBillingService
                 ->whereNotNull('verified_at')
                 ->firstOrFail();
 
+            $alreadyReceived = (string) \App\Models\NexispReceipt::query()
+                ->where('organization_id', $invoice->organization_id)
+                ->where('invoice_id', $invoice->id)
+                ->sum('amount');
+            $remainingCents = $this->cents((string) $invoice->amount) - $this->cents($alreadyReceived);
+
             if (strtoupper($payment->currency) !== strtoupper($invoice->currency)
-                || $this->cents((string) $payment->amount) !== $this->cents((string) $invoice->amount)) {
+                || $this->cents((string) $payment->amount) !== $remainingCents) {
                 throw ValidationException::withMessages([
-                    'payment' => 'Only a verified payment matching the full invoice amount and currency can activate a subscription.',
+                    'payment' => 'Only a verified payment matching the remaining invoice balance and currency can activate a subscription.',
                 ]);
             }
 
