@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrganizationMember extends Model
 {
+    public const ASSIGNABLE_ROLES = [
+        'member',
+        'manager',
+        'support',
+        'billing',
+        'admin',
+    ];
+
     protected $fillable = [
         'organization_id',
         'user_id',
