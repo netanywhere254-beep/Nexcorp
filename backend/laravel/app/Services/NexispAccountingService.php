@@ -77,7 +77,7 @@ class NexispAccountingService
     {
         Gate::forUser($actor)->authorize('manageBilling', $organization);
 
-        return DB::transaction(function () use ($actor, $organization, $data): NexispInvoice {
+        $requestHash = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));\n\n        try {\n            return DB::transaction(function () use ($actor, $organization, $data, $requestHash): NexispInvoice {
             $settings = NexispAccountingSetting::firstOrCreate(
                 ['organization_id' => $organization->id],
                 ['operating_mode' => 'native', 'base_currency' => 'KES'],
@@ -109,6 +109,9 @@ class NexispAccountingService
                     ->where('idempotency_key', $data['idempotency_key'])
                     ->first();
                 if ($existing) {
+                    if ($existing->request_hash !== null && ! hash_equals($existing->request_hash, $requestHash)) {
+                        throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used with a different invoice payload.']);
+                    }
                     return $existing->load('items');
                 }
             }
@@ -198,7 +201,7 @@ class NexispAccountingService
                 'currency' => $currency,
                 'issued_at' => $data['issued_at'] ?? now(),
                 'due_at' => $data['due_at'] ?? null,
-                'idempotency_key' => $data['idempotency_key'] ?? null,
+                'idempotency_key' => $data['idempotency_key'] ?? null,\n                'request_hash' => $requestHash,
                 'notes' => $data['notes'] ?? null,
                 'document_snapshot' => [
                     'customer_name' => $customer->name,
@@ -240,7 +243,22 @@ class NexispAccountingService
             ]);
 
             return $invoice->load('items');
-        });
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            if (! empty($data['idempotency_key'])) {
+                $existing = NexispInvoice::query()
+                    ->where('organization_id', $organization->id)
+                    ->where('idempotency_key', $data['idempotency_key'])
+                    ->first();
+                if ($existing && ($existing->request_hash === null || hash_equals($existing->request_hash, $requestHash))) {
+                    return $existing->load('items');
+                }
+                if ($existing) {
+                    throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key was already used with a different invoice payload.']);
+                }
+            }
+            throw $exception;
+        }
     }
 
     public function createExpense(
