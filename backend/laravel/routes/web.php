@@ -6,6 +6,7 @@ use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexbookCustomerStatementController;
 use App\Http\Controllers\NexbookCreditNoteController;
+use App\Http\Controllers\NexbookPaymentRefundController;
 use App\Http\Controllers\NexbookReceivablesAgingController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
@@ -78,3 +79,5 @@ Route::middleware(['auth','verified','organization.active'])->get('/nexbook/cust
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/receivables-ageing',[NexbookReceivablesAgingController::class,'show'])->middleware('throttle:30,1');
 
 Route::middleware(['auth','verified','organization.active'])->post('/nexbook/credit-notes',[NexbookCreditNoteController::class,'store'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->post('/nexbook/payment-refunds',[NexbookPaymentRefundController::class,'store'])->middleware('throttle:20,1');
