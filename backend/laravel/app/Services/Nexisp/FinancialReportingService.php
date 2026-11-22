@@ -1,87 +1,110 @@
 <?php
 
-namespace App\Services\Nexisp;
+namespace App\\Services\\Nexisp;
 
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Illuminate\\Support\\Collection;
+use Illuminate\\Support\\Facades\\DB;
 use InvalidArgumentException;
 
 /**
- * Read-only, tenant-scoped financial statements built only from posted journals.
- * Amounts remain decimal strings from the database; no float arithmetic is used.
+ * Read-only, tenant- and currency-scoped financial statements built from posted journals.
+ * Amounts are handled as integer minor units; floating-point arithmetic is avoided.
  */
 class FinancialReportingService
 {
-    public function trialBalance(int $organizationId, string $from, string $to): Collection
+    public function trialBalance(int $organizationId, string $from, string $to, string $currency = 'KES'): Collection
     {
         $this->assertDateRange($from, $to);
 
-        return $this->balances($organizationId, $from, $to)
+        return $this->balances($organizationId, $from, $to, $currency)
             ->map(fn (object $row) => $this->withNetBalance($row));
     }
 
-    public function incomeStatement(int $organizationId, string $from, string $to): array
+    public function incomeStatement(int $organizationId, string $from, string $to, string $currency = 'KES'): array
     {
         $this->assertDateRange($from, $to);
-        $rows = $this->balances($organizationId, $from, $to)
+        $rows = $this->balances($organizationId, $from, $to, $currency)
             ->whereIn('type', ['revenue', 'income', 'expense'])
             ->values();
 
-        $revenue = '0.00';
-        $expenses = '0.00';
+        $revenue = 0;
+        $expenses = 0;
 
         foreach ($rows as $row) {
-            $net = $this->minorUnits($row->debits) - $this->minorUnits($row->credits);
+            $debitMinusCredit = $this->minorUnits($row->debits) - $this->minorUnits($row->credits);
             if (in_array($row->type, ['revenue', 'income'], true)) {
-                $revenue = $this->decimalFromMinor($this->minorUnits($revenue) - $net);
+                $revenue -= $debitMinusCredit;
             } else {
-                $expenses = $this->decimalFromMinor($this->minorUnits($expenses) + $net);
+                $expenses += $debitMinusCredit;
             }
         }
 
         return [
             'organization_id' => $organizationId,
+            'currency' => strtoupper($currency),
             'from' => $from,
             'to' => $to,
-            'revenue' => $revenue,
-            'expenses' => $expenses,
-            'net_profit' => $this->decimalFromMinor($this->minorUnits($revenue) - $this->minorUnits($expenses)),
+            'revenue' => $this->decimalFromMinor($revenue),
+            'expenses' => $this->decimalFromMinor($expenses),
+            'net_profit' => $this->decimalFromMinor($revenue - $expenses),
             'accounts' => $rows->map(fn (object $row) => $this->withNetBalance($row)),
         ];
     }
 
-    public function balanceSheet(int $organizationId, string $asAt): array
+    public function balanceSheet(int $organizationId, string $asAt, string $currency = 'KES'): array
     {
         $this->assertDateRange($asAt, $asAt);
-        $rows = $this->balances($organizationId, null, $asAt)
+        $rows = $this->balances($organizationId, null, $asAt, $currency)->values();
+        $balanceSheetRows = $rows
             ->whereIn('type', ['asset', 'liability', 'equity'])
             ->values();
 
         $totals = ['asset' => 0, 'liability' => 0, 'equity' => 0];
-        foreach ($rows as $row) {
+        foreach ($balanceSheetRows as $row) {
             $debitMinusCredit = $this->minorUnits($row->debits) - $this->minorUnits($row->credits);
             $type = $row->type;
             $totals[$type] += $type === 'asset' ? $debitMinusCredit : -$debitMinusCredit;
         }
 
+        // Until year-end closing journals are posted, current-period earnings
+        // must appear in equity for the balance sheet to remain complete.
+        $incomeRows = $rows->whereIn('type', ['revenue', 'income', 'expense']);
+        $currentEarnings = 0;
+        foreach ($incomeRows as $row) {
+            $debitMinusCredit = $this->minorUnits($row->debits) - $this->minorUnits($row->credits);
+            $currentEarnings += in_array($row->type, ['revenue', 'income'], true)
+                ? -$debitMinusCredit
+                : -$debitMinusCredit;
+        }
+
         return [
             'organization_id' => $organizationId,
+            'currency' => strtoupper($currency),
             'as_at' => $asAt,
             'assets' => $this->decimalFromMinor($totals['asset']),
             'liabilities' => $this->decimalFromMinor($totals['liability']),
             'equity' => $this->decimalFromMinor($totals['equity']),
-            'accounts' => $rows->map(fn (object $row) => $this->withNetBalance($row)),
+            'current_earnings' => $this->decimalFromMinor($currentEarnings),
+            'total_equity' => $this->decimalFromMinor($totals['equity'] + $currentEarnings),
+            'liabilities_and_equity' => $this->decimalFromMinor($totals['liability'] + $totals['equity'] + $currentEarnings),
+            'accounts' => $balanceSheetRows->map(fn (object $row) => $this->withNetBalance($row)),
         ];
     }
 
-    private function balances(int $organizationId, ?string $from, string $to): Collection
+    private function balances(int $organizationId, ?string $from, string $to, string $currency): Collection
     {
+        $currency = strtoupper($currency);
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            throw new InvalidArgumentException('A valid three-letter ISO currency code is required.');
+        }
+
         $query = DB::table('nexisp_accounts as accounts')
             ->leftJoin('nexisp_journal_lines as lines', 'lines.account_id', '=', 'accounts.id')
-            ->leftJoin('nexisp_journal_entries as entries', function ($join) use ($organizationId, $from, $to) {
+            ->leftJoin('nexisp_journal_entries as entries', function ($join) use ($organizationId, $from, $to, $currency) {
                 $join->on('entries.id', '=', 'lines.journal_entry_id')
                     ->where('entries.organization_id', '=', $organizationId)
                     ->where('entries.status', '=', 'posted')
+                    ->where('entries.currency', '=', $currency)
                     ->whereDate('entries.entry_date', '<=', $to);
                 if ($from !== null) {
                     $join->whereDate('entries.entry_date', '>=', $from);
@@ -107,7 +130,7 @@ class FinancialReportingService
     {
         $debits = $this->minorUnits($row->debits);
         $credits = $this->minorUnits($row->credits);
-        $debitNormal = in_array($row->normal_balance, ['debit'], true);
+        $debitNormal = $row->normal_balance === 'debit';
         $net = $debitNormal ? $debits - $credits : $credits - $debits;
 
         return [
@@ -134,7 +157,7 @@ class FinancialReportingService
     private function minorUnits(string|int|float $amount): int
     {
         $value = (string) $amount;
-        if (!preg_match('/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]{1,2})?$/', $value)) {
+        if (!preg_match('/^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/', $value)) {
             throw new InvalidArgumentException('Database returned an invalid monetary amount.');
         }
         $negative = str_starts_with($value, '-');
