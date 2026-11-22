@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\NexispAccount;
 use App\Models\Organization;
 use App\Services\Nexisp\NexbookCustomerStatementService;
+use App\Services\Nexisp\NexbookCreditNoteService;
 use App\Services\Nexisp\NexbookInvoiceService;
 use App\Services\Nexisp\NexbookPaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
