@@ -348,6 +348,8 @@ class NexispAccountingService
 
     public function postJournal(Organization $organization, User $actor, array $data): NexispJournalEntry
     {
+        Gate::forUser($actor)->authorize('manageBilling', $organization);
+
         $lines = $data['lines'] ?? [];
         if (count($lines) < 2) {
             throw ValidationException::withMessages(['lines' => 'A journal entry requires at least two lines.']);
