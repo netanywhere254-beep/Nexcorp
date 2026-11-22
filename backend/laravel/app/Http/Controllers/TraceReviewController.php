@@ -149,8 +149,10 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.profile.'.$profileId);
 
-        $profile = DB::transaction(function () use ($request, $profileId, $data, $countries): TraceProfile {
-            $profile = TraceProfile::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($profileId);
+        $profile = DB::transaction(function () use ($request, $profileId, $data, $scope): TraceProfile {
+            $currentCountries = $scope->lockCountriesFor($request->user());
+            abort_if($currentCountries === [], 403, 'Reviewer country appointment is no longer active.');
+            $profile = TraceProfile::query()->whereIn('country_code', $currentCountries)->lockForUpdate()->findOrFail($profileId);
             abort_if((int) $profile->user_id === (int) $request->user()->id, 403,
                 'Reviewers cannot decide their own identity verification.');
             abort_unless($profile->account_type === 'family', 404);
@@ -315,8 +317,10 @@ class TraceReviewController extends Controller
 
         $otp->consume($request, 'loopza.trace.review.case.'.$caseId);
 
-        $case = DB::transaction(function () use ($request, $caseId, $data, $countries): TraceCase {
-            $case = TraceCase::query()->whereIn('incident_country_code', $countries)->lockForUpdate()->findOrFail($caseId);
+        $case = DB::transaction(function () use ($request, $caseId, $data, $scope): TraceCase {
+            $currentCountries = $scope->lockCountriesFor($request->user());
+            abort_if($currentCountries === [], 403, 'Reviewer country appointment is no longer active.');
+            $case = TraceCase::query()->whereIn('incident_country_code', $currentCountries)->lockForUpdate()->findOrFail($caseId);
             abort_if((int) $case->reporter_user_id === (int) $request->user()->id, 403,
                 'Reviewers cannot decide their own cases.');
             abort_unless(in_array($case->status, [
