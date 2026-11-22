@@ -524,6 +524,10 @@ class NexispAccountingService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if ($invoice->status === 'void') {
+                throw ValidationException::withMessages(['invoice' => 'Receipts cannot be issued for a voided invoice.']);
+            }
+
             $payment = null;
             if ($paymentTransactionId !== null) {
                 $payment = PaymentTransaction::query()
