@@ -129,6 +129,9 @@ class NexispAccountingService
             $lineSnapshots = [];
             foreach ($data['items'] as $line) {
                 $quantity = (int) $line['quantity'];
+                if ($quantity < 1 || $quantity > 1000000) {
+                    throw ValidationException::withMessages(['items' => 'Invoice item quantity is outside the supported range.']);
+                }
                 $unitCents = $this->toCents((string) $line['unit_price']);
                 if ($unitCents <= 0) {
                     throw ValidationException::withMessages(['items' => 'Invoice item prices must be greater than zero.']);
@@ -139,6 +142,7 @@ class NexispAccountingService
                 $grossCents = $quantity * $unitCents;
                 $rateBasisPoints = 0;
                 $taxInclusive = false;
+                $taxRate = null;
 
                 if (! empty($line['tax_rate_id'])) {
                     if (! $settings->tax_enabled) {
@@ -167,7 +171,7 @@ class NexispAccountingService
                     'description' => $line['description'],
                     'quantity' => $quantity,
                     'unit_price' => number_format($unitCents / 100, 2, '.', ''),
-                    'tax_rate_percent' => (string) $taxRate->rate_percent,
+                    'tax_rate_percent' => (string) ($taxRate?->rate_percent ?? '0.0000'),
                     'line_subtotal' => number_format($lineSubtotal / 100, 2, '.', ''),
                     'tax_amount' => number_format($lineTax / 100, 2, '.', ''),
                     'line_total' => number_format($lineTotal / 100, 2, '.', ''),
@@ -572,7 +576,11 @@ class NexispAccountingService
         }
         $whole = (int) $matches[1];
         $fraction = (int) str_pad($matches[2] ?? '', 4, '0');
-        return ($whole * 100000) + ($fraction * 10);
+        $units = ($whole * 100000) + ($fraction * 10);
+        if ($units > 10000000) {
+            throw ValidationException::withMessages(['tax_rate' => 'Tax rate cannot exceed 100 percent.']);
+        }
+        return $units;
     }
 
     private function percentageOfCents(int $amountCents, int $rateUnits, int $denominator): int
