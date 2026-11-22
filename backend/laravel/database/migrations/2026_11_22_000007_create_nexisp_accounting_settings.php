@@ -20,9 +20,9 @@ return new class extends Migration
             $table->boolean('native_ledger_enabled')->default(true);
             $table->boolean('expenses_enabled')->default(true);
             $table->boolean('tax_enabled')->default(true);
-            $table->boolean('bank_reconciliation_enabled')->default(true);
-            $table->boolean('budgets_enabled')->default(true);
-            $table->boolean('recurring_invoices_enabled')->default(true);
+            $table->boolean('bank_reconciliation_enabled')->default(false);
+            $table->boolean('budgets_enabled')->default(false);
+            $table->boolean('recurring_invoices_enabled')->default(false);
             $table->boolean('external_sync_enabled')->default(false);
             $table->json('feature_preferences')->nullable();
             $table->timestamps();
