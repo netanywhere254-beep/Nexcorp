@@ -115,7 +115,7 @@ class EngineerSessionService
             throw new RuntimeException('Engineer session idle timeout configuration is invalid.');
         }
 
-        return DB::transaction(function () use ($actor, $organization, $token, $idleTimeoutSeconds) {
+        $outcome = DB::transaction(function () use ($actor, $organization, $token, $idleTimeoutSeconds) {
             $session = EngineerSession::query()
                 ->where('organization_id', $organization->getKey())
                 ->where('actor_user_id', $actor->getKey())
@@ -125,7 +125,7 @@ class EngineerSessionService
                 ->first();
 
             if (! $session) {
-                throw new RuntimeException('No matching active engineer session.');
+                return ['session' => null, 'error' => 'No matching active engineer session.'];
             }
 
             $now = now();
@@ -136,7 +136,8 @@ class EngineerSessionService
                 ])->save();
 
                 $this->audit($organization, $actor, 'engineer.session_expired', $session, ['reason' => 'idle_or_absolute_timeout']);
-                throw new RuntimeException('Engineer session expired.');
+
+                return ['session' => null, 'error' => 'Engineer session expired.'];
             }
 
             if ($actor->status !== 'active' || $organization->status !== 'active') {
@@ -146,7 +147,8 @@ class EngineerSessionService
                 ])->save();
 
                 $this->audit($organization, $actor, 'engineer.session_revoked', $session, ['reason' => 'account_or_tenant_inactive']);
-                throw new RuntimeException('Engineer access is no longer active.');
+
+                return ['session' => null, 'error' => 'Engineer access is no longer active.'];
             }
 
             $membershipStillActive = $actor->organizations()
@@ -162,7 +164,8 @@ class EngineerSessionService
                 ])->save();
 
                 $this->audit($organization, $actor, 'engineer.session_revoked', $session, ['reason' => 'membership_revoked']);
-                throw new RuntimeException('Engineer organization membership is no longer active.');
+
+                return ['session' => null, 'error' => 'Engineer organization membership is no longer active.'];
             }
 
             $idleExpiry = $now->copy()->addSeconds($idleTimeoutSeconds);
@@ -177,8 +180,16 @@ class EngineerSessionService
 
             $this->audit($organization, $actor, 'engineer.session_activity', $session);
 
-            return $session;
+            return ['session' => $session, 'error' => null];
         });
+
+        // Throw only after the transaction commits so expiry/revocation and its
+        // audit record are not rolled back by exception handling.
+        if ($outcome['error'] !== null) {
+            throw new RuntimeException($outcome['error']);
+        }
+
+        return $outcome['session'];
     }
 
     public function deactivate(User $actor, Organization $organization, string $token, string $command): void
