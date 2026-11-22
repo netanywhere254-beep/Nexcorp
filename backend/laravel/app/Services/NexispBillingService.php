@@ -120,11 +120,11 @@ class NexispBillingService
      * Called by the verified payment-provider workflow. Never accept a raw callback amount here.
      * The payment transaction must already be persisted, verified and bound to this invoice.
      */
-    public function settleInvoice(int $invoiceId, int $paymentTransactionId, User $actor): NexispInvoice
+    public function settleInvoice(Organization $organization, int $invoiceId, int $paymentTransactionId, User $actor): NexispInvoice
     {
-        return DB::transaction(function () use ($invoiceId, $paymentTransactionId, $actor): NexispInvoice {
-            $invoice = NexispInvoice::query()->whereKey($invoiceId)->lockForUpdate()->firstOrFail();
-            Gate::forUser($actor)->authorize('manageBilling', $invoice->organization);
+        Gate::forUser($actor)->authorize('manageBilling', $organization);
+        return DB::transaction(function () use ($organization, $invoiceId, $paymentTransactionId, $actor): NexispInvoice {
+            $invoice = NexispInvoice::query()->where('organization_id', $organization->id)->whereKey($invoiceId)->lockForUpdate()->firstOrFail();
 
             if ($invoice->status === 'paid') {
                 return $invoice->load('subscription');
@@ -185,11 +185,11 @@ class NexispBillingService
         });
     }
 
-    public function voidInvoice(int $invoiceId, User $actor): NexispInvoice
+    public function voidInvoice(Organization $organization, int $invoiceId, User $actor): NexispInvoice
     {
-        return DB::transaction(function () use ($invoiceId, $actor): NexispInvoice {
-            $invoice = NexispInvoice::query()->lockForUpdate()->findOrFail($invoiceId);
-            Gate::forUser($actor)->authorize('manageBilling', $invoice->organization);
+        Gate::forUser($actor)->authorize('manageBilling', $organization);
+        return DB::transaction(function () use ($organization, $invoiceId, $actor): NexispInvoice {
+            $invoice = NexispInvoice::query()->where('organization_id', $organization->id)->lockForUpdate()->findOrFail($invoiceId);
             if ($invoice->status === 'void') {
                 return $invoice->load('subscription');
             }
