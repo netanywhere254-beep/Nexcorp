@@ -42,7 +42,7 @@ class EngineerSessionService
             // Serialize session creation per tenant to prevent simultaneous starts.
             $lockedOrganization = Organization::query()->whereKey($organization->getKey())->lockForUpdate()->first();
 
-            if (! $lockedOrganization || $lockedOrganization->status !== 'active' || $actor->status !== 'active') {
+            if (! $lockedOrganization || $lockedOrganization->status !== 'active' || $actor->status !== 'active' || ! $actor->hasVerifiedEmail()) {
                 throw new RuntimeException('An active actor and organization are required.');
             }
 
@@ -145,7 +145,7 @@ class EngineerSessionService
                 return ['session' => null, 'error' => 'Engineer session expired.'];
             }
 
-            if ($actor->status !== 'active' || $organization->status !== 'active') {
+            if ($actor->status !== 'active' || $organization->status !== 'active' || ! $actor->hasVerifiedEmail()) {
                 $session->forceFill([
                     'revoked_at' => $now,
                     'revocation_reason' => 'account_or_tenant_inactive',
@@ -243,13 +243,15 @@ class EngineerSessionService
             ->where('user_id', $actor->getKey())
             ->where('status', 'active')
             ->whereNull('revoked_at')
-            ->whereNotNull('scope')
             ->where('starts_at', '<=', $at)
             ->where(function ($query) use ($at) {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', $at);
             })
             ->whereColumn('granted_by_user_id', '!=', 'approved_by_user_id')
-            ->exists();
+            ->whereHas('grantor', fn ($query) => $query->where('status', 'active'))
+            ->whereHas('approver', fn ($query) => $query->where('status', 'active'))
+            ->get()
+            ->contains(fn (EngineerAccessGrant $grant): bool => is_array($grant->scope) && count($grant->scope) > 0);
     }
 
     private function audit(Organization $organization, User $actor, string $action, EngineerSession $session, array $metadata = []): void
