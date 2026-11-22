@@ -348,6 +348,240 @@ class NexispBooksController
         ]);
     }
 
+    public function createAccount(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:32', 'regex:/^[A-Za-z0-9._-]+$/'],
+            'name' => ['required', 'string', 'max:120'],
+            'account_type' => ['required', 'in:asset,liability,equity,revenue,expense'],
+            'normal_balance' => ['required', 'in:debit,credit'],
+            'parent_id' => ['nullable', 'integer'],
+        ]);
+
+        $expected = in_array($data['account_type'], ['asset', 'expense'], true) ? 'debit' : 'credit';
+        if ($data['normal_balance'] !== $expected) {
+            throw ValidationException::withMessages(['normal_balance' => 'Normal balance must match the selected account type.']);
+        }
+        if (! empty($data['parent_id'])) {
+            NexispChartOfAccount::query()
+                ->where('organization_id', $organization->id)
+                ->whereKey($data['parent_id'])
+                ->firstOrFail();
+        }
+
+        $account = NexispChartOfAccount::create([
+            'organization_id' => $organization->id,
+            'code' => $data['code'],
+            'name' => $data['name'],
+            'account_type' => $data['account_type'],
+            'normal_balance' => $data['normal_balance'],
+            'parent_id' => $data['parent_id'] ?? null,
+            'system_account' => false,
+            'active' => true,
+        ]);
+
+        AuditLog::create([
+            'organization_id' => $organization->id,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'nexisp.accounting.account_created',
+            'subject_type' => NexispChartOfAccount::class,
+            'subject_id' => (string) $account->id,
+            'metadata' => ['code' => $account->code, 'account_type' => $account->account_type],
+        ]);
+
+        return response()->json(['data' => $account], 201);
+    }
+
+    public function taxRates(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        return response()->json([
+            'data' => \App\Models\NexispTaxRate::query()
+                ->where('organization_id', $organization->id)
+                ->orderBy('code')
+                ->get(),
+        ]);
+    }
+
+    public function createTaxRate(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:32', 'regex:/^[A-Za-z0-9_-]+$/'],
+            'name' => ['required', 'string', 'max:100'],
+            'rate_percent' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,4'],
+            'inclusive' => ['sometimes', 'boolean'],
+        ]);
+
+        $tax = \App\Models\NexispTaxRate::create([
+            'organization_id' => $organization->id,
+            'code' => strtoupper($data['code']),
+            'name' => $data['name'],
+            'rate_percent' => $data['rate_percent'],
+            'inclusive' => $data['inclusive'] ?? false,
+            'active' => true,
+        ]);
+
+        AuditLog::create([
+            'organization_id' => $organization->id,
+            'actor_user_id' => $request->user()->id,
+            'action' => 'nexisp.accounting.tax_rate_created',
+            'subject_type' => \App\Models\NexispTaxRate::class,
+            'subject_id' => (string) $tax->id,
+            'metadata' => ['code' => $tax->code, 'rate_percent' => $tax->rate_percent],
+        ]);
+
+        return response()->json(['data' => $tax], 201);
+    }
+
+    public function receipts(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $receipts = NexispReceipt::query()
+            ->where('organization_id', $organization->id)
+            ->with('invoice:id,invoice_number')
+            ->latest('issued_at')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $receipts->items(),
+            'meta' => ['current_page' => $receipts->currentPage(), 'last_page' => $receipts->lastPage()],
+        ]);
+    }
+
+    public function trialBalance(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $rows = DB::table('nexisp_chart_of_accounts as accounts')
+            ->leftJoin('nexisp_journal_entry_lines as lines', function ($join) {
+                $join->on('lines.account_id', '=', 'accounts.id')
+                    ->on('lines.organization_id', '=', 'accounts.organization_id');
+            })
+            ->leftJoin('nexisp_journal_entries as entries', function ($join) {
+                $join->on('entries.id', '=', 'lines.journal_entry_id')
+                    ->on('entries.organization_id', '=', 'lines.organization_id')
+                    ->where('entries.status', '=', 'posted');
+            })
+            ->where('accounts.organization_id', $organization->id)
+            ->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.account_type', 'accounts.normal_balance')
+            ->orderBy('accounts.code')
+            ->selectRaw('accounts.id, accounts.code, accounts.name, accounts.account_type, accounts.normal_balance, COALESCE(SUM(CASE WHEN entries.id IS NOT NULL THEN lines.debit ELSE 0 END), 0) as debits, COALESCE(SUM(CASE WHEN entries.id IS NOT NULL THEN lines.credit ELSE 0 END), 0) as credits')
+            ->get();
+
+        $debits = $rows->sum(fn ($row) => (float) $row->debits);
+        $credits = $rows->sum(fn ($row) => (float) $row->credits);
+
+        return response()->json([
+            'data' => $rows,
+            'totals' => [
+                'debits' => number_format($debits, 2, '.', ''),
+                'credits' => number_format($credits, 2, '.', ''),
+                'balanced' => abs($debits - $credits) < 0.005,
+            ],
+        ]);
+    }
+
+    public function profitAndLoss(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $data = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        $query = DB::table('nexisp_journal_entry_lines as lines')
+            ->join('nexisp_chart_of_accounts as accounts', function ($join) {
+                $join->on('accounts.id', '=', 'lines.account_id')
+                    ->on('accounts.organization_id', '=', 'lines.organization_id');
+            })
+            ->join('nexisp_journal_entries as entries', function ($join) {
+                $join->on('entries.id', '=', 'lines.journal_entry_id')
+                    ->on('entries.organization_id', '=', 'lines.organization_id');
+            })
+            ->where('lines.organization_id', $organization->id)
+            ->where('entries.status', 'posted')
+            ->whereIn('accounts.account_type', ['revenue', 'expense']);
+        if (! empty($data['from'])) {
+            $query->whereDate('entries.entry_date', '>=', $data['from']);
+        }
+        if (! empty($data['to'])) {
+            $query->whereDate('entries.entry_date', '<=', $data['to']);
+        }
+
+        $rows = $query->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.account_type')
+            ->orderBy('accounts.code')
+            ->selectRaw("accounts.code, accounts.name, accounts.account_type, CASE WHEN accounts.account_type = 'revenue' THEN COALESCE(SUM(lines.credit - lines.debit), 0) ELSE COALESCE(SUM(lines.debit - lines.credit), 0) END as amount")
+            ->get();
+
+        $revenue = (float) $rows->where('account_type', 'revenue')->sum(fn ($row) => (float) $row->amount);
+        $expenses = (float) $rows->where('account_type', 'expense')->sum(fn ($row) => (float) $row->amount);
+
+        return response()->json([
+            'data' => $rows,
+            'totals' => [
+                'revenue' => number_format($revenue, 2, '.', ''),
+                'expenses' => number_format($expenses, 2, '.', ''),
+                'net_profit' => number_format($revenue - $expenses, 2, '.', ''),
+            ],
+            'period' => ['from' => $data['from'] ?? null, 'to' => $data['to'] ?? null],
+        ]);
+    }
+
+    public function agedReceivables(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $invoices = NexispInvoice::query()
+            ->where('organization_id', $organization->id)
+            ->whereIn('status', ['open', 'partially_paid', 'overdue'])
+            ->with(['customer:id,name,customer_number', 'items'])
+            ->get();
+
+        $buckets = ['current_0_30' => 0, 'days_31_60' => 0, 'days_61_90' => 0, 'over_90' => 0];
+        $records = [];
+        foreach ($invoices as $invoice) {
+            $received = (float) NexispReceipt::query()
+                ->where('organization_id', $organization->id)
+                ->where('invoice_id', $invoice->id)
+                ->sum('amount');
+            $balance = max(0, (float) $invoice->amount - $received);
+            if ($balance <= 0) {
+                continue;
+            }
+            $baseDate = $invoice->due_at ?? $invoice->issued_at;
+            $age = max(0, $baseDate?->diffInDays(now()) ?? 0);
+            $bucket = match (true) {
+                $age <= 30 => 'current_0_30',
+                $age <= 60 => 'days_31_60',
+                $age <= 90 => 'days_61_90',
+                default => 'over_90',
+            };
+            $buckets[$bucket] += (int) round($balance * 100);
+            $records[] = [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'customer' => $invoice->customer?->name,
+                'due_at' => $invoice->due_at,
+                'days_overdue' => $age,
+                'outstanding' => number_format($balance, 2, '.', ''),
+                'currency' => $invoice->currency,
+                'bucket' => $bucket,
+            ];
+        }
+
+        return response()->json([
+            'data' => $records,
+            'totals' => array_map(fn (int $cents) => number_format($cents / 100, 2, '.', ''), $buckets),
+        ]);
+    }
+
     private function download(
         NexispDocumentExportService $exporter,
         string $format,
