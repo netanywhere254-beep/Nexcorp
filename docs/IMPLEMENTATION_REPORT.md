@@ -21,7 +21,10 @@ Working branch for this report: `implementation/nexisp-subscriptions`
 
 - `php -l` passed on changed PHP files.
 - `phpunit --filter NexispSubscriptionTest`: 5 tests, 29 assertions, pass.
-- Full suite / GitHub CI: pending.
+- Full suite: 79 tests, 249 assertions, pass.
+- GitHub Actions [run 44995042659](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44995042659)
+  passed all five jobs on commit `d16fd56`.
+- CI proves checked-in build/tests pass; not payment verification or production deployment.
 
 ## Not yet implemented
 
