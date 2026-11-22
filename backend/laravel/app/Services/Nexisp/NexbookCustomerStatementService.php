@@ -138,8 +138,12 @@ class NexbookCustomerStatementService
 
         foreach ($currencies as $currency => $statement) {
             $opening = $this->minorUnits($statement['opening_balance']);
-            $closing = $opening + $this->minorUnits($statement['debits']) - $this->minorUnits($statement['credits']);
-            $currencies[$currency]['closing_balance'] = $this->decimalAmount($closing);
+            $running = $opening;
+            foreach ($statement['transactions'] as $index => $transaction) {
+                $running += $this->minorUnits($transaction['debit']) - $this->minorUnits($transaction['credit']);
+                $currencies[$currency]['transactions'][$index]['balance'] = $this->decimalAmount($running);
+            }
+            $currencies[$currency]['closing_balance'] = $this->decimalAmount($running);
         }
 
         ksort($currencies);
