@@ -28,6 +28,40 @@ class NexispInvoice extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $invoice): void {
+            $protectedFields = [
+                'organization_id', 'customer_id', 'subscription_id', 'invoice_number',
+                'amount', 'subtotal', 'tax_amount', 'currency', 'issued_at', 'due_at',
+                'idempotency_key', 'request_hash', 'notes', 'document_snapshot',
+            ];
+            $posted = NexispJournalEntry::query()
+                ->where('organization_id', $invoice->organization_id)
+                ->where('source_type', self::class)
+                ->where('source_id', $invoice->id)
+                ->where('status', 'posted')
+                ->exists();
+
+            if ($posted && count(array_intersect($protectedFields, array_keys($invoice->getDirty()))) > 0) {
+                throw new LogicException('Issued invoice financial details are immutable. Use a credit note or reversal workflow.');
+            }
+        });
+
+        static::deleting(function (self $invoice): void {
+            $posted = NexispJournalEntry::query()
+                ->where('organization_id', $invoice->organization_id)
+                ->where('source_type', self::class)
+                ->where('source_id', $invoice->id)
+                ->where('status', 'posted')
+                ->exists();
+
+            if ($posted) {
+                throw new LogicException('Issued invoices cannot be deleted. Use a credit note or reversal workflow.');
+            }
+        });
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
