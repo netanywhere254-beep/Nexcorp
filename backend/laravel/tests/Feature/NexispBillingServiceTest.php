@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\BandwidthPlan;
 use App\Models\NexispCustomer;
 use App\Models\NexispInvoice;
+use App\Models\NexispJournalEntry;
+use App\Services\NexispAccountingService;
 use App\Models\Organization;
 use App\Models\PaymentTransaction;
 use App\Models\User;
