@@ -69,7 +69,7 @@ class NexbookCustomerStatementServiceTest extends TestCase
         $this->assertSame('300.00', $statement['currencies']['KES']['opening_balance']);
         $this->assertSame('100.00', $statement['currencies']['KES']['credits']);
         $this->assertSame('200.00', $statement['currencies']['KES']['closing_balance']);
-        $this->assertSame('100.00', $statement['currencies']['KES']['transactions'][0]['balance']);
+        $this->assertSame('200.00', $statement['currencies']['KES']['transactions'][0]['balance']);
 
         $this->assertSame('20.00', $statement['currencies']['USD']['opening_balance']);
         $this->assertSame('0.00', $statement['currencies']['USD']['credits']);
