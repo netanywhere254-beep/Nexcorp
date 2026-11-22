@@ -5,6 +5,7 @@ use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexbookCustomerStatementController;
+use App\Http\Controllers\NexbookReceivablesAgingController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -72,3 +73,5 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
 
 // NexBook customer statements are always scoped to the active organisation.
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/customer-statement',[NexbookCustomerStatementController::class,'show'])->middleware('throttle:30,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/receivables-ageing',[NexbookReceivablesAgingController::class,'show'])->middleware('throttle:30,1');
