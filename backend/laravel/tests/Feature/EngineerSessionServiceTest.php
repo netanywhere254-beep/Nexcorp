@@ -200,13 +200,15 @@ class EngineerSessionServiceTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
+        $user = User::create([
             'name' => 'Engineer Test',
             'email' => 'engineer-'.uniqid().'@example.test',
             'password' => 'Correct-Horse-42!',
             'status' => 'active',
-            'email_verified_at' => now(),
         ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 
     private function makeOrganization(): Organization
