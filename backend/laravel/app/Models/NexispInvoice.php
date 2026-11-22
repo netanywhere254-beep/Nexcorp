@@ -10,7 +10,7 @@ class NexispInvoice extends Model
 {
     protected $fillable = [
         'organization_id', 'customer_id', 'subscription_id', 'invoice_number',
-        'status', 'amount', 'currency', 'issued_at', 'due_at', 'paid_at',
+        'status', 'amount', 'currency', 'issued_at', 'due_at', 'paid_at', 'idempotency_key',
     ];
 
     protected function casts(): array
