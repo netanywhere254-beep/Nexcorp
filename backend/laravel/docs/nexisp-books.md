@@ -122,6 +122,7 @@ These planned items are not represented as completed just because their feature 
 - Never infer payment settlement from a successful accounting export.
 - No invoice, receipt, journal or bank transaction can be fetched across organization boundaries.
 - Financial totals are calculated from integer cents or database decimal values; avoid binary floating-point arithmetic for money.
+- The current native ledger posts in one ISP base currency. Documents and manual journals in a different currency are rejected until exchange-rate conversion, FX gain/loss and revaluation are implemented.
 - The system stores the ISP's source records independently from external accounting provider records.
 - External sync uses idempotency keys, encrypted provider credentials and audit history. Disconnection does not delete native records or already synchronized external IDs.
 
