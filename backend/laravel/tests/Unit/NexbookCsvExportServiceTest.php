@@ -14,6 +14,5 @@ class NexbookCsvExportServiceTest extends TestCase
         $this->assertSame("'=HYPERLINK(\"https://bad.example\")", $csv->safeText('=HYPERLINK("https://bad.example")'));
         $this->assertSame("'+SUM(1,2)", $csv->safeText('+SUM(1,2)'));
         $this->assertSame('Ordinary customer', $csv->safeText('Ordinary customer'));
-        $this->assertSame('-125.00', '-125.00');
     }
 }
