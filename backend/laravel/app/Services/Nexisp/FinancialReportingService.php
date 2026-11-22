@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Services\\Nexisp;
+namespace App\Services\Nexisp;
 
-use Illuminate\\Support\\Collection;
-use Illuminate\\Support\\Facades\\DB;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -155,7 +155,7 @@ class FinancialReportingService
     private function minorUnits(string|int|float $amount): int
     {
         $value = (string) $amount;
-        if (!preg_match('/^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,2})?$/', $value)) {
+        if (!preg_match('/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]{1,2})?$/', $value)) {
             throw new InvalidArgumentException('Database returned an invalid monetary amount.');
         }
         $negative = str_starts_with($value, '-');
