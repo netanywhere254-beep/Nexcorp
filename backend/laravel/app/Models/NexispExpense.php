@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 class NexispExpense extends Model
 {
@@ -18,6 +19,21 @@ class NexispExpense extends Model
     protected function casts(): array
     {
         return ['amount' => 'decimal:2', 'expense_date' => 'date', 'metadata' => 'array'];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $expense): void {
+            if ($expense->getOriginal('status') === 'posted') {
+                throw new LogicException('Posted expenses are immutable. Use a reversal entry instead.');
+            }
+        });
+
+        static::deleting(function (self $expense): void {
+            if ($expense->status === 'posted') {
+                throw new LogicException('Posted expenses cannot be deleted. Use a reversal entry instead.');
+            }
+        });
     }
 
     public function account(): BelongsTo
