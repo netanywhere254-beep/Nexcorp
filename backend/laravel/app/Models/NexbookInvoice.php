@@ -11,7 +11,7 @@ class NexbookInvoice extends Model
     protected $table = 'nexbook_invoices';
 
     protected $fillable = [
-        'organization_id', 'customer_user_id', 'subscription_id',
+        'organization_id', 'created_by', 'customer_user_id', 'subscription_id',
         'journal_entry_id', 'invoice_number', 'status', 'customer_name',
         'customer_email', 'customer_phone', 'issue_date', 'due_date',
         'currency', 'subtotal', 'tax_total', 'total', 'amount_paid',
@@ -36,6 +36,11 @@ class NexbookInvoice extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function customer(): BelongsTo
