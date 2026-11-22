@@ -4,6 +4,7 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexispPlanController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -30,6 +31,13 @@ Route::prefix('auth')->group(function(){
   Route::post('/logout',[SessionController::class,'logout']);
  });
 });
+Route::middleware(['auth','verified','organization.active'])->prefix('nexisp')->group(function () {
+    Route::get('/plans', [NexispPlanController::class, 'index']);
+    Route::post('/plans', [NexispPlanController::class, 'store']);
+    Route::get('/plans/{plan}', [NexispPlanController::class, 'show']);
+    Route::patch('/plans/{plan}', [NexispPlanController::class, 'update']);
+});
+
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));
 Route::middleware(['auth','verified','organization.active','throttle:10,1'])->post('/ai/assist',[NexCoreAiController::class,'assist']);
 // Public account phone verification is independent of staff and Trace & Find OTP.
