@@ -314,6 +314,9 @@ class NexispBooksTest extends TestCase
             'source_id' => $payment->id,
             'status' => 'posted',
         ]);
+
+        $this->expectException(\\LogicException::class);
+        $receipt->update(['amount' => '1.00']);
     }
 
     public function test_partial_verified_payments_issue_separate_receipts_and_settle_invoice(): void
