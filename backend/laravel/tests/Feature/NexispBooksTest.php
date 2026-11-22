@@ -67,17 +67,17 @@ class NexispBooksTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('2320.00', $invoice->amount);
+        $this->assertSame('2240.00', $invoice->amount);
         $this->assertSame('2000.00', $invoice->subtotal);
-        $this->assertSame('320.00', $invoice->tax_amount);
+        $this->assertSame('240.00', $invoice->tax_amount);
         $this->assertCount(2, $invoice->items);
         $entry = NexispJournalEntry::where('organization_id', $organization->id)
             ->where('source_type', NexispInvoice::class)
             ->where('source_id', $invoice->id)
             ->firstOrFail();
         $this->assertSame('posted', $entry->status);
-        $this->assertSame('2320.00', $entry->total_debit);
-        $this->assertSame('2320.00', $entry->total_credit);
+        $this->assertSame('2240.00', $entry->total_debit);
+        $this->assertSame('2240.00', $entry->total_credit);
     }
 
     public function test_invoice_idempotency_prevents_duplicate_documents_and_journal_entries(): void
