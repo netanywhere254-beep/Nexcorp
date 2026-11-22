@@ -1,14 +1,14 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\NexbookInvoice;
-use App\\Models\\NexispAccount;
-use App\\Models\\Organization;
-use App\\Services\\Nexisp\\NexbookInvoiceService;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Validation\\ValidationException;
-use Tests\\TestCase;
+use App\Models\NexbookInvoice;
+use App\Models\NexispAccount;
+use App\Models\Organization;
+use App\Services\Nexisp\NexbookInvoiceService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
+use Tests\TestCase;
 
 class NexbookInvoiceServiceTest extends TestCase
 {
