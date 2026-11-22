@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
-use App\Models\EngineerSession;
+use App\Models\EngineerAccessGrant;\nuse App\Models\EngineerSession;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\EngineerSessionService;
@@ -29,6 +29,26 @@ class EngineerSessionServiceTest extends TestCase
             'action' => 'engineer.session_started',
         ]);
         $this->assertDatabaseMissing('audit_logs', ['metadata' => json_encode(['token' => $result['token']])]);
+    }
+
+    public function test_membership_alone_does_not_authorize_engineer_access(): void
+    {
+        $actor = $this->makeUser();
+        $organization = $this->makeOrganization();
+        $actor->organizations()->attach($organization->id, [
+            'role' => 'owner',
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        try {
+            app(EngineerSessionService::class)->start($actor, $organization);
+            $this->fail('A tenant owner without an engineer grant must be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('dual-approved engineer access grant', $exception->getMessage());
+        }
+
+        $this->assertDatabaseCount('engineer_sessions', 0);
     }
 
     public function test_session_cannot_be_started_for_an_unrelated_tenant(): void
@@ -132,6 +152,19 @@ class EngineerSessionServiceTest extends TestCase
             'role' => 'owner',
             'status' => 'active',
             'joined_at' => now(),
+        ]);
+
+        $grantor = $this->makeUser();
+        $approver = $this->makeUser();
+        EngineerAccessGrant::create([
+            'organization_id' => $organization->id,
+            'user_id' => $actor->id,
+            'granted_by_user_id' => $grantor->id,
+            'approved_by_user_id' => $approver->id,
+            'status' => 'active',
+            'starts_at' => now()->subMinute(),
+            'expires_at' => now()->addDay(),
+            'scope' => ['devices' => ['read', 'diagnostics']],
         ]);
 
         return [$actor, $organization];
