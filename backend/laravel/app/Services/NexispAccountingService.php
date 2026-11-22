@@ -386,7 +386,7 @@ class NexispAccountingService
             $entry = NexispJournalEntry::create([
                 'organization_id' => $organization->id,
                 'entry_number' => $data['entry_number'],
-                'status' => 'posted',
+                'status' => 'draft',
                 'source_type' => $data['source_type'] ?? null,
                 'source_id' => $data['source_id'] ?? null,
                 'description' => $data['description'],
@@ -395,10 +395,15 @@ class NexispAccountingService
                 'total_debit' => number_format($debits / 100, 2, '.', ''),
                 'total_credit' => number_format($debits / 100, 2, '.', ''),
                 'created_by_user_id' => $actor->id,
+                'posted_by_user_id' => null,
+                'posted_at' => null,
+            ]);
+            $entry->lines()->createMany($normalized);
+            $entry->update([
+                'status' => 'posted',
                 'posted_by_user_id' => $actor->id,
                 'posted_at' => now(),
             ]);
-            $entry->lines()->createMany($normalized);
 
             AuditLog::create([
                 'organization_id' => $organization->id,
