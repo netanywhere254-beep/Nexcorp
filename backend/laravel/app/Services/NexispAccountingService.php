@@ -72,6 +72,143 @@ class NexispAccountingService
         });
     }
 
+    public function createInvoice(User $actor, Organization $organization, array $data): NexispInvoice
+    {
+        Gate::forUser($actor)->authorize('manageBilling', $organization);
+
+        return DB::transaction(function () use ($actor, $organization, $data): NexispInvoice {
+            $settings = NexispAccountingSetting::firstOrCreate(
+                ['organization_id' => $organization->id],
+                ['operating_mode' => 'native', 'base_currency' => 'KES'],
+            );
+            if (! $settings->native_ledger_enabled) {
+                throw ValidationException::withMessages(['ledger' => 'The NexISP native ledger must remain enabled as the source of truth.']);
+            }
+
+            $customer = NexispCustomer::query()
+                ->where('organization_id', $organization->id)
+                ->whereKey($data['customer_id'])
+                ->where('status', 'active')
+                ->firstOrFail();
+
+            if (! empty($data['idempotency_key'])) {
+                $existing = NexispInvoice::query()
+                    ->where('organization_id', $organization->id)
+                    ->where('idempotency_key', $data['idempotency_key'])
+                    ->first();
+                if ($existing) {
+                    return $existing->load('items');
+                }
+            }
+
+            $receivable = NexispChartOfAccount::query()
+                ->where('organization_id', $organization->id)->where('code', '1100')->where('active', true)->first();
+            $revenue = NexispChartOfAccount::query()
+                ->where('organization_id', $organization->id)->where('code', '4000')->where('active', true)->first();
+            $taxPayable = NexispChartOfAccount::query()
+                ->where('organization_id', $organization->id)->where('code', '2100')->where('active', true)->first();
+
+            if (! $receivable || ! $revenue || ! $taxPayable) {
+                throw ValidationException::withMessages(['ledger' => 'Initialize NexISP Books and its default chart of accounts before issuing invoices.']);
+            }
+
+            $subtotalCents = 0;
+            $taxCents = 0;
+            $lineSnapshots = [];
+            foreach ($data['items'] as $line) {
+                $quantity = (int) $line['quantity'];
+                $unitCents = $this->toCents((string) $line['unit_price']);
+                $lineSubtotal = $quantity * $unitCents;
+                $rateBasisPoints = 0;
+
+                if (! empty($line['tax_rate_id'])) {
+                    $taxRate = \App\Models\NexispTaxRate::query()
+                        ->where('organization_id', $organization->id)
+                        ->whereKey($line['tax_rate_id'])
+                        ->where('active', true)
+                        ->firstOrFail();
+                    $rateBasisPoints = (int) round(((float) $taxRate->rate_percent) * 100);
+                }
+
+                $lineTax = (int) round(($lineSubtotal * $rateBasisPoints) / 10000);
+                $subtotalCents += $lineSubtotal;
+                $taxCents += $lineTax;
+                $lineSnapshots[] = [
+                    'description' => $line['description'],
+                    'quantity' => $quantity,
+                    'unit_price' => number_format($unitCents / 100, 2, '.', ''),
+                    'tax_rate_percent' => number_format($rateBasisPoints / 100, 4, '.', ''),
+                    'line_subtotal' => number_format($lineSubtotal / 100, 2, '.', ''),
+                    'tax_amount' => number_format($lineTax / 100, 2, '.', ''),
+                    'line_total' => number_format(($lineSubtotal + $lineTax) / 100, 2, '.', ''),
+                ];
+            }
+
+            if ($subtotalCents <= 0) {
+                throw ValidationException::withMessages(['items' => 'Invoice total must be greater than zero.']);
+            }
+
+            $totalCents = $subtotalCents + $taxCents;
+            $currency = strtoupper($data['currency'] ?? $settings->base_currency);
+            $invoiceNumber = $this->nextNumber($organization, 'invoice');
+
+            $invoice = NexispInvoice::create([
+                'organization_id' => $organization->id,
+                'customer_id' => $customer->id,
+                'subscription_id' => $data['subscription_id'] ?? null,
+                'invoice_number' => $invoiceNumber,
+                'status' => 'open',
+                'amount' => number_format($totalCents / 100, 2, '.', ''),
+                'subtotal' => number_format($subtotalCents / 100, 2, '.', ''),
+                'tax_amount' => number_format($taxCents / 100, 2, '.', ''),
+                'currency' => $currency,
+                'issued_at' => $data['issued_at'] ?? now(),
+                'due_at' => $data['due_at'] ?? null,
+                'idempotency_key' => $data['idempotency_key'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'document_snapshot' => [
+                    'customer_name' => $customer->name,
+                    'customer_number' => $customer->customer_number,
+                    'items' => $lineSnapshots,
+                ],
+            ]);
+
+            $invoice->items()->createMany(array_map(
+                fn (array $line): array => ['organization_id' => $organization->id] + $line,
+                $lineSnapshots,
+            ));
+
+            $journalLines = [
+                ['account_id' => $receivable->id, 'debit' => $totalCents, 'credit' => 0, 'description' => 'Accounts receivable '.$invoiceNumber],
+                ['account_id' => $revenue->id, 'debit' => 0, 'credit' => $subtotalCents, 'description' => 'Subscription and service revenue '.$invoiceNumber],
+            ];
+            if ($taxCents > 0) {
+                $journalLines[] = ['account_id' => $taxPayable->id, 'debit' => 0, 'credit' => $taxCents, 'description' => 'Tax payable '.$invoiceNumber];
+            }
+
+            $entry = $this->postJournal($organization, $actor, [
+                'entry_number' => 'JE-'.strtoupper(bin2hex(random_bytes(8))),
+                'description' => 'Invoice issued '.$invoiceNumber,
+                'currency' => $currency,
+                'entry_date' => now($organization->timezone ?: 'UTC')->toDateString(),
+                'source_type' => NexispInvoice::class,
+                'source_id' => $invoice->id,
+                'lines' => $journalLines,
+            ]);
+
+            AuditLog::create([
+                'organization_id' => $organization->id,
+                'actor_user_id' => $actor->id,
+                'action' => 'nexisp.accounting.invoice_issued',
+                'subject_type' => NexispInvoice::class,
+                'subject_id' => (string) $invoice->id,
+                'metadata' => ['invoice_number' => $invoiceNumber, 'journal_entry_id' => $entry->id, 'amount' => $invoice->amount, 'currency' => $currency],
+            ]);
+
+            return $invoice->load('items');
+        });
+    }
+
     public function createExpense(
         User $actor,
         Organization $organization,
@@ -117,7 +254,7 @@ class NexispAccountingService
             ]);
 
             $entry = $this->postJournal($organization, $actor, [
-                'entry_number' => 'JE-'.strtoupper(uniqid()),
+                'entry_number' => 'JE-'.strtoupper(bin2hex(random_bytes(8))),
                 'description' => 'Expense '.$number.': '.$data['description'],
                 'currency' => $expense->currency,
                 'entry_date' => $expense->expense_date->toDateString(),
