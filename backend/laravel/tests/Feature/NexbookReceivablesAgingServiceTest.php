@@ -33,18 +33,6 @@ class NexbookReceivablesAgingServiceTest extends TestCase
         ]);
         $overdue = $invoices->issue($organization->id, $overdue->id, $receivable->id);
 
-        $invoices->createDraft($organization->id, [
-            'customer_name' => 'Alpha Customer',
-            'issue_date' => '2026-11-15',
-            'due_date' => '2026-11-30',
-            'currency' => 'KES',
-            'lines' => [[
-                'revenue_account_id' => $revenue->id,
-                'description' => 'Installation',
-                'quantity' => '1',
-                'unit_price' => '200.00',
-            ]],
-        ]);
         $current = $invoices->createDraft($organization->id, [
             'customer_name' => 'Alpha Customer',
             'issue_date' => '2026-11-15',
