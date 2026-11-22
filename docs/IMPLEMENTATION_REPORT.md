@@ -45,11 +45,14 @@ the repository is not evidence that a business feature works.
 - `composer install` completed with `composer validate` passing.
 - `php artisan migrate --force` applied every migration, including
   `2026_11_22_000001_create_organization_invitations_table`, on SQLite.
-- `vendor/bin/phpunit` passed: 94 tests, 345 assertions, including 20
+- `vendor/bin/phpunit` passed locally: 94 tests, 345 assertions, including 20
   invitation/onboarding tests.
-- Local runs used PHP 8.4.24; CI uses PHP 8.3 with the same SQLite test
-  configuration. Remote CI is still pending for this branch, so the change is
-  not yet verified on GitHub.
+- GitHub Actions `Nexora Dual Architecture CI` passed all five jobs (Laravel,
+  NestJS, Next.js, Prisma schema, Docker stacks) in
+  [run 44990809232](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44990809232)
+  on `ff0ac95`.
+- CI proves the branch builds and the checked-in tests pass. It does not prove
+  live email delivery, production deployment, or UI completeness.
 
 ## Open workstreams
 

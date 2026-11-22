@@ -1,7 +1,9 @@
 # Organization onboarding and invitations
 
-Status: implemented foundation on the Laravel primary. This document describes
-the server-enforced invitation workflow that grants organization membership.
+Status: implemented foundation on the Laravel primary, verified by GitHub Actions
+CI run 44990809232 (Laravel, NestJS, Next.js, Prisma schema and Docker jobs all
+passed). This document describes the server-enforced invitation workflow that
+grants organization membership.
 
 ## Boundary
 
