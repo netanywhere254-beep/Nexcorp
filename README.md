@@ -71,6 +71,7 @@ Do not add -v unless you intentionally want to delete that stack's database volu
 - Laravel 13 application shell and Apache/PHP Docker image.
 - MySQL 8.4 primary Compose service with a persistent volume and health check.
 - Initial users, organizations, organization-membership, and audit-log migration/models.
+- Session authentication, email verification, password recovery, active-organization middleware, tenant-isolation policy, and organization invitation/onboarding workflow.
 - Primary /health endpoint and automated feature test.
 - Separate NestJS API with PostgreSQL connectivity and live/readiness endpoints.
 - Separate Next.js standby screen with API health-check interaction.
@@ -79,6 +80,6 @@ Do not add -v unless you intentionally want to delete that stack's database volu
 
 ## What is not complete yet
 
-This is a bootable foundation, not the finished commercial products. Login and registration flows, production-grade authorization and tenant isolation, NexISP customers/plans/subscriptions/invoices/payments, M-Pesa callbacks and reconciliation, MikroTik provisioning, Loopza campaign workflows, advertising-provider permissions, admin portals, security hardening, production deployment, monitoring, backup/restore, and cross-database migration remain future implementation work.
+This is a bootable foundation, not the finished commercial products. NexISP customers/plans/subscriptions/invoices/payments, M-Pesa callbacks and reconciliation, MikroTik provisioning, Loopza campaign workflows, advertising-provider permissions, admin portals, MFA/session management, production deployment, monitoring, backup/restore, and cross-database migration remain future implementation work.
 
 Never treat a saved schema, Docker configuration, or UI component as a working business feature until it has been implemented and tested end to end.

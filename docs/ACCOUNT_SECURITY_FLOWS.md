@@ -21,6 +21,22 @@
 - Verified contact is required before submitting a missing-person case.
 - This verification does not grant staff privileges and is not shared with the Nexora staff allow-list.
 
+## Organization onboarding invitations
+- Organization access is granted only through an invitation issued by an active
+  owner or administrator of that organization and accepted by a verified account
+  whose email matches the invitation.
+- Only an owner may invite another administrator. The owner role cannot be
+  granted by invitation; ownership transfer is a separate reviewed workflow.
+- Invitation tokens are 256-bit values stored only as SHA-256 hashes. They are
+  single-use, expire after the configured window, and are never written to audit
+  metadata.
+- Acceptance is transactional and writes an audit event. Existing memberships
+  cannot be overwritten by an invitation.
+- The organization is derived from the server-verified active organization; an
+  invitation from another tenant is not visible or revocable through the wrong
+  context.
+- See [ORGANIZATION_ONBOARDING_INVITATIONS.md](ORGANIZATION_ONBOARDING_INVITATIONS.md).
+
 ## Delivery configuration
 Configure all three HTTPS SMS providers independently using deployment secret storage. Blank provider configuration disables sending. CI passing does not prove live SMS delivery.
 

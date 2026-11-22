@@ -112,8 +112,9 @@ Phases may overlap only where dependencies and available resources allow. Do not
 
 ## 8. Immediate next tasks
 
-- [ ] Add authentication, registration, password reset, and verified account recovery.
-- [ ] Implement server-side organization membership, roles, permissions, and tenant isolation.
+- [x] Add authentication, registration, password reset, and verified account recovery.
+- [x] Implement server-side organization membership, roles, permissions, and tenant isolation.
+- [x] Add an authorized organization invitation/onboarding workflow.
 - [ ] Add NexISP customer, plan, subscription, invoice, payment, and provisioning migrations.
 - [ ] Add Loopza workspace, channel connection, campaign, approval, and reporting migrations.
 - [ ] Add automated tests for financial calculations, tenant boundaries, and privileged actions.

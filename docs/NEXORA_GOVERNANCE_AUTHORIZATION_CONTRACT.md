@@ -57,6 +57,8 @@ The Laravel primary has a transactional `GovernanceApprovalService` for trusted 
 
 The Laravel primary also has OTP-bound group authority revocation and a one-time CEO bootstrap CLI command. These controls have passed the PR #22 pre-merge CI suite. An approval-management UI, a formal CEO succession workflow, and equivalent active NestJS standby enforcement remain outstanding. Group OTP is a step-up control for the listed governance endpoints; do not interpret it as a complete general-purpose MFA implementation for every privileged action.
 
+Organization access is granted separately through the invitation workflow documented in [ORGANIZATION_ONBOARDING_INVITATIONS.md](ORGANIZATION_ONBOARDING_INVITATIONS.md). It is not part of public registration and does not grant group authority.
+
 ## CEO bootstrap
 
 The first CEO identity must be provisioned out-of-band by an authorized deployment operator using a one-time, reviewed bootstrap procedure. Do not create a public bootstrap URL, reusable setup password, default CEO credentials, or seed a known CEO account into production. Record the operator, target account, timestamp, environment, and change reference in the security audit trail. Disable the bootstrap capability after successful initialization.

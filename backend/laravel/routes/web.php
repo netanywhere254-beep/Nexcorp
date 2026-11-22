@@ -5,6 +5,7 @@ use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\OrganizationContextController;
+use App\Http\Controllers\OrganizationInvitationController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
@@ -29,6 +30,25 @@ Route::prefix('auth')->group(function(){
   Route::get('/organization/context',[OrganizationContextController::class,'show'])->middleware('organization.active');
   Route::post('/logout',[SessionController::class,'logout']);
  });
+});
+
+// Organization invitations. The preview is intentionally public because the
+// 256-bit token is the capability; acceptance still requires an authenticated,
+// verified account whose email matches the invitation.
+Route::prefix('auth/invitations')->group(function () {
+    Route::get('/preview/{token}', [OrganizationInvitationController::class, 'preview'])->middleware('throttle:10,1');
+
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Route::get('/', [OrganizationInvitationController::class, 'pending']);
+        Route::post('/accept', [OrganizationInvitationController::class, 'accept'])->middleware('throttle:5,1');
+        Route::post('/decline', [OrganizationInvitationController::class, 'decline'])->middleware('throttle:5,1');
+    });
+});
+
+Route::middleware(['auth','verified','organization.active'])->prefix('organization/invitations')->group(function(){
+    Route::get('/',[OrganizationInvitationController::class,'index']);
+    Route::post('/',[OrganizationInvitationController::class,'store'])->middleware('throttle:10,1');
+    Route::delete('/{invitation}',[OrganizationInvitationController::class,'destroy'])->middleware('throttle:10,1');
 });
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));
 Route::middleware(['auth','verified','organization.active','throttle:10,1'])->post('/ai/assist',[NexCoreAiController::class,'assist']);

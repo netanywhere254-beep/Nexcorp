@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Organization;
+use App\Models\OrganizationInvitation;
 use App\Models\User;
 
 class OrganizationPolicy
@@ -20,6 +21,26 @@ class OrganizationPolicy
     public function manageMembers(User $user, Organization $organization): bool
     {
         return $this->hasAnyRole($user, $organization, ['owner', 'admin']);
+    }
+
+    public function invite(User $user, Organization $organization, string $role): bool
+    {
+        if (! in_array($role, OrganizationInvitation::INVITABLE_ROLES, true)) {
+            return false;
+        }
+
+        if (! $this->manageMembers($user, $organization)) {
+            return false;
+        }
+
+        // Only an owner may appoint another administrator. The owner role is
+        // deliberately not invitable at all; ownership transfer is a separate
+        // reviewed workflow.
+        if ($role === 'admin') {
+            return $this->hasAnyRole($user, $organization, ['owner']);
+        }
+
+        return true;
     }
 
     public function manageBilling(User $user, Organization $organization): bool
