@@ -24,7 +24,10 @@ Working branch for this report: `implementation/nexisp-payment-intents`
 
 - `php -l` passed on changed PHP files.
 - `phpunit --filter NexispPaymentIntentTest`: 5 tests, 24 assertions, pass.
-- Full suite / GitHub CI: pending.
+- Full suite: 79 tests, 244 assertions, pass.
+- GitHub Actions [run 44996933446](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44996933446)
+  passed all five jobs on commit `31caf3b`.
+- CI proves checked-in build/tests pass; no real provider verification or settlement is claimed.
 
 ## Not yet implemented
 
