@@ -81,7 +81,7 @@ class NexispBillingServiceTest extends TestCase
             'verified_at' => now(),
         ]);
 
-        $paid = $service->settleInvoice($invoice->id, $payment->id, $actor);
+        $paid = $service->settleInvoice($org, $invoice->id, $payment->id, $actor);
         $this->assertSame('paid', $paid->status);
         $this->assertSame('active', $paid->subscription->status);
         $this->assertTrue($paid->subscription->ends_at->equalTo(Carbon::parse('2026-12-31 10:00:00')));
@@ -126,7 +126,7 @@ class NexispBillingServiceTest extends TestCase
         [$org, $actor, $customer, $plan] = $this->fixture();
         $service = app(NexispBillingService::class);
         $invoice = $service->subscribe($org, $customer, $plan, $actor);
-        $voided = $service->voidInvoice($invoice->id, $actor);
+        $voided = $service->voidInvoice($org, $invoice->id, $actor);
 
         $this->assertSame('void', $voided->status);
         $this->assertSame('cancelled', $voided->subscription->status);
@@ -161,7 +161,7 @@ class NexispBillingServiceTest extends TestCase
         app(NexispAccountingService::class)->issueReceipt($actor, $org, $invoice->id, $payment->id);
 
         $this->expectException(ValidationException::class);
-        $billing->voidInvoice($invoice->id, $actor);
+        $billing->voidInvoice($org, $invoice->id, $actor);
     }
 
     private function fixture(): array
