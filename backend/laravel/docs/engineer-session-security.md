@@ -7,6 +7,7 @@ This layer adds durable, tenant-scoped storage for the NetPulse engineer console
 - Sessions are scoped to one organization and one authenticated user.
 - A 256-bit random bearer token is returned once at creation; only its SHA-256 hash is stored.
 - An actor can have only one active engineer session per organization.
+- A separate engineer access grant is required; ordinary tenant owner/admin membership is not sufficient. Grants require distinct grantor and approver identities, a current validity window, and a non-empty scope document.
 - Idle expiry is renewed on activity, but absolute expiry is never extended.
 - Account, organization, and membership status are rechecked when a session is touched.
 - Expiry, revocation, start, activity, and operator deactivation are written to the existing audit_logs table in the same database transaction as the session change.
@@ -18,12 +19,13 @@ No HTTP route or user-facing control is registered by this change. The service i
 
 1. Authenticate the engineer using the platform's normal account session.
 2. Require verified account status and step-up MFA for every new privileged session.
-3. Apply a dedicated, server-managed engineer entitlement or assignment. Tenant membership, even an owner/admin role, is not by itself engineer authorization.
+3. Create a dedicated, server-managed engineer access grant with two-person approval (grantor and approver must be different accounts), an expiry, and explicit device/permission scope. Tenant membership, even an owner/admin role, is not by itself engineer authorization.
 4. Resolve the active organization from server-side session context; never trust a client-supplied organization ID.
 5. Authorize every device operation against the engineer assignment, organization, device, and approved engagement.
-6. Keep the bearer token out of URLs, logs, analytics, browser local storage, and audit metadata. Return it only over TLS and store it in a protected client session.
-7. Add CSRF protection, throttling, replay protection, emergency revocation, and security monitoring.
-8. Ensure the Go agent and Laravel control plane share a documented, authenticated session-validation protocol before either can authorize router changes.
+6. Enforce the grant's device IDs and permission scope on every operation; a valid session must never imply unrestricted access to every router.
+7. Keep the bearer token out of URLs, logs, analytics, browser local storage, and audit metadata. Return it only over TLS and store it in a protected client session.
+8. Add CSRF protection, throttling, replay protection, emergency revocation, and security monitoring.
+9. Ensure the Go agent and Laravel control plane share a documented, authenticated session-validation protocol before either can authorize router changes.
 
 ## Operational notes
 
