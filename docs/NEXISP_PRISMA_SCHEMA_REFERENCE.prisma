@@ -35,8 +35,6 @@ model Tenant {
   subscriptions Subscription[]
   invoices      Invoice[]
   transactions  Transaction[]
-  receipts Receipt[]
-  items InvoiceItem[]
   accountingConnections AccountingConnection[]
   accountingSyncRuns AccountingSyncRun[]
   chartOfAccounts ChartOfAccount[]
@@ -202,6 +200,8 @@ model Invoice {
   status        InvoiceStatus @default(UNPAID)
   dueDate       DateTime      @db.Timestamptz(6)
   transactions  Transaction[]
+  receipts      Receipt[]
+  items         InvoiceItem[]
   createdAt     DateTime      @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
 
@@ -225,6 +225,7 @@ model Transaction {
   tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   invoiceId         String?           @db.Uuid
   invoice           Invoice?          @relation(fields: [invoiceId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  receipts          Receipt[]
   amount            Decimal           @db.Decimal(12, 2)
   currency          String            @default("KES") @db.VarChar(3)
   provider          String            @default("MPESA")
