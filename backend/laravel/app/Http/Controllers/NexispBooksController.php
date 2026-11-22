@@ -179,6 +179,46 @@ class NexispBooksController
         ]);
     }
 
+    public function invoices(Request $request): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $invoices = NexispInvoice::query()
+            ->where('organization_id', $organization->id)
+            ->with(['customer:id,name,customer_number', 'items'])
+            ->latest('issued_at')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $invoices->items(),
+            'meta' => ['current_page' => $invoices->currentPage(), 'last_page' => $invoices->lastPage()],
+        ]);
+    }
+
+    public function createInvoice(Request $request, NexispAccountingService $accounting): JsonResponse
+    {
+        $organization = $this->organization($request);
+        Gate::authorize('manageBilling', $organization);
+        $data = $request->validate([
+            'customer_id' => ['required', 'integer'],
+            'subscription_id' => ['nullable', 'integer'],
+            'currency' => ['nullable', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'issued_at' => ['nullable', 'date'],
+            'due_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'items.*.unit_price' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
+            'items.*.tax_rate_id' => ['nullable', 'integer'],
+        ]);
+
+        $invoice = $accounting->createInvoice($request->user(), $organization, $data);
+
+        return response()->json(['data' => $invoice], 201);
+    }
+
     public function issueReceipt(Request $request, int $invoiceId, NexispAccountingService $accounting): JsonResponse
     {
         $organization = $this->organization($request);
@@ -203,7 +243,7 @@ class NexispBooksController
         Gate::authorize('manageBilling', $organization);
         $invoice = NexispInvoice::query()
             ->where('organization_id', $organization->id)
-            ->with('customer')
+            ->with(['customer', 'items'])
             ->whereKey($invoiceId)
             ->firstOrFail();
 
@@ -219,6 +259,13 @@ class NexispBooksController
             ['Due at', $invoice->due_at?->toIso8601String() ?? ''],
             ['Paid at', $invoice->paid_at?->toIso8601String() ?? ''],
         ];
+        foreach ($invoice->items as $index => $item) {
+            $rows[] = ['Item '.($index + 1), $item->description];
+            $rows[] = ['Quantity', (string) $item->quantity];
+            $rows[] = ['Unit price', (string) $item->unit_price];
+            $rows[] = ['Tax', (string) $item->tax_amount];
+            $rows[] = ['Line total', (string) $item->line_total];
+        }
 
         return $this->download($exporter, $format, 'Invoice '.$invoice->invoice_number, $rows);
     }
