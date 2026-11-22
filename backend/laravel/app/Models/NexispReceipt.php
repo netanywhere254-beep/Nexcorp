@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
 
 class NexispReceipt extends Model
 {
@@ -18,6 +19,12 @@ class NexispReceipt extends Model
     protected function casts(): array
     {
         return ['amount' => 'decimal:2', 'issued_at' => 'datetime', 'snapshot' => 'array'];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(fn () => throw new LogicException('Issued receipts are immutable.'));
+        static::deleting(fn () => throw new LogicException('Issued receipts cannot be deleted. Issue a reversal or refund record instead.'));
     }
 
     public function invoice(): BelongsTo
