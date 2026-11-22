@@ -93,7 +93,7 @@ class NexispBillingServiceTest extends TestCase
         ]);
 
         Carbon::setTestNow('2026-12-02 10:00:00');
-        $again = $service->settleInvoice($invoice->id, $payment->id, $actor);
+        $again = $service->settleInvoice($org, $invoice->id, $payment->id, $actor);
         $this->assertTrue($again->subscription->activated_at->equalTo(Carbon::parse('2026-12-01 10:00:00')));
         $this->assertDatabaseCount('nexisp_receipts', 1);
     }
@@ -134,7 +134,7 @@ class NexispBillingServiceTest extends TestCase
             'verified_at' => now(),
         ]);
 
-        $settled = $billing->settleInvoice($invoice->id, $finalPayment->id, $actor);
+        $settled = $billing->settleInvoice($org, $invoice->id, $finalPayment->id, $actor);
         $this->assertSame('paid', $settled->status);
         $this->assertSame('active', $settled->subscription->status);
         $this->assertDatabaseCount('nexisp_receipts', 2);
@@ -160,7 +160,7 @@ class NexispBillingServiceTest extends TestCase
         ]);
 
         $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
-        $service->settleInvoice($invoice->id, $payment->id, $actor);
+        $service->settleInvoice($org, $invoice->id, $payment->id, $actor);
     }
 
     public function test_voiding_invoice_cancels_only_pending_subscription(): void
@@ -187,7 +187,7 @@ class NexispBillingServiceTest extends TestCase
         [$org, $actor, $customer, $plan] = $this->fixture();
         $billing = app(NexispBillingService::class);
         $invoice = $billing->subscribe($org, $customer, $plan, $actor);
-        $billing->voidInvoice($invoice->id, $actor);
+        $billing->voidInvoice($org, $invoice->id, $actor);
 
         $payment = PaymentTransaction::create([
             'organization_id' => $org->id,
