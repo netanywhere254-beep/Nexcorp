@@ -35,6 +35,11 @@ class NexispSubscription extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(NexispCustomer::class, 'customer_id');
+    }
+
     public function bandwidthPlan(): BelongsTo
     {
         return $this->belongsTo(BandwidthPlan::class, 'bandwidth_plan_id');
