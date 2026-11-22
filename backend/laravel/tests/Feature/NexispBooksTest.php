@@ -128,6 +128,32 @@ class NexispBooksTest extends TestCase
         ]);
     }
 
+    public function test_invoice_number_sequences_are_independent_between_isp_tenants(): void
+    {
+        [$actorA, $organizationA, $customerA] = $this->fixture();
+        [$actorB, $organizationB, $customerB] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organizationA, $actorA);
+        $service->bootstrap($organizationB, $actorB);
+
+        $payloadA = [
+            'customer_id' => $customerA->id,
+            'currency' => 'KES',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ];
+        $payloadB = [
+            'customer_id' => $customerB->id,
+            'currency' => 'KES',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ];
+
+        $invoiceA = $service->createInvoice($actorA, $organizationA, $payloadA);
+        $invoiceB = $service->createInvoice($actorB, $organizationB, $payloadB);
+
+        $this->assertSame($invoiceA->invoice_number, $invoiceB->invoice_number);
+        $this->assertNotSame($invoiceA->organization_id, $invoiceB->organization_id);
+    }
+
     public function test_unbalanced_manual_journal_is_rejected(): void
     {
         [$actor, $organization] = $this->fixture();
