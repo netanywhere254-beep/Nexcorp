@@ -82,6 +82,32 @@ class NexispCustomerSchemaTest extends TestCase
         PaymentCallback::create($row);
     }
 
+    public function test_invoice_cannot_reference_a_customer_from_another_organization(): void
+    {
+        $invoiceOrg = $this->makeOrganization();
+        $otherOrg = $this->makeOrganization();
+        $customer = NexispCustomer::create([
+            'organization_id' => $otherOrg->id,
+            'customer_number' => 'C-CROSS-TENANT',
+            'name' => 'Other Tenant Customer',
+            'phone' => '+254722333444',
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        DB::table('nexisp_invoices')->insert([
+            'organization_id' => $invoiceOrg->id,
+            'customer_id' => $customer->id,
+            'invoice_number' => 'INV-CROSS-TENANT',
+            'status' => 'open',
+            'amount' => '1500.00',
+            'currency' => 'KES',
+            'issued_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function test_payment_idempotency_key_is_unique_per_organization_not_globally(): void
     {
         $a = $this->makeOrganization();
