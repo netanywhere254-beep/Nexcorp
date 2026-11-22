@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamps();
             $table->unique(['organization_id', 'phone_hash']);
+            $table->unique(['organization_id', 'id']);
             $table->index(['organization_id', 'status']);
         });
 
@@ -38,6 +39,10 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
             $table->index(['organization_id', 'customer_id', 'status']);
+            $table->foreign(['organization_id', 'customer_id'], 'nexisp_invoices_customer_tenant_fk')
+                ->references(['organization_id', 'id'])->on('nexisp_customers');
+            $table->foreign(['organization_id', 'subscription_id'], 'nexisp_invoices_subscription_tenant_fk')
+                ->references(['organization_id', 'id'])->on('nexisp_subscriptions');
         });
 
         Schema::create('payment_callbacks', function (Blueprint $table) {
@@ -59,6 +64,19 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->after('user_id')
                 ->constrained('nexisp_customers')->nullOnDelete();
             $table->unsignedBigInteger('user_id')->nullable()->change();
+            $table->unique(['organization_id', 'id'], 'nexisp_subscriptions_org_id_unique');
+            $table->foreign(['organization_id', 'customer_id'], 'nexisp_subscriptions_customer_tenant_fk')
+                ->references(['organization_id', 'id'])->on('nexisp_customers');
+        });
+
+        Schema::table('nexisp_invoices', function (Blueprint $table) {
+            $table->dropForeign('nexisp_invoices_customer_tenant_fk');
+            $table->dropForeign('nexisp_invoices_subscription_tenant_fk');
+        });
+
+        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
+            $table->dropForeign('nexisp_subscriptions_customer_tenant_fk');
+            $table->dropUnique('nexisp_subscriptions_org_id_unique');
         });
 
         Schema::table('payment_transactions', function (Blueprint $table) {
