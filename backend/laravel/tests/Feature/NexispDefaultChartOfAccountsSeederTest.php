@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\NexispAccount;
-use App\\Models\\Organization;
-use Database\\Seeders\\NexispDefaultChartOfAccountsSeeder;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Models\NexispAccount;
+use App\Models\Organization;
+use Database\Seeders\NexispDefaultChartOfAccountsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NexispDefaultChartOfAccountsSeederTest extends TestCase
 {
