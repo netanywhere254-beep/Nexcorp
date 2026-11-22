@@ -52,7 +52,8 @@ existing in the repository is not evidence that a business feature works.
 - `php -l` passed on changed files.
 - `phpunit --filter NexispPaymentReceiptTest`: 2 tests, 10 assertions, pass.
 - Full Laravel suite: **100 tests, 346 assertions, pass**.
-- GitHub CI: pending.
+- GitHub Actions [run 45052675055](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/45052675055)
+  passed all five jobs on commit `5401b9e`.
 
 ## Not yet implemented
 
