@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 class NexispJournalEntry extends Model
 {
@@ -24,6 +25,21 @@ class NexispJournalEntry extends Model
             'posted_at' => 'datetime',
             'voided_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $entry): void {
+            if ($entry->getOriginal('status') === 'posted') {
+                throw new LogicException('Posted journal entries are immutable. Create a reversal entry instead.');
+            }
+        });
+
+        static::deleting(function (self $entry): void {
+            if ($entry->status === 'posted') {
+                throw new LogicException('Posted journal entries cannot be deleted. Create a reversal entry instead.');
+            }
+        });
     }
 
     public function lines(): HasMany
