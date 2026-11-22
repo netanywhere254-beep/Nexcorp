@@ -105,6 +105,21 @@ class AccountingSyncServiceTest extends TestCase
         }
     }
 
+    public function test_network_support_role_cannot_queue_accounting_exports(): void
+    {
+        [$actor, $organization, $connection, $invoice] = $this->fixture();
+        $actor->organizations()->updateExistingPivot($organization->id, ['role' => 'support']);
+
+        $this->expectException(\\Illuminate\\Auth\\Access\\AuthorizationException::class);
+
+        app(AccountingSyncService::class)->queueInvoice(
+            $actor,
+            $organization,
+            $connection->id,
+            $invoice->id,
+        );
+    }
+
     public function test_accounting_oauth_tokens_are_encrypted_and_hidden_from_serialization(): void
     {
         [$actor, $organization] = $this->makeBillingActor();
