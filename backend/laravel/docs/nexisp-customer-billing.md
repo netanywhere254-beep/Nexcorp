@@ -10,7 +10,7 @@ This migration adds standalone ISP customer records, invoices and encrypted paym
 - Payment callback payloads use Laravel's `encrypted:array` cast and are hidden from model serialization.
 - Callback deduplication is enforced by provider plus payload hash.
 - Payment idempotency keys are unique within an organization, rather than globally.
-- Invoice/customer and invoice/subscription references are constrained to the same organization at database level.
+- Invoice/customer references are constrained to the same organization at database level. Subscription/customer and invoice/subscription organization matching must also be enforced by the billing service when those records are created or changed.
 
 ## Migration and tests
 
