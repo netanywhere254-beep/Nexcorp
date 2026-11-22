@@ -59,6 +59,16 @@ class NexbookCustomerStatementServiceTest extends TestCase
             'MPESA-STATEMENT-001',
         );
 
+        app(NexbookCreditNoteService::class)->issue(
+            $organization->id,
+            $kesInvoice->id,
+            $receivable->id,
+            null,
+            '2026-11-24',
+            'Customer service adjustment',
+            [['invoice_line_id' => $kesInvoice->lines->first()->id, 'amount' => '50.00']],
+        );
+
         $statement = app(NexbookCustomerStatementService::class)->forCustomer(
             $organization->id,
             'Sample Customer',
@@ -67,9 +77,9 @@ class NexbookCustomerStatementServiceTest extends TestCase
         );
 
         $this->assertSame('300.00', $statement['currencies']['KES']['opening_balance']);
-        $this->assertSame('100.00', $statement['currencies']['KES']['credits']);
-        $this->assertSame('200.00', $statement['currencies']['KES']['closing_balance']);
-        $this->assertSame('200.00', $statement['currencies']['KES']['transactions'][0]['balance']);
+        $this->assertSame('150.00', $statement['currencies']['KES']['credits']);
+        $this->assertSame('150.00', $statement['currencies']['KES']['closing_balance']);
+        $this->assertSame('200.00', $statement['currencies']['KES']['transactions'][0]['balance']);\n        $this->assertSame('150.00', $statement['currencies']['KES']['transactions'][1]['balance']);
 
         $this->assertSame('20.00', $statement['currencies']['USD']['opening_balance']);
         $this->assertSame('0.00', $statement['currencies']['USD']['credits']);
