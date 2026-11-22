@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\NexispAccount;
-use App\\Models\\Organization;
-use App\\Services\\Nexisp\\FinancialReportingService;
-use App\\Services\\Nexisp\\JournalPostingService;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Models\NexispAccount;
+use App\Models\Organization;
+use App\Services\Nexisp\FinancialReportingService;
+use App\Services\Nexisp\JournalPostingService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class NexispFinancialReportingTest extends TestCase
 {
@@ -76,14 +76,14 @@ class NexispFinancialReportingTest extends TestCase
 
     public function test_invalid_report_date_range_is_rejected(): void
     {
-        $this->expectException(\\InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         app(FinancialReportingService::class)
             ->trialBalance(1, '2026-12-01', '2026-11-01');
     }
 
     public function test_invalid_currency_code_is_rejected(): void
     {
-        $this->expectException(\\InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         app(FinancialReportingService::class)
             ->trialBalance(1, '2026-11-01', '2026-11-30', 'US');
     }
