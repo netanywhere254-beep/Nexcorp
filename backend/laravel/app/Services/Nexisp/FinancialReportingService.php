@@ -72,9 +72,7 @@ class FinancialReportingService
         $currentEarnings = 0;
         foreach ($incomeRows as $row) {
             $debitMinusCredit = $this->minorUnits($row->debits) - $this->minorUnits($row->credits);
-            $currentEarnings += in_array($row->type, ['revenue', 'income'], true)
-                ? -$debitMinusCredit
-                : -$debitMinusCredit;
+            $currentEarnings -= $debitMinusCredit;
         }
 
         return [
