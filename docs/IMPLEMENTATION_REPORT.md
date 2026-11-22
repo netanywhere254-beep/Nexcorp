@@ -44,5 +44,9 @@ repository is not evidence that a business feature works.
 - `php -l` passed for all new/changed PHP files.
 - `php vendor/bin/phpunit --filter NexispServiceAreaCustomerTest` passed:
   9 tests, 34 assertions.
-- Full suite and GitHub CI: pending at report creation time; update this report
-  only after actual runs complete.
+- `php vendor/bin/phpunit` full suite passed locally: 83 tests, 254 assertions.
+- GitHub Actions `Nexora Dual Architecture CI`
+  [run 44992344119](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44992344119)
+  passed all five jobs on commit `a10aeff`.
+- CI proves the checked-in code builds and tests pass. It does not prove
+  production deployment, UI completeness, or payment/provisioning behavior.
