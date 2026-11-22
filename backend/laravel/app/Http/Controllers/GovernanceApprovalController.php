@@ -7,6 +7,7 @@ use App\Services\GovernanceApprovalService;
 use App\Services\GroupStaffOtpConfirmation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class GovernanceApprovalController
 {
@@ -58,14 +59,40 @@ class GovernanceApprovalController
             ->where('decision', 'pending')
             ->firstOrFail();
 
-        $otp->consume($request, 'governance.approval.decide.'.$approval->id);
+        $purpose = 'governance.approval.decide.'.$approval->id;
+        $otpSession = $request->session()->get('nexora_group_staff_otp');
 
-        $result = $governance->decide(
-            $request->user(),
-            $approval->id,
-            $data['decision'],
-            $data['comment'] ?? null,
-        );
+        try {
+            $result = DB::transaction(function () use ($otp, $governance, $request, $approval, $data, $purpose) {
+                $otp->consume($request, $purpose);
+
+                return $governance->decide(
+                    $request->user(),
+                    $approval->id,
+                    $data['decision'],
+                    $data['comment'] ?? null,
+                );
+            });
+        } catch (\Throwable $e) {
+            // Session state is not part of the database transaction. Restore it
+            // when the decision fails so an approver can retry safely.
+            if ($otpSession !== null) {
+                $request->session()->put('nexora_group_staff_otp', $otpSession);
+            }
+
+            throw $e;
+        }
+
+        if ($result->status === 'expired') {
+            return response()->json([
+                'message' => 'This governance request has expired.',
+                'request' => [
+                    'public_id' => $result->public_id,
+                    'status' => $result->status,
+                    'completed_at' => $result->completed_at,
+                ],
+            ], 409);
+        }
 
         return response()->json([
             'message' => 'Governance decision recorded.',

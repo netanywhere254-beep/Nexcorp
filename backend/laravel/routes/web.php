@@ -1,9 +1,13 @@
 <?php
+use App\Http\Controllers\AccountingIntegrationController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexispBooksController;
+use App\Http\Controllers\NexispBillingController;
+use App\Http\Controllers\NexispCustomerController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -53,6 +57,77 @@ Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->gr
 Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->group(function(){
  Route::delete('/{id}',[GroupAuthorityController::class,'revoke'])->middleware('throttle:5,1');
 });
+
+// NexISP customer management is always scoped to the server-selected organization.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/customers')
+    ->group(function () {
+        Route::get('/', [NexispCustomerController::class, 'index']);
+        Route::post('/', [NexispCustomerController::class, 'store'])->middleware('throttle:30,1');
+        Route::get('/{id}', [NexispCustomerController::class, 'show'])->whereNumber('id');
+        Route::patch('/{id}', [NexispCustomerController::class, 'update'])
+            ->whereNumber('id')
+            ->middleware('throttle:30,1');
+    });
+
+// NexISP Books is the primary ISP bookkeeping system; third-party accounting is optional.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/books')
+    ->group(function () {
+        Route::get('/overview', [NexispBooksController::class, 'overview']);
+        Route::get('/settings', [NexispBooksController::class, 'settings']);
+        Route::put('/settings', [NexispBooksController::class, 'updateSettings'])->middleware('throttle:20,1');
+        Route::post('/bootstrap', [NexispBooksController::class, 'bootstrap'])->middleware('throttle:5,1');
+        Route::get('/accounts', [NexispBooksController::class, 'accounts']);
+        Route::post('/accounts', [NexispBooksController::class, 'createAccount'])->middleware('throttle:30,1');
+        Route::get('/tax-rates', [NexispBooksController::class, 'taxRates']);
+        Route::post('/tax-rates', [NexispBooksController::class, 'createTaxRate'])->middleware('throttle:20,1');
+        Route::get('/journals', [NexispBooksController::class, 'journalEntries']);
+        Route::get('/reports/trial-balance', [NexispBooksController::class, 'trialBalance']);
+        Route::get('/reports/profit-and-loss', [NexispBooksController::class, 'profitAndLoss']);
+        Route::get('/reports/aged-receivables', [NexispBooksController::class, 'agedReceivables']);
+        Route::get('/receipts', [NexispBooksController::class, 'receipts']);
+        Route::post('/journals', [NexispBooksController::class, 'postJournal'])->middleware('throttle:30,1');
+        Route::get('/invoices', [NexispBooksController::class, 'invoices']);
+        Route::post('/invoices', [NexispBooksController::class, 'createInvoice'])->middleware('throttle:30,1');
+        Route::get('/expenses', [NexispBooksController::class, 'expenses']);
+        Route::post('/expenses', [NexispBooksController::class, 'createExpense'])->middleware('throttle:30,1');
+        Route::post('/invoices/{invoiceId}/receipts', [NexispBooksController::class, 'issueReceipt'])
+            ->whereNumber('invoiceId')->middleware('throttle:20,1');
+        Route::get('/invoices/{invoiceId}/export/{format}', [NexispBooksController::class, 'exportInvoice'])
+            ->whereNumber('invoiceId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
+        Route::get('/receipts/{receiptId}/export/{format}', [NexispBooksController::class, 'exportReceipt'])
+            ->whereNumber('receiptId')->whereIn('format', ['csv', 'xlsx', 'pdf']);
+    });
+
+// Subscription checkout and invoice lifecycle use NexISP Books as the accounting source of truth.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp')
+    ->group(function () {
+        Route::post('/customers/{customerId}/subscriptions', [NexispBillingController::class, 'subscribe'])
+            ->whereNumber('customerId')->middleware('throttle:30,1');
+        Route::get('/invoices', [NexispBillingController::class, 'index']);
+        Route::get('/invoices/{id}', [NexispBillingController::class, 'show'])->whereNumber('id');
+        Route::post('/invoices/{id}/void', [NexispBillingController::class, 'void'])
+            ->whereNumber('id')->middleware('throttle:20,1');
+    });
+
+// NexISP accounting integrations are organization-scoped and billing-admin only.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/accounting')
+    ->group(function () {
+        Route::get('/providers', [AccountingIntegrationController::class, 'providers']);
+        Route::get('/connections', [AccountingIntegrationController::class, 'connections']);
+        Route::put('/connections/{connectionId}/mappings', [AccountingIntegrationController::class, 'saveMappings'])
+            ->whereNumber('connectionId')
+            ->middleware('throttle:20,1');
+        Route::get('/connections/{connectionId}/sync-runs', [AccountingIntegrationController::class, 'syncRuns'])
+            ->whereNumber('connectionId');
+        Route::post('/connections/{connectionId}/invoices/{invoiceId}/export', [AccountingIntegrationController::class, 'queueInvoiceExport'])
+            ->whereNumber('connectionId')
+            ->whereNumber('invoiceId')
+            ->middleware('throttle:20,1');
+    });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
 Route::middleware(['auth','verified','organization.active'])->prefix('organization/staff-security')->group(function(){

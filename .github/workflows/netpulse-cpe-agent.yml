@@ -1,0 +1,34 @@
+name: NetPulse CPE Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "cpe/agent/**"
+      - ".github/workflows/netpulse-cpe-agent.yml"
+  push:
+    branches:
+      - "feature/netpulse-cpe-os-foundation"
+    paths:
+      - "cpe/agent/**"
+      - ".github/workflows/netpulse-cpe-agent.yml"
+
+jobs:
+  go-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cpe/agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+      - name: Report Go formatting differences
+        run: gofmt -l .
+      - name: Format check
+        run: |
+          test -z "$(gofmt -l .)"
+      - name: Unit tests
+        run: go test ./...
+      - name: Static analysis
+        run: go vet ./...

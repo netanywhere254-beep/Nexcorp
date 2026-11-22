@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexisp.example/schemas/cpe-device-profile.schema.json",
+  "title": "NetPulse CPE Device Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manufacturer",
+    "model",
+    "hardwareRevision",
+    "boardId",
+    "status",
+    "openwrtTarget",
+    "minimumFlashBytes",
+    "minimumRamBytes",
+    "recoveryProcedure",
+    "recoveryVerified",
+    "hardwareFingerprint"
+  ],
+  "properties": {
+    "manufacturer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hardwareRevision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boardId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "soc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "openwrtTarget": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "minimumFlashBytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minimumRamBytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "identification_required",
+        "research",
+        "porting",
+        "lab_only",
+        "supported",
+        "blocked",
+        "retired"
+      ]
+    },
+    "supportedOpenWrtReleases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "imageFormat": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "firmwarePartitionBytes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "recoveryProcedure": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recoveryVerified": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hardwareFingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "description": "Stable fingerprint of the exact board revision; null until identified."
+    }
+  }
+}
