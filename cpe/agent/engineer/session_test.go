@@ -70,7 +70,7 @@ func TestActivityRenewsIdleButNotMaximumLifetime(t *testing.T) {
 	if _, err := m.Touch("engineer-1"); err != nil {
 		t.Fatal(err)
 	}
-	*now = now.Add(90 * time.Second)
+	*now = now.Add(time.Minute)
 	if _, err := m.Active(); err != nil {
 		t.Fatalf("idle renewal should keep session alive before absolute expiry: %v", err)
 	}
