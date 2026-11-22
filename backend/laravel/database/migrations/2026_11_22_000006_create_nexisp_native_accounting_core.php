@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('nexisp_invoices', function (Blueprint $table) {
+            $table->unique(['organization_id', 'id'], 'nexisp_invoice_tenant_id_unique');
+        });
+
         Schema::create('nexisp_chart_of_accounts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
@@ -22,7 +26,7 @@ return new class extends Migration
             $table->unique(['organization_id', 'code']);
             $table->unique(['organization_id', 'id']);
             $table->foreign(['organization_id', 'parent_id'])
-                ->references(['organization_id', 'id'])->on('nexisp_chart_of_accounts')->nullOnDelete();
+                ->references(['organization_id', 'id'])->on('nexisp_chart_of_accounts')->restrictOnDelete();
             $table->index(['organization_id', 'account_type', 'active']);
         });
 
@@ -167,5 +171,8 @@ return new class extends Migration
         Schema::dropIfExists('nexisp_journal_entry_lines');
         Schema::dropIfExists('nexisp_journal_entries');
         Schema::dropIfExists('nexisp_chart_of_accounts');
+        Schema::table('nexisp_invoices', function (Blueprint $table) {
+            $table->dropUnique('nexisp_invoice_tenant_id_unique');
+        });
     }
 };
