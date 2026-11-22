@@ -30,6 +30,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->after('user_id')
                 ->constrained('nexisp_customers')->nullOnDelete();
             $table->unsignedBigInteger('user_id')->nullable()->change();
+            $table->unique(['organization_id', 'id'], 'nexisp_subscriptions_org_id_unique');
         });
 
         Schema::create('nexisp_invoices', function (Blueprint $table) {
@@ -66,6 +67,10 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['provider', 'payload_hash']);
             $table->index(['provider', 'external_id']);
+        });
+
+        Schema::table('nexisp_subscriptions', function (Blueprint $table) {
+            $table->dropUnique('nexisp_subscriptions_org_id_unique');
         });
 
         Schema::table('payment_transactions', function (Blueprint $table) {
