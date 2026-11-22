@@ -52,9 +52,11 @@ class TraceGrantedAccessController extends Controller
         int $caseId,
         int $documentId
     ): StreamedResponse {
-        $case = TraceCase::query()
-            ->where('publication_status', 'published')
-            ->findOrFail($caseId);
+        // Resolve the case through the same country/region grant scope used by
+        // the published-case listing; never fetch a published case by raw ID first.
+        $case = $access->publishedCasesFor($request->user())
+            ->whereKey($caseId)
+            ->firstOrFail();
 
         abort_unless($access->allows($request->user(), 'documents.read', $case), 404);
 
