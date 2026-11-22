@@ -14,6 +14,7 @@ use App\Models\NexispSubscription;
 use App\Models\Organization;
 use App\Models\PaymentTransaction;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -77,7 +78,10 @@ class NexispAccountingService
     {
         Gate::forUser($actor)->authorize('manageBilling', $organization);
 
-        $requestHash = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));\n\n        try {\n            return DB::transaction(function () use ($actor, $organization, $data, $requestHash): NexispInvoice {
+        $requestHash = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+
+        try {
+            return DB::transaction(function () use ($actor, $organization, $data, $requestHash): NexispInvoice {
             $settings = NexispAccountingSetting::firstOrCreate(
                 ['organization_id' => $organization->id],
                 ['operating_mode' => 'native', 'base_currency' => 'KES'],
@@ -201,7 +205,8 @@ class NexispAccountingService
                 'currency' => $currency,
                 'issued_at' => $data['issued_at'] ?? now(),
                 'due_at' => $data['due_at'] ?? null,
-                'idempotency_key' => $data['idempotency_key'] ?? null,\n                'request_hash' => $requestHash,
+                'idempotency_key' => $data['idempotency_key'] ?? null,
+                'request_hash' => $requestHash,
                 'notes' => $data['notes'] ?? null,
                 'document_snapshot' => [
                     'customer_name' => $customer->name,
