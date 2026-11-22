@@ -20,8 +20,6 @@ class NexispCustomerController
     {
         $org = $request->attributes->get('activeOrganization');
         $this->authorizeRead($org);
-        $canViewPhone = Gate::allows('manageBilling', $org);
-
         $filters = $request->validate([
             'status' => ['nullable', 'in:'.implode(',', self::STATUSES)],
             'phone' => ['nullable', 'string', 'max:25'],
@@ -46,7 +44,7 @@ class NexispCustomerController
 
         return response()->json([
             'data' => $page->getCollection()
-                ->map(fn (NexispCustomer $customer) => $this->present($customer, $canViewPhone))
+                ->map(fn (NexispCustomer $customer) => $this->present($customer, false))
                 ->values(),
             'meta' => [
                 'current_page' => $page->currentPage(),
