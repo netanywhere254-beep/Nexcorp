@@ -101,8 +101,13 @@ class NexispAccountingService
                     ->where('organization_id', $organization->id)
                     ->whereKey($data['subscription_id'])
                     ->firstOrFail();
-                if (($subscription->customer_id !== null && (int) $subscription->customer_id !== (int) $customer->id)
-                    || ($subscription->customer_id === null && (int) $subscription->user_id !== (int) ($customer->user_id ?? 0))) {
+                $subscriptionMatchesCustomer = $subscription->customer_id !== null
+                    ? (int) $subscription->customer_id === (int) $customer->id
+                    : ($subscription->user_id !== null
+                        && $customer->user_id !== null
+                        && (int) $subscription->user_id === (int) $customer->user_id);
+
+                if (! $subscriptionMatchesCustomer) {
                     throw ValidationException::withMessages(['subscription_id' => 'The selected subscription does not belong to this customer.']);
                 }
             }
