@@ -182,6 +182,31 @@ class NexispBillingServiceTest extends TestCase
         $this->assertSame($original->total_credit, $reversal->total_debit);
     }
 
+    public function test_voided_invoice_cannot_receive_a_late_payment_receipt(): void
+    {
+        [$org, $actor, $customer, $plan] = $this->fixture();
+        $billing = app(NexispBillingService::class);
+        $invoice = $billing->subscribe($org, $customer, $plan, $actor);
+        $billing->voidInvoice($invoice->id, $actor);
+
+        $payment = PaymentTransaction::create([
+            'organization_id' => $org->id,
+            'user_id' => $actor->id,
+            'payable_type' => NexispInvoice::class,
+            'payable_id' => $invoice->id,
+            'provider' => 'mpesa',
+            'provider_reference' => 'LATE-'.uniqid(),
+            'idempotency_key' => 'LATE-'.uniqid(),
+            'status' => 'succeeded',
+            'amount' => '1500.00',
+            'currency' => 'KES',
+            'verified_at' => now(),
+        ]);
+
+        $this->expectException(ValidationException::class);
+        app(NexispAccountingService::class)->issueReceipt($actor, $org, $invoice->id, $payment->id);
+    }
+
     public function test_invoice_with_partial_receipt_cannot_be_voided_without_refund_flow(): void
     {
         [$org, $actor, $customer, $plan] = $this->fixture();
