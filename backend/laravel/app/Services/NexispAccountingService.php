@@ -237,7 +237,7 @@ class NexispAccountingService
                     ->whereNotNull('verified_at')
                     ->firstOrFail();
 
-                if (bccomp((string) $payment->amount, (string) $invoice->amount, 2) !== 0
+                if ($this->toCents((string) $payment->amount) !== $this->toCents((string) $invoice->amount)
                     || strtoupper($payment->currency) !== strtoupper($invoice->currency)) {
                     throw ValidationException::withMessages(['payment' => 'Verified payment amount and currency must match the invoice before a receipt can be issued.']);
                 }
@@ -308,13 +308,32 @@ class NexispAccountingService
             default => $settings->invoice_prefix,
         };
         $year = now($organization->timezone ?: 'UTC')->format('Y');
-        $sequence = match ($kind) {
-            'receipt' => NexispReceipt::where('organization_id', $organization->id)->whereYear('created_at', $year)->count() + 1,
-            'expense' => NexispExpense::where('organization_id', $organization->id)->whereYear('created_at', $year)->count() + 1,
-            default => NexispInvoice::where('organization_id', $organization->id)->whereYear('created_at', $year)->count() + 1,
-        };
 
-        return sprintf('%s-%s-%06d', $prefix, $year, $sequence);
+        $sequence = DB::table('nexisp_document_sequences')
+            ->where('organization_id', $organization->id)
+            ->where('document_type', $kind)
+            ->where('period', $year)
+            ->lockForUpdate()
+            ->first();
+
+        if ($sequence === null) {
+            DB::table('nexisp_document_sequences')->insert([
+                'organization_id' => $organization->id,
+                'document_type' => $kind,
+                'period' => $year,
+                'next_number' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $number = 1;
+        } else {
+            $number = (int) $sequence->next_number;
+            DB::table('nexisp_document_sequences')
+                ->where('id', $sequence->id)
+                ->update(['next_number' => $number + 1, 'updated_at' => now()]);
+        }
+
+        return sprintf('%s-%s-%06d', $prefix, $year, $number);
     }
 
     private function toCents(string|int|float $amount): int
