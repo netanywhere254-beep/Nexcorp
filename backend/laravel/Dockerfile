@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-RUN apt-get update && apt-get install -y --no-install-recommends libicu-dev libzip-dev libonig-dev unzip && docker-php-ext-install pdo_mysql intl mbstring opcache && a2enmod rewrite headers && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libicu-dev libzip-dev libonig-dev unzip && docker-php-ext-install pdo_mysql intl mbstring opcache zip && a2enmod rewrite headers && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
