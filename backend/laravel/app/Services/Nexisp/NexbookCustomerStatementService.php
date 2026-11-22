@@ -91,6 +91,39 @@ class NexbookCustomerStatementService
             }
         }
 
+        if ($invoiceIds !== []) {
+            $creditNotes = DB::table('nexbook_credit_notes as notes')
+                ->join('nexbook_invoices as invoices', 'invoices.id', '=', 'notes.invoice_id')
+                ->where('notes.organization_id', $organizationId)
+                ->where('invoices.organization_id', $organizationId)
+                ->whereIn('notes.invoice_id', $invoiceIds)
+                ->where('notes.status', 'issued')
+                ->whereDate('notes.credit_date', '<=', $to)
+                ->orderBy('notes.credit_date')
+                ->orderBy('notes.id')
+                ->get([
+                    'notes.credit_date', 'notes.credit_note_number', 'notes.currency',
+                    'notes.total', 'invoices.customer_name',
+                ]);
+
+            foreach ($creditNotes as $creditNote) {
+                if (mb_strtolower(trim($creditNote->customer_name)) !== mb_strtolower($customerName)) {
+                    continue;
+                }
+                $events[] = [
+                    'date' => substr((string) $creditNote->credit_date, 0, 10),
+                    'sort' => 2,
+                    'type' => 'credit_note',
+                    'reference' => $creditNote->credit_note_number,
+                    'description' => 'Credit note issued',
+                    'currency' => $creditNote->currency,
+                    'debit_minor' => 0,
+                    'credit_minor' => $this->minorUnits($creditNote->total),
+                    'due_date' => null,
+                ];
+            }
+        }
+
         usort($events, fn (array $a, array $b) => [$a['date'], $a['sort'], $a['reference']] <=> [$b['date'], $b['sort'], $b['reference']]);
 
         $currencies = [];
