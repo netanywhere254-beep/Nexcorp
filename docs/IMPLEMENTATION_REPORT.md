@@ -22,7 +22,8 @@ Working branch for this report: `implementation/organization-member-management`
 - `php -l` passed on changed PHP files.
 - `phpunit --filter OrganizationMemberManagementTest`: 5 tests, 15 assertions, pass.
 - Full suite: 79 tests, 235 assertions, pass.
-- GitHub CI: pending.
+- GitHub Actions [run 44999032846](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44999032846)
+  passed all five jobs on commit `06be36b`.
 
 ## Not yet implemented
 
