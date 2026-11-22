@@ -105,6 +105,14 @@ class NexbookCreditNoteService
 
             $taxRate = (int) ($invoice->metadata['tax_rate_basis_points'] ?? 0);
             $taxMinor = intdiv(($subtotalMinor * $taxRate) + 5000, 10000);
+            $alreadyCreditedTax = DB::table('nexbook_credit_notes')
+                ->where('organization_id', $organizationId)
+                ->where('invoice_id', $invoice->id)
+                ->where('status', 'issued')
+                ->sum('tax_total');
+            if ($this->minorUnits($alreadyCreditedTax) + $taxMinor > $this->minorUnits($invoice->tax_total)) {
+                throw ValidationException::withMessages(['lines' => 'The credit note tax reversal cannot exceed the original invoice tax.']);
+            }
             $totalMinor = $subtotalMinor + $taxMinor;
 
             $alreadyCreditedTotal = DB::table('nexbook_credit_notes')
