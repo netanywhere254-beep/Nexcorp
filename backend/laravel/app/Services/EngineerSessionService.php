@@ -242,6 +242,7 @@ class EngineerSessionService
             ->where('user_id', $actor->getKey())
             ->where('status', 'active')
             ->whereNull('revoked_at')
+            ->whereNotNull('scope')
             ->where('starts_at', '<=', $at)
             ->where(function ($query) use ($at) {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', $at);
