@@ -5,7 +5,6 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Faker\Factory as FakerFactory;
 
 /**
  * @extends Factory<\App\Models\User>
@@ -16,11 +15,9 @@ class UserFactory extends Factory
 
     public function definition(): array
     {
-        $faker = FakerFactory::create();
-
         return [
-            'name' => $faker->name(),
-            'email' => $faker->unique()->safeEmail(),
+            'name' => 'Test User',
+            'email' => Str::uuid() . '@example.test',
             'phone' => null,
             'password' => Hash::make('password'),
             'status' => 'active',
