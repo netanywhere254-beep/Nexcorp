@@ -124,6 +124,40 @@ class NexbookCustomerStatementService
             }
         }
 
+        if ($invoiceIds !== []) {
+            $refunds = DB::table('nexbook_payment_refund_allocations as allocations')
+                ->join('nexbook_payment_refunds as refunds', 'refunds.id', '=', 'allocations.refund_id')
+                ->join('nexbook_invoices as invoices', 'invoices.id', '=', 'allocations.invoice_id')
+                ->where('refunds.organization_id', $organizationId)
+                ->where('invoices.organization_id', $organizationId)
+                ->whereIn('allocations.invoice_id', $invoiceIds)
+                ->where('refunds.status', 'posted')
+                ->whereDate('refunds.refund_date', '<=', $to)
+                ->orderBy('refunds.refund_date')
+                ->orderBy('refunds.id')
+                ->get([
+                    'refunds.refund_date', 'refunds.refund_number', 'refunds.currency',
+                    'allocations.amount', 'invoices.customer_name',
+                ]);
+
+            foreach ($refunds as $refund) {
+                if (mb_strtolower(trim($refund->customer_name)) !== mb_strtolower($customerName)) {
+                    continue;
+                }
+                $events[] = [
+                    'date' => substr((string) $refund->refund_date, 0, 10),
+                    'sort' => 3,
+                    'type' => 'refund',
+                    'reference' => $refund->refund_number,
+                    'description' => 'Payment refunded',
+                    'currency' => $refund->currency,
+                    'debit_minor' => $this->minorUnits($refund->amount),
+                    'credit_minor' => 0,
+                    'due_date' => null,
+                ];
+            }
+        }
+
         usort($events, fn (array $a, array $b) => [$a['date'], $a['sort'], $a['reference']] <=> [$b['date'], $b['sort'], $b['reference']]);
 
         $currencies = [];
