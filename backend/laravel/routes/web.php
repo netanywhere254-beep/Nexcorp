@@ -78,7 +78,14 @@ Route::middleware(['auth', 'verified', 'organization.active'])
         Route::put('/settings', [NexispBooksController::class, 'updateSettings'])->middleware('throttle:20,1');
         Route::post('/bootstrap', [NexispBooksController::class, 'bootstrap'])->middleware('throttle:5,1');
         Route::get('/accounts', [NexispBooksController::class, 'accounts']);
+        Route::post('/accounts', [NexispBooksController::class, 'createAccount'])->middleware('throttle:30,1');
+        Route::get('/tax-rates', [NexispBooksController::class, 'taxRates']);
+        Route::post('/tax-rates', [NexispBooksController::class, 'createTaxRate'])->middleware('throttle:20,1');
         Route::get('/journals', [NexispBooksController::class, 'journalEntries']);
+        Route::get('/reports/trial-balance', [NexispBooksController::class, 'trialBalance']);
+        Route::get('/reports/profit-and-loss', [NexispBooksController::class, 'profitAndLoss']);
+        Route::get('/reports/aged-receivables', [NexispBooksController::class, 'agedReceivables']);
+        Route::get('/receipts', [NexispBooksController::class, 'receipts']);
         Route::post('/journals', [NexispBooksController::class, 'postJournal'])->middleware('throttle:30,1');
         Route::get('/invoices', [NexispBooksController::class, 'invoices']);
         Route::post('/invoices', [NexispBooksController::class, 'createInvoice'])->middleware('throttle:30,1');
