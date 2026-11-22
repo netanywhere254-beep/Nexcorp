@@ -147,6 +147,11 @@ class NexispBooksController
             'lines.*.description' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $baseCurrency = strtoupper(NexispAccountingSetting::where('organization_id', $organization->id)->value('base_currency') ?? 'KES');
+        if (strtoupper($data['currency']) !== $baseCurrency) {
+            throw ValidationException::withMessages(['currency' => 'Manual journal entries must use the ISP base currency until multi-currency accounting is enabled.']);
+        }
+
         foreach ($data['lines'] as &$line) {
             $line['debit'] = $this->toCents((string) ($line['debit'] ?? '0'));
             $line['credit'] = $this->toCents((string) ($line['credit'] ?? '0'));
