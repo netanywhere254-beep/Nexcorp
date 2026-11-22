@@ -240,7 +240,7 @@ model AccountingConnection {
   tenantId               String   @db.Uuid
   tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   connectedByUserId      String?  @db.Uuid
-  connectedBy            User?    @relation("AccountingConnectionActor", fields: [connectedByUserId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  connectedBy            User?    @relation("AccountingConnectionActor", fields: [connectedByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
   provider               String   @db.VarChar(40)
   displayName            String   @db.VarChar(120)
   externalAccountId      String?  @db.VarChar(160)
@@ -288,7 +288,7 @@ model AccountingSyncRun {
   connectionId    String   @db.Uuid
   connection      AccountingConnection @relation(fields: [connectionId, tenantId], references: [id, tenantId], onDelete: Restrict)
   startedByUserId String?  @db.Uuid
-  startedBy       User?    @relation("AccountingSyncActor", fields: [startedByUserId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  startedBy       User?    @relation("AccountingSyncActor", fields: [startedByUserId, tenantId], references: [id, tenantId], onDelete: Restrict)
   direction       String   @default("export") @db.VarChar(16)
   status          String   @default("queued") @db.VarChar(24)
   itemsTotal      Int      @default(0)
@@ -312,7 +312,7 @@ model AccountingSyncItem {
   connectionId   String   @db.Uuid
   connection     AccountingConnection @relation(fields: [connectionId, tenantId], references: [id, tenantId], onDelete: Restrict)
   runId          String?  @db.Uuid
-  run            AccountingSyncRun? @relation(fields: [runId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  run            AccountingSyncRun? @relation(fields: [runId, tenantId], references: [id, tenantId], onDelete: Restrict)
   localType      String   @db.VarChar(80)
   localId        String   @db.Uuid
   operation      String   @default("upsert") @db.VarChar(24)
