@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Services\\Nexisp;
+namespace App\Services\Nexisp;
 
-use App\\Models\\NexbookInvoice;
-use App\\Models\\NexispAccount;
-use App\\Models\\Organization;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\NexbookInvoice;
+use App\Models\NexispAccount;
+use App\Models\Organization;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class NexbookInvoiceService
 {
@@ -274,7 +274,7 @@ class NexbookInvoiceService
     private function moneyMinor(mixed $amount): int
     {
         $value = (string) $amount;
-        if (!preg_match('/^(?:0|[1-9][0-9]{0,8})(?:\\.[0-9]{1,2})?$/', $value)) {
+        if (!preg_match('/^(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,2})?$/', $value)) {
             throw ValidationException::withMessages(['amount' => 'Amounts must be positive decimal values with no more than two decimal places.']);
         }
         [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
@@ -284,7 +284,7 @@ class NexbookInvoiceService
     private function quantityMilli(mixed $quantity): int
     {
         $value = (string) $quantity;
-        if (!preg_match('/^(?:0|[1-9][0-9]{0,3})(?:\\.[0-9]{1,3})?$/', $value)) {
+        if (!preg_match('/^(?:0|[1-9][0-9]{0,3})(?:\.[0-9]{1,3})?$/', $value)) {
             throw ValidationException::withMessages(['quantity' => 'Quantity must be a positive number with no more than three decimal places.']);
         }
         [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
