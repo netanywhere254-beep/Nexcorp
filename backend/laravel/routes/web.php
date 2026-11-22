@@ -67,3 +67,4 @@ Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
 });
+\n\n// NexBook customer statements are always scoped to the active organisation.\nRoute::middleware(['auth','verified','organization.active'])->get('/nexbook/customer-statement',[NexbookCustomerStatementController::class,'show'])->middleware('throttle:30,1');\n
