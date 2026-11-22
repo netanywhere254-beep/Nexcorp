@@ -5,6 +5,7 @@ use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexispCustomerController;
+use App\Http\Controllers\NexispPlanController;
 use App\Http\Controllers\NexispServiceAreaController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
@@ -42,6 +43,11 @@ Route::middleware(['auth','verified','organization.active'])->prefix('nexisp')->
     Route::post('/customers', [NexispCustomerController::class, 'store']);
     Route::get('/customers/{customer}', [NexispCustomerController::class, 'show']);
     Route::patch('/customers/{customer}', [NexispCustomerController::class, 'update']);
+
+    Route::get('/plans', [NexispPlanController::class, 'index']);
+    Route::post('/plans', [NexispPlanController::class, 'store']);
+    Route::get('/plans/{plan}', [NexispPlanController::class, 'show']);
+    Route::patch('/plans/{plan}', [NexispPlanController::class, 'update']);
 });
 
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));

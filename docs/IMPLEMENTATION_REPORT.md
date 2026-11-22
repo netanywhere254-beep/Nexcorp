@@ -2,51 +2,40 @@
 
 Last updated: 2026-11-22
 Primary branch inspected: `main` at `0fc7c19`
-Working branch for this report: `implementation/nexisp-service-areas-customers`
+Working branch for this report: `integration/nexisp-foundation`
 
-This report records verifiable work on this branch. A file existing in the
-repository is not evidence that a business feature works.
+This report records verifiable work being integrated on this branch. A file
+existing in the repository is not evidence that a business feature works.
 
 ## Verified baseline
 
 - GitHub Actions `Nexora Dual Architecture CI` passed on `main` at `0fc7c19`
   (run 44443422676, 19 November 2026).
-- Local full Laravel test suite passed on this branch before push:
-  `php vendor/bin/phpunit` (result recorded below after final run).
 
-## Implemented on this branch
+## Implemented on this integration branch
 
-- NexISP service-area and customer tenant administration foundation:
-  - `nexisp_service_areas` and `nexisp_customers` migrations.
-  - `NexispServiceArea` and `NexispCustomer` models.
-  - Tenant-scoped authenticated endpoints under `/nexisp/*` for listing,
-    creating, viewing, and updating service areas and customers.
-  - Server-side authorization via `OrganizationPolicy::manageNetwork` for
-    writes and `view` for reads; active organization is derived from the
-    verified session.
-  - Customer service-area assignment validated to the same organization.
-  - Audit events: `nexisp.service_area_created`, `nexisp.service_area_updated`,
-    `nexisp.customer_created`, `nexisp.customer_updated`.
-  - Feature tests covering authorization, per-organization uniqueness,
-    tenant isolation, and same-tenant service-area assignment.
-
-## Not yet implemented
-
-- NexISP bandwidth plan CRUD API, customer imports, and admin UI.
-- Subscriptions, invoices, receipts, payments, credits, reconciliation, and
-  provisioning workflows.
-- Router/MikroTik integration, RADIUS/session management, and service status.
-- Payment-provider adapters and verified M-Pesa callback handling.
-- Production deployment, monitoring, backups, and disaster-recovery drills.
+- NexISP service-area and customer tenant administration foundation (from
+  `implementation/nexisp-service-areas-customers`, CI run 44992344119):
+  - `nexisp_service_areas` and `nexisp_customers` migrations/models.
+  - Tenant-scoped CRUD/list endpoints under `/nexisp/service-areas` and
+    `/nexisp/customers`.
+  - `manageNetwork` writes, `view` reads, same-tenant service-area validation,
+    audit events, and feature tests.
+- NexISP bandwidth plan management foundation (from
+  `implementation/nexisp-bandwidth-plans`, CI run 44993942151):
+  - Tenant-scoped `/nexisp/plans` list/create/show/update endpoints.
+  - Code/currency normalization, per-organization uniqueness, validation,
+    audit events, and feature tests.
 
 ## Verification
 
-- `php -l` passed for all new/changed PHP files.
-- `php vendor/bin/phpunit --filter NexispServiceAreaCustomerTest` passed:
-  9 tests, 34 assertions.
-- `php vendor/bin/phpunit` full suite passed locally: 83 tests, 254 assertions.
-- GitHub Actions `Nexora Dual Architecture CI`
-  [run 44992344119](https://github.com/netanywhere254-beep/Nexcorp/actions/runs/44992344119)
-  passed all five jobs on commit `a10aeff`.
-- CI proves the checked-in code builds and tests pass. It does not prove
-  production deployment, UI completeness, or payment/provisioning behavior.
+- Component branches were individually CI-verified before integration.
+- This integration branch must pass full Laravel tests and GitHub CI after
+  conflict resolution before any merge/deploy claim.
+
+## Not yet implemented
+
+- NexISP subscriptions, invoices, receipts, payments, credits, reconciliation,
+  provisioning, router/MikroTik integration, and admin UI.
+- Payment-provider adapters and verified M-Pesa callback handling.
+- Production deployment, monitoring, backups, and disaster-recovery drills.
