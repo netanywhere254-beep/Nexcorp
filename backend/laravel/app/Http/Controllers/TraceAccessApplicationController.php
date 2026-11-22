@@ -168,8 +168,10 @@ class TraceAccessApplicationController extends Controller
         ]);
         $otp->consume($request, 'loopza.trace.access_applications.decision.'.$applicationId);
 
-        $application = DB::transaction(function () use ($request, $applicationId, $data, $countries): TraceAccessApplication {
-            $app = TraceAccessApplication::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($applicationId);
+        $application = DB::transaction(function () use ($request, $applicationId, $data, $scope): TraceAccessApplication {
+            $currentCountries = $scope->lockCountriesFor($request->user());
+            abort_if($currentCountries === [], 403, 'Reviewer country appointment is no longer active.');
+            $app = TraceAccessApplication::query()->whereIn('country_code', $currentCountries)->lockForUpdate()->findOrFail($applicationId);
             abort_unless(in_array($app->status, ['pending_review', 'needs_more_information'], true), 409,
                 'This application is no longer awaiting a decision.');
             abort_if((int) $app->user_id === (int) $request->user()->id, 403,
@@ -253,12 +255,14 @@ class TraceAccessApplicationController extends Controller
 
         $otp->consume($request, 'loopza.trace.access_applications.grant.'.$applicationId);
 
-        $grant = DB::transaction(function () use ($request, $applicationId, $data, $countries): TraceCountryAccessGrant {
+        $grant = DB::transaction(function () use ($request, $applicationId, $data, $scope): TraceCountryAccessGrant {
+            $currentCountries = $scope->lockCountriesFor($request->user());
+            abort_if($currentCountries === [], 403, 'Reviewer country appointment is no longer active.');
             // Re-read and lock the approved application inside the grant transaction.
             // This prevents a concurrent reviewer action from changing its status
             // between the initial check and creation of the country-scoped grant.
             $lockedApplication = TraceAccessApplication::query()
-                ->whereIn('country_code', $countries)
+                ->whereIn('country_code', $currentCountries)
                 ->lockForUpdate()
                 ->findOrFail($applicationId);
 
@@ -326,8 +330,10 @@ class TraceAccessApplicationController extends Controller
         ]);
         $otp->consume($request, 'loopza.trace.country_access.revoke.'.$grantId);
 
-        $grant = DB::transaction(function () use ($request, $grantId, $data, $countries): TraceCountryAccessGrant {
-            $grant = TraceCountryAccessGrant::query()->whereIn('country_code', $countries)->lockForUpdate()->findOrFail($grantId);
+        $grant = DB::transaction(function () use ($request, $grantId, $data, $scope): TraceCountryAccessGrant {
+            $currentCountries = $scope->lockCountriesFor($request->user());
+            abort_if($currentCountries === [], 403, 'Reviewer country appointment is no longer active.');
+            $grant = TraceCountryAccessGrant::query()->whereIn('country_code', $currentCountries)->lockForUpdate()->findOrFail($grantId);
             abort_unless($grant->status === 'active', 409, 'Only active grants can be revoked.');
 
             $grant->update([
