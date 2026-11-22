@@ -106,7 +106,14 @@ class NexbookPaymentService
                 }
                 $customerIdentity = $identity;
 
-                $outstanding = $this->minorUnits($invoice->total) - $this->minorUnits($invoice->amount_paid);
+                $credited = DB::table('nexbook_credit_notes')
+                    ->where('organization_id', $organizationId)
+                    ->where('invoice_id', $invoice->id)
+                    ->where('status', 'issued')
+                    ->sum('total');
+                $outstanding = $this->minorUnits($invoice->total)
+                    - $this->minorUnits($invoice->amount_paid)
+                    - $this->minorUnits($credited);
                 if ($allocation['minor'] > $outstanding) {
                     throw ValidationException::withMessages(["allocations.{$index}.amount" => 'An allocation cannot exceed the invoice outstanding balance.']);
                 }
