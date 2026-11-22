@@ -13,7 +13,6 @@ return new class extends Migration
             $table->decimal('tax_amount', 14, 2)->default(0)->after('subtotal');
             $table->string('notes', 1000)->nullable();
             $table->json('document_snapshot')->nullable();
-            $table->unique(['organization_id', 'id'], 'nexisp_invoice_org_id_unique');
         });
 
         Schema::create('nexisp_invoice_items', function (Blueprint $table) {
@@ -38,7 +37,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('nexisp_invoice_items');
         Schema::table('nexisp_invoices', function (Blueprint $table) {
-            $table->dropUnique('nexisp_invoice_org_id_unique');
             $table->dropColumn(['subtotal', 'tax_amount', 'notes', 'document_snapshot']);
         });
     }
