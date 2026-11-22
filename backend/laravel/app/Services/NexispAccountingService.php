@@ -443,6 +443,7 @@ class NexispAccountingService
                     ->whereKey($paymentTransactionId)
                     ->where('payable_type', NexispInvoice::class)
                     ->where('payable_id', $invoice->id)
+                    ->where('status', 'succeeded')
                     ->whereNotNull('verified_at')
                     ->firstOrFail();
 
