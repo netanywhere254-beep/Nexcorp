@@ -26,6 +26,12 @@ existing in the repository is not evidence that a business feature works.
   - Tenant-scoped `/nexisp/plans` list/create/show/update endpoints.
   - Code/currency normalization, per-organization uniqueness, validation,
     audit events, and feature tests.
+- NexISP subscription lifecycle foundation (from
+  `implementation/nexisp-subscriptions`, CI run 44995042659):
+  - Idempotency key migration for `nexisp_subscriptions`.
+  - Tenant-scoped list/create/show/activate/suspend/cancel endpoints.
+  - Server-calculated plan snapshot/pricing; client price/status ignored.
+  - Idempotent create, status-transition guards, audit events, and feature tests.
 
 ## Verification
 
@@ -35,7 +41,7 @@ existing in the repository is not evidence that a business feature works.
 
 ## Not yet implemented
 
-- NexISP subscriptions, invoices, receipts, payments, credits, reconciliation,
-  provisioning, router/MikroTik integration, and admin UI.
+- Payment initiation/verification/callbacks, invoices, receipts, credits,
+  reconciliation, router/MikroTik provisioning, and admin UI.
 - Payment-provider adapters and verified M-Pesa callback handling.
 - Production deployment, monitoring, backups, and disaster-recovery drills.

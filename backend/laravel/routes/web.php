@@ -7,6 +7,7 @@ use App\Http\Controllers\NexCoreAiController;
 use App\Http\Controllers\NexispCustomerController;
 use App\Http\Controllers\NexispPlanController;
 use App\Http\Controllers\NexispServiceAreaController;
+use App\Http\Controllers\NexispSubscriptionController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -48,6 +49,13 @@ Route::middleware(['auth','verified','organization.active'])->prefix('nexisp')->
     Route::post('/plans', [NexispPlanController::class, 'store']);
     Route::get('/plans/{plan}', [NexispPlanController::class, 'show']);
     Route::patch('/plans/{plan}', [NexispPlanController::class, 'update']);
+
+    Route::get('/subscriptions', [NexispSubscriptionController::class, 'index']);
+    Route::post('/subscriptions', [NexispSubscriptionController::class, 'store']);
+    Route::get('/subscriptions/{subscription}', [NexispSubscriptionController::class, 'show']);
+    Route::post('/subscriptions/{subscription}/activate', [NexispSubscriptionController::class, 'activate']);
+    Route::post('/subscriptions/{subscription}/suspend', [NexispSubscriptionController::class, 'suspend']);
+    Route::post('/subscriptions/{subscription}/cancel', [NexispSubscriptionController::class, 'cancel']);
 });
 
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));
