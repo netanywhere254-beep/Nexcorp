@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://loopza-trace-find.netlify.app/sitemap.xml

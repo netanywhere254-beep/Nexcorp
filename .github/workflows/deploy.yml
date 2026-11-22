@@ -148,6 +148,9 @@ jobs:
       - name: Build standby API and web images
         run: docker compose --env-file infra/.env.backup.example -f infra/docker-compose.backup.yml build api web
 
+      - name: Validate MySQL 8.4 replication reference
+        run: docker compose --env-file infra/.env.mysql-ha.example -f infra/docker-compose.mysql-ha-reference.yml config --quiet
+
       - name: Validate retained multi-service reference
         run: docker compose --env-file infra/.env.nexora-stack.example -f infra/docker-compose.nexora-multiservice-reference.yml config --quiet
 

@@ -4,12 +4,16 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexoraCaseController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TraceCaseController;
+use App\Http\Controllers\TraceAccessApplicationController;
 use App\Http\Controllers\TraceProfileController;
+use App\Http\Controllers\TraceReviewController;
+use App\Http\Controllers\TraceGrantedAccessController;
 use App\Http\Controllers\TracePhoneVerificationController;
 use App\Http\Controllers\UserPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
@@ -52,6 +56,8 @@ Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->gr
 });
 Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->group(function(){
  Route::delete('/{id}',[GroupAuthorityController::class,'revoke'])->middleware('throttle:5,1');
+ Route::post('/{id}/country-scope',[GroupAuthorityController::class,'appointCountryScope'])->middleware('throttle:5,1');
+ Route::delete('/{id}/country-scope',[GroupAuthorityController::class,'revokeCountryScope'])->middleware('throttle:5,1');
 });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
@@ -63,7 +69,48 @@ Route::middleware(['auth','verified','organization.active'])->prefix('organizati
 });
 Route::middleware(['auth','verified'])->prefix('trace-find')->group(function(){
  Route::post('/profile',[TraceProfileController::class,'store'])->middleware('throttle:3,1');
+ Route::post('/profile/selfie',[TraceProfileController::class,'selfie'])->middleware('throttle:3,1');
  Route::post('/phone/send-code',[TracePhoneVerificationController::class,'send'])->middleware('throttle:3,1');
  Route::post('/phone/verify-code',[TracePhoneVerificationController::class,'verify'])->middleware('throttle:6,1');
  Route::post('/cases',[TraceCaseController::class,'store'])->middleware('throttle:5,1');
+ Route::post('/cases/{caseId}/resubmit',[TraceCaseController::class,'resubmit'])->whereNumber('caseId')->middleware('throttle:5,1');
+});
+
+// Nexora Group general cases are distinct from Loopza Trace & Find cases.
+Route::middleware(['auth', 'verified'])->prefix('nexora/cases')->group(function () {
+    Route::get('/', [NexoraCaseController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/', [NexoraCaseController::class, 'store'])->middleware('throttle:5,1');
+});
+
+// Sensitive Loopza review actions require a group-scoped appointment and one-time staff OTP.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/review')->group(function () {
+    Route::get('/console', fn () => view('trace-find.review-console'))->name('trace-find.review.console');
+    Route::get('/profiles', [TraceReviewController::class, 'profileQueue'])->middleware('throttle:10,1');
+    Route::get('/profiles/{profileId}/selfie', [TraceReviewController::class, 'selfie'])->whereNumber('profileId')->middleware('throttle:6,1');
+    Route::post('/profiles/{profileId}/decision', [TraceReviewController::class, 'decideProfile'])->whereNumber('profileId')->middleware('throttle:10,1');
+    Route::get('/cases', [TraceReviewController::class, 'caseQueue'])->middleware('throttle:10,1');
+    Route::get('/cases/{caseId}/documents/{documentId}', [TraceReviewController::class, 'caseDocument'])->whereNumber('caseId')->whereNumber('documentId')->middleware('throttle:6,1');
+    Route::post('/cases/{caseId}/decision', [TraceReviewController::class, 'decideCase'])->whereNumber('caseId')->middleware('throttle:10,1');
+});
+
+
+// Vetted external access is restricted to explicitly published records and active country grants.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/authorised')->group(function () {
+    Route::get('/cases', [TraceGrantedAccessController::class, 'cases'])->middleware('throttle:30,1');
+    Route::get('/cases/{caseId}/documents/{documentId}', [TraceGrantedAccessController::class, 'document'])
+        ->whereNumber('caseId')->whereNumber('documentId')->middleware('throttle:10,1');
+});
+
+// Authority, professional investigator and volunteer access is separately vetted.
+// Approval does not itself grant access to private cases or documents.
+Route::middleware(['auth', 'verified'])->prefix('trace-find/access-applications')->group(function () {
+    Route::post('/', [TraceAccessApplicationController::class, 'store'])->middleware('throttle:3,1');
+});
+
+Route::middleware(['auth', 'verified'])->prefix('trace-find/review/access-applications')->group(function () {
+    Route::get('/', [TraceAccessApplicationController::class, 'index'])->middleware('throttle:10,1');
+    Route::get('/{applicationId}/evidence', [TraceAccessApplicationController::class, 'evidence'])->whereNumber('applicationId')->middleware('throttle:6,1');
+    Route::post('/{applicationId}/decision', [TraceAccessApplicationController::class, 'decide'])->whereNumber('applicationId')->middleware('throttle:10,1');
+    Route::post('/{applicationId}/grant', [TraceAccessApplicationController::class, 'grantCountryAccess'])->whereNumber('applicationId')->middleware('throttle:5,1');
+    Route::post('/grants/{grantId}/revoke', [TraceAccessApplicationController::class, 'revokeCountryAccess'])->whereNumber('grantId')->middleware('throttle:5,1');
 });
