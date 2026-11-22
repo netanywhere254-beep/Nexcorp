@@ -40,7 +40,7 @@ class NexispBooksController
                 ['key' => 'bank_reconciliation', 'available' => false, 'enabled' => false, 'status' => 'planned'],
                 ['key' => 'budgets', 'available' => false, 'enabled' => false, 'status' => 'planned'],
                 ['key' => 'recurring_invoices', 'available' => false, 'enabled' => false, 'status' => 'planned'],
-                ['key' => 'external_sync', 'available' => true, 'enabled' => $settings->external_sync_enabled],
+                ['key' => 'external_sync', 'available' => false, 'enabled' => false, 'status' => 'provider_authorization_pending'],
             ],
         ]);
     }
@@ -65,7 +65,8 @@ class NexispBooksController
             'feature_preferences' => ['sometimes', 'array', 'max:40'],
         ]);
 
-        if (in_array($data['operating_mode'] ?? null, ['hybrid', 'external_mirror'], true)
+        if ((in_array($data['operating_mode'] ?? null, ['hybrid', 'external_mirror'], true)
+                || ($data['external_sync_enabled'] ?? false) === true)
             && ! AccountingConnection::query()->where('organization_id', $organization->id)->where('status', 'connected')->exists()) {
             throw ValidationException::withMessages(['operating_mode' => 'Connect an accounting provider before switching to hybrid or external mirror mode.']);
         }
