@@ -4,6 +4,7 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexispCustomerController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -53,6 +54,18 @@ Route::middleware(['auth','verified'])->prefix('group/governance/approvals')->gr
 Route::middleware(['auth','verified'])->prefix('group/governance/authorities')->group(function(){
  Route::delete('/{id}',[GroupAuthorityController::class,'revoke'])->middleware('throttle:5,1');
 });
+
+// NexISP customer management is always scoped to the server-selected organization.
+Route::middleware(['auth', 'verified', 'organization.active'])
+    ->prefix('nexisp/customers')
+    ->group(function () {
+        Route::get('/', [NexispCustomerController::class, 'index']);
+        Route::post('/', [NexispCustomerController::class, 'store'])->middleware('throttle:30,1');
+        Route::get('/{id}', [NexispCustomerController::class, 'show'])->whereNumber('id');
+        Route::patch('/{id}', [NexispCustomerController::class, 'update'])
+            ->whereNumber('id')
+            ->middleware('throttle:30,1');
+    });
 
 // Nexora organisation staff allow-list, separate from Loopza family phone verification.
 Route::middleware(['auth','verified','organization.active'])->prefix('organization/staff-security')->group(function(){
