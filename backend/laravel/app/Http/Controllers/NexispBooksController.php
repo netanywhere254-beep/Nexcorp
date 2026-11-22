@@ -58,9 +58,6 @@ class NexispBooksController
             'expense_prefix' => ['sometimes', 'string', 'max:16', 'regex:/^[A-Za-z0-9_-]+$/'],
             'expenses_enabled' => ['sometimes', 'boolean'],
             'tax_enabled' => ['sometimes', 'boolean'],
-            'bank_reconciliation_enabled' => ['sometimes', 'boolean'],
-            'budgets_enabled' => ['sometimes', 'boolean'],
-            'recurring_invoices_enabled' => ['sometimes', 'boolean'],
             'external_sync_enabled' => ['sometimes', 'boolean'],
             'feature_preferences' => ['sometimes', 'array', 'max:40'],
         ]);
@@ -222,7 +219,7 @@ class NexispBooksController
             'subscription_id' => ['nullable', 'integer'],
             'currency' => ['nullable', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
             'issued_at' => ['nullable', 'date'],
-            'due_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
+            'due_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:100'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
@@ -231,6 +228,10 @@ class NexispBooksController
             'items.*.unit_price' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
             'items.*.tax_rate_id' => ['nullable', 'integer'],
         ]);
+
+        if (! empty($data['due_at']) && strtotime($data['due_at']) < strtotime($data['issued_at'] ?? now()->toDateTimeString())) {
+            throw ValidationException::withMessages(['due_at' => 'The due date cannot be earlier than the invoice issue date.']);
+        }
 
         $invoice = $accounting->createInvoice($request->user(), $organization, $data);
 
@@ -574,7 +575,7 @@ class NexispBooksController
                 continue;
             }
             $baseDate = $invoice->due_at ?? $invoice->issued_at;
-            $age = max(0, $baseDate?->diffInDays(now()) ?? 0);
+            $age = $baseDate === null || $baseDate->isFuture() ? 0 : (int) $baseDate->diffInDays(now());
             $bucket = match (true) {
                 $age <= 30 => 'current_0_30',
                 $age <= 60 => 'days_31_60',
