@@ -195,6 +195,7 @@ class NexispBillingService
             }
 
             $this->assertTransition(self::INVOICE_TRANSITIONS, $invoice->status, 'void', 'invoice');
+            $this->accounting->reverseInvoice($actor, $invoice->organization, $invoice);
             $invoice->update(['status' => 'void']);
 
             if ($invoice->subscription_id !== null) {
