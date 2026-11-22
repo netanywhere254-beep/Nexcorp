@@ -16,7 +16,7 @@ class AccountingIntegrationController
         ['key' => 'quickbooks_online', 'name' => 'QuickBooks Online', 'connection' => 'oauth2', 'available' => false],
         ['key' => 'xero', 'name' => 'Xero', 'connection' => 'oauth2', 'available' => false],
         ['key' => 'sage', 'name' => 'Sage Accounting', 'connection' => 'oauth2', 'available' => false],
-        ['key' => 'csv', 'name' => 'CSV export', 'connection' => 'download', 'available' => true],
+        ['key' => 'csv', 'name' => 'CSV export', 'connection' => 'download', 'available' => false],
     ];
 
     public function providers(Request $request): JsonResponse
