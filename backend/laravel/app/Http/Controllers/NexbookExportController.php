@@ -6,6 +6,7 @@ use App\Services\Nexisp\NexbookCsvExportService;
 use App\Services\Nexisp\NexbookCustomerStatementService;
 use App\Services\Nexisp\NexbookReceivablesAgingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
@@ -176,11 +177,6 @@ class NexbookExportController extends Controller
             })
             ->where('payments.organization_id', (int) $organization->id)
             ->where('payments.status', 'posted')
-            ->groupBy(
-                'payments.id', 'payments.receipt_number', 'payments.payment_date',
-                'payments.currency', 'payments.method', 'payments.reference',
-                'payments.amount', 'payments.allocated_amount'
-            )
             ->orderBy('payments.payment_date')
             ->orderBy('payments.receipt_number');
 
@@ -188,23 +184,32 @@ class NexbookExportController extends Controller
         if (!empty($validated['to'])) $query->whereDate('payments.payment_date', '<=', $validated['to']);
         if (!empty($validated['method'])) $query->where('payments.method', $validated['method']);
 
-        $rows = [];
+        $receipts = [];
         foreach ($query->get([
-            'payments.receipt_number', 'payments.payment_date', 'payments.currency',
-            'payments.method', 'payments.reference', 'payments.amount',
-            'payments.allocated_amount',
-            DB::raw("GROUP_CONCAT(DISTINCT invoices.invoice_number) as invoice_numbers"),
-        ]) as $receipt) {
-            $rows[] = [
-                $csv->safeText($receipt->receipt_number),
-                $receipt->payment_date,
-                $receipt->currency,
-                $csv->safeText($receipt->method),
-                $csv->safeText($receipt->reference),
-                $csv->safeText($receipt->invoice_numbers),
-                $receipt->amount,
-                $receipt->allocated_amount,
+            'payments.id', 'payments.receipt_number', 'payments.payment_date',
+            'payments.currency', 'payments.method', 'payments.reference',
+            'payments.amount', 'payments.allocated_amount', 'invoices.invoice_number',
+        ]) as $item) {
+            $id = (int) $item->id;
+            $receipts[$id] ??= [
+                $csv->safeText($item->receipt_number),
+                $item->payment_date,
+                $item->currency,
+                $csv->safeText($item->method),
+                $csv->safeText($item->reference),
+                [],
+                $item->amount,
+                $item->allocated_amount,
             ];
+            if ($item->invoice_number !== null) {
+                $receipts[$id][5][$item->invoice_number] = $csv->safeText($item->invoice_number);
+            }
+        }
+
+        $rows = [];
+        foreach ($receipts as $receipt) {
+            $receipt[5] = implode('; ', array_values($receipt[5]));
+            $rows[] = $receipt;
         }
 
         return $csv->download('nexbook-receipts-' . now()->format('Ymd-His') . '.csv', [
