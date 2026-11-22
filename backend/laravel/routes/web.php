@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\AccountingIntegrationController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
