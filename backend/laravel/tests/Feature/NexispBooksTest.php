@@ -80,6 +80,54 @@ class NexispBooksTest extends TestCase
         $this->assertSame('2320.00', $entry->total_credit);
     }
 
+    public function test_invoice_idempotency_prevents_duplicate_documents_and_journal_entries(): void
+    {
+        [$actor, $organization, $customer] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $payload = [
+            'customer_id' => $customer->id,
+            'currency' => 'KES',
+            'idempotency_key' => 'api-request-unique-1',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ];
+
+        $first = $service->createInvoice($actor, $organization, $payload);
+        $again = $service->createInvoice($actor, $organization, $payload);
+
+        $this->assertSame($first->id, $again->id);
+        $this->assertDatabaseCount('nexisp_invoices', 1);
+        $this->assertDatabaseCount('nexisp_journal_entries', 1);
+    }
+
+    public function test_expense_capture_posts_balanced_expense_and_cash_journal(): void
+    {
+        [$actor, $organization] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $expenseAccount = NexispChartOfAccount::where('organization_id', $organization->id)->where('code', '5200')->firstOrFail();
+        $cashAccount = NexispChartOfAccount::where('organization_id', $organization->id)->where('code', '1000')->firstOrFail();
+
+        $expense = $service->createExpense($actor, $organization, [
+            'expense_account_id' => $expenseAccount->id,
+            'payment_account_id' => $cashAccount->id,
+            'vendor_name' => 'Upstream Provider',
+            'description' => 'Monthly bandwidth',
+            'amount' => '25000.00',
+            'currency' => 'KES',
+            'expense_date' => now()->toDateString(),
+        ]);
+
+        $this->assertSame('posted', $expense->status);
+        $this->assertNotNull($expense->journal_entry_id);
+        $this->assertDatabaseHas('nexisp_journal_entries', [
+            'id' => $expense->journal_entry_id,
+            'total_debit' => '25000.00',
+            'total_credit' => '25000.00',
+            'status' => 'posted',
+        ]);
+    }
+
     public function test_unbalanced_manual_journal_is_rejected(): void
     {
         [$actor, $organization] = $this->fixture();
