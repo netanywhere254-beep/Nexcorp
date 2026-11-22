@@ -37,3 +37,4 @@ This register distinguishes a committed source update from a verified build or w
 
 Superseded source snapshots are kept under archive/replaced-code/YYYY-MM-DD/. Never overwrite historical snapshots; create a new dated subfolder for each subsequent replacement.
 
+
