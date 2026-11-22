@@ -24,6 +24,7 @@ class EngineerSessionServiceTest extends TestCase
         $this->assertSame(64, strlen($result['token']));
         $this->assertNotSame($result['token'], $result['session']->token_hash);
         $this->assertSame(hash('sha256', $result['token']), $result['session']->token_hash);
+        $this->assertArrayNotHasKey('token_hash', $result['session']->toArray());
         $this->assertDatabaseHas('audit_logs', [
             'organization_id' => $organization->id,
             'actor_user_id' => $actor->id,
