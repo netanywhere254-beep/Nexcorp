@@ -72,7 +72,7 @@ class NexispInvoiceService
                 if ($existing !== null) {
                     $sameRequest = (int) $existing->subscription_id === (int) $subscription->id
                         && (int) $existing->customer_id === (int) $customer->id
-                        && bccomp((string) $existing->amount, $amount, 2) === 0
+                        && number_format((float) $existing->amount, 2, '.', '') === number_format((float) $amount, 2, '.', '')
                         && $existing->currency === $currency;
 
                     if (! $sameRequest) {
