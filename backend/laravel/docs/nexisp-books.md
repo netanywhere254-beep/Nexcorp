@@ -32,6 +32,25 @@ The native ledger is deliberately not user-disableable. Optional features can be
 - Accounting overview totals derived from posted journal lines, not from unverified payment callbacks or UI-entered totals.
 - Audit events for ledger bootstrap, journal posting, invoice issue, expense posting, receipt issue and settings changes.
 
+## Subscription billing connection
+
+The native Books ledger is wired into NexISP subscription checkout:
+- A billing-authorized ISP user selects a tenant-owned customer and bandwidth plan.
+- NexISP creates a pending subscription and itemized invoice, then posts the receivable/revenue journal entry.
+- A subscription remains pending until a provider workflow has persisted a successful payment transaction, verified it, and bound it to the exact invoice.
+- Settlement checks the payment status, verification timestamp, tenant, invoice, amount and currency before issuing a receipt and posting the cash/bank journal.
+- Only after the invoice is fully settled does the subscription activate and receive its service start/end dates.
+- Repeated settlement is idempotent; a pending or mismatched payment cannot activate service.
+- Voiding an unpaid invoice creates an immutable reversing journal entry and cancels only its pending subscription. An invoice with receipts cannot be voided until a refund/reversal workflow exists.
+
+Subscription API:
+- \`POST /nexisp/customers/{customerId}/subscriptions\`
+- \`GET /nexisp/invoices\`
+- \`GET /nexisp/invoices/{id}\`
+- \`POST /nexisp/invoices/{id}/void\`
+
+The verified payment provider callback/settlement endpoint remains a separate integration step. Do not expose the internal settlement service to an untrusted callback without provider signature validation and transaction matching.
+
 ## Initial chart of accounts
 
 | Code | Account | Type | Normal balance |
