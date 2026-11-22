@@ -148,10 +148,13 @@ class NexispAccountingService
                 }
 
                 $lineTax = $taxInclusive
-                    ? (int) round(($grossCents * $rateBasisPoints) / (10000 + $rateBasisPoints))
-                    : (int) round(($grossCents * $rateBasisPoints) / 10000);
+                    ? intdiv(($grossCents * $rateBasisPoints) + intdiv(10000 + $rateBasisPoints, 2), 10000 + $rateBasisPoints)
+                    : intdiv(($grossCents * $rateBasisPoints) + 5000, 10000);
                 $lineSubtotal = $taxInclusive ? $grossCents - $lineTax : $grossCents;
                 $lineTotal = $taxInclusive ? $grossCents : $grossCents + $lineTax;
+                if ($lineTotal > 99999999999999) {
+                    throw ValidationException::withMessages(['items' => 'An invoice line exceeds the supported monetary limit.']);
+                }
                 $subtotalCents += $lineSubtotal;
                 $taxCents += $lineTax;
                 $lineSnapshots[] = [
@@ -165,7 +168,7 @@ class NexispAccountingService
                 ];
             }
 
-            if ($subtotalCents <= 0) {
+            if ($subtotalCents <= 0 || $subtotalCents + $taxCents > 99999999999999) {
                 throw ValidationException::withMessages(['items' => 'Invoice total must be greater than zero.']);
             }
 
