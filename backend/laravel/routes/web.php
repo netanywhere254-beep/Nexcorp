@@ -4,6 +4,8 @@ use App\Http\Controllers\GovernanceApprovalController;
 use App\Http\Controllers\GroupAuthorityController;
 use App\Http\Controllers\GroupStaffOtpController;
 use App\Http\Controllers\NexCoreAiController;
+use App\Http\Controllers\NexispCustomerController;
+use App\Http\Controllers\NexispServiceAreaController;
 use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\OrganizationStaffOtpController;
 use App\Http\Controllers\PasswordRecoveryController;
@@ -30,6 +32,18 @@ Route::prefix('auth')->group(function(){
   Route::post('/logout',[SessionController::class,'logout']);
  });
 });
+Route::middleware(['auth','verified','organization.active'])->prefix('nexisp')->group(function () {
+    Route::get('/service-areas', [NexispServiceAreaController::class, 'index']);
+    Route::post('/service-areas', [NexispServiceAreaController::class, 'store']);
+    Route::get('/service-areas/{serviceArea}', [NexispServiceAreaController::class, 'show']);
+    Route::patch('/service-areas/{serviceArea}', [NexispServiceAreaController::class, 'update']);
+
+    Route::get('/customers', [NexispCustomerController::class, 'index']);
+    Route::post('/customers', [NexispCustomerController::class, 'store']);
+    Route::get('/customers/{customer}', [NexispCustomerController::class, 'show']);
+    Route::patch('/customers/{customer}', [NexispCustomerController::class, 'update']);
+});
+
 Route::middleware(['auth','verified','organization.active'])->get('/ai',fn()=>view('ai.chat'));
 Route::middleware(['auth','verified','organization.active','throttle:10,1'])->post('/ai/assist',[NexCoreAiController::class,'assist']);
 // Public account phone verification is independent of staff and Trace & Find OTP.

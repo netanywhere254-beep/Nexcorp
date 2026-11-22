@@ -22,6 +22,21 @@ class Organization extends Model
         return $this->hasMany(OrganizationMember::class);
     }
 
+    public function nexispServiceAreas(): HasMany
+    {
+        return $this->hasMany(NexispServiceArea::class);
+    }
+
+    public function nexispCustomers(): HasMany
+    {
+        return $this->hasMany(NexispCustomer::class);
+    }
+
+    public function nexispBandwidthPlans(): HasMany
+    {
+        return $this->hasMany(BandwidthPlan::class);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'organization_members')
