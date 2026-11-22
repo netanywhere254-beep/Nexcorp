@@ -100,6 +100,49 @@ class NexispBooksTest extends TestCase
         $this->assertDatabaseCount('nexisp_journal_entries', 1);
     }
 
+    public function test_tax_inclusive_invoice_extracts_tax_without_adding_it_twice(): void
+    {
+        [$actor, $organization, $customer] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $tax = \App\Models\NexispTaxRate::create([
+            'organization_id' => $organization->id,
+            'code' => 'VAT-IN',
+            'name' => 'VAT included',
+            'rate_percent' => '16.0000',
+            'inclusive' => true,
+            'active' => true,
+        ]);
+
+        $invoice = $service->createInvoice($actor, $organization, [
+            'customer_id' => $customer->id,
+            'currency' => 'KES',
+            'items' => [['description' => 'Tax inclusive plan', 'quantity' => 1, 'unit_price' => '1160.00', 'tax_rate_id' => $tax->id]],
+        ]);
+
+        $this->assertSame('1160.00', $invoice->amount);
+        $this->assertSame('1000.00', $invoice->subtotal);
+        $this->assertSame('160.00', $invoice->tax_amount);
+    }
+
+    public function test_invoice_idempotency_key_rejects_a_different_payload(): void
+    {
+        [$actor, $organization, $customer] = $this->fixture();
+        $service = app(NexispAccountingService::class);
+        $service->bootstrap($organization, $actor);
+        $payload = [
+            'customer_id' => $customer->id,
+            'currency' => 'KES',
+            'idempotency_key' => 'same-key-conflict',
+            'items' => [['description' => 'Monthly internet', 'quantity' => 1, 'unit_price' => '1500.00']],
+        ];
+        $service->createInvoice($actor, $organization, $payload);
+        $payload['items'][0]['unit_price'] = '1700.00';
+
+        $this->expectException(ValidationException::class);
+        $service->createInvoice($actor, $organization, $payload);
+    }
+
     public function test_expense_capture_posts_balanced_expense_and_cash_journal(): void
     {
         [$actor, $organization] = $this->fixture();
@@ -304,10 +347,18 @@ class NexispBooksTest extends TestCase
         $csv = $exporter->render('csv', 'Invoice', $rows);
         $this->assertSame('csv', $csv['extension']);
         $this->assertStringContainsString('INV-1', $csv['content']);
+        $safeCsv = $exporter->render('csv', 'Report', [['Value'], ['=1+1']]);
+        $this->assertStringContainsString("'=1+1", $safeCsv['content']);
 
         $pdf = $exporter->render('pdf', 'Invoice', $rows);
         $this->assertSame('pdf', $pdf['extension']);
         $this->assertStringStartsWith('%PDF-1.4', $pdf['content']);
+        $manyRows = [['Field', 'Value']];
+        for ($index = 0; $index < 100; $index++) {
+            $manyRows[] = ['Item '.$index, 'Description '.$index];
+        }
+        $multiPagePdf = $exporter->render('pdf', 'Long invoice', $manyRows);
+        $this->assertStringContainsString('/Count 3', $multiPagePdf['content']);
 
         if (class_exists(\ZipArchive::class)) {
             $xlsx = $exporter->render('xlsx', 'Invoice', $rows);
