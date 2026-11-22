@@ -110,7 +110,7 @@ class AccountingSyncServiceTest extends TestCase
         [$actor, $organization, $connection, $invoice] = $this->fixture();
         $actor->organizations()->updateExistingPivot($organization->id, ['role' => 'support']);
 
-        $this->expectException(\\Illuminate\\Auth\\Access\\AuthorizationException::class);
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
 
         app(AccountingSyncService::class)->queueInvoice(
             $actor,
