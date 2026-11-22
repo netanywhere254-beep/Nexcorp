@@ -3,6 +3,7 @@
 namespace App\Services\Nexisp;
 
 use App\Models\NexbookInvoice;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class NexbookReceivablesAgingService
