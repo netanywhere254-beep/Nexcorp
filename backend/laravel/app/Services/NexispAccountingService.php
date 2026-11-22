@@ -91,7 +91,7 @@ class NexispAccountingService
                 ->where('status', 'active')
                 ->firstOrFail();
 
-            if (! empty($data['idempotency_key'])) {
+            if (! empty($data['subscription_id'])) {\n                $subscription = NexispSubscription::query()\n                    ->where('organization_id', $organization->id)\n                    ->whereKey($data['subscription_id'])\n                    ->firstOrFail();\n                if (($subscription->customer_id !== null && (int) $subscription->customer_id !== (int) $customer->id)\n                    || ($subscription->customer_id === null && (int) $subscription->user_id !== (int) ($customer->user_id ?? 0))) {\n                    throw ValidationException::withMessages(['subscription_id' => 'The selected subscription does not belong to this customer.']);\n                }\n            }\n\n            if (! empty($data['idempotency_key'])) {
                 $existing = NexispInvoice::query()
                     ->where('organization_id', $organization->id)
                     ->where('idempotency_key', $data['idempotency_key'])
@@ -118,19 +118,28 @@ class NexispAccountingService
             foreach ($data['items'] as $line) {
                 $quantity = (int) $line['quantity'];
                 $unitCents = $this->toCents((string) $line['unit_price']);
-                $lineSubtotal = $quantity * $unitCents;
+                $grossCents = $quantity * $unitCents;
                 $rateBasisPoints = 0;
+                $taxInclusive = false;
 
                 if (! empty($line['tax_rate_id'])) {
+                    if (! $settings->tax_enabled) {
+                        throw ValidationException::withMessages(['tax_rate_id' => 'Tax features are disabled for this ISP.']);
+                    }
                     $taxRate = \App\Models\NexispTaxRate::query()
                         ->where('organization_id', $organization->id)
                         ->whereKey($line['tax_rate_id'])
                         ->where('active', true)
                         ->firstOrFail();
                     $rateBasisPoints = (int) round(((float) $taxRate->rate_percent) * 100);
+                    $taxInclusive = (bool) $taxRate->inclusive;
                 }
 
-                $lineTax = (int) round(($lineSubtotal * $rateBasisPoints) / 10000);
+                $lineTax = $taxInclusive
+                    ? (int) round(($grossCents * $rateBasisPoints) / (10000 + $rateBasisPoints))
+                    : (int) round(($grossCents * $rateBasisPoints) / 10000);
+                $lineSubtotal = $taxInclusive ? $grossCents - $lineTax : $grossCents;
+                $lineTotal = $taxInclusive ? $grossCents : $grossCents + $lineTax;
                 $subtotalCents += $lineSubtotal;
                 $taxCents += $lineTax;
                 $lineSnapshots[] = [
@@ -140,7 +149,7 @@ class NexispAccountingService
                     'tax_rate_percent' => number_format($rateBasisPoints / 100, 4, '.', ''),
                     'line_subtotal' => number_format($lineSubtotal / 100, 2, '.', ''),
                     'tax_amount' => number_format($lineTax / 100, 2, '.', ''),
-                    'line_total' => number_format(($lineSubtotal + $lineTax) / 100, 2, '.', ''),
+                    'line_total' => number_format($lineTotal / 100, 2, '.', ''),
                 ];
             }
 
