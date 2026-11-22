@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('nexbook_invoices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('customer_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('subscription_id')->nullable()->constrained('nexisp_subscriptions')->nullOnDelete();
             $table->foreignId('journal_entry_id')->nullable()->unique()
