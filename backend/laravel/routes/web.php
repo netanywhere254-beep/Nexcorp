@@ -88,3 +88,6 @@ Route::middleware(['auth','verified','organization.active'])->get('/nexbook/expo
 
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/invoices.csv',[NexbookExportController::class,'invoices'])->middleware('throttle:20,1');
 Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/receipts.csv',[NexbookExportController::class,'receipts'])->middleware('throttle:20,1');
+
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/credit-notes.csv',[\\App\\Http\\Controllers\\NexbookCreditRefundExportController::class,'creditNotes'])->middleware('throttle:20,1');
+Route::middleware(['auth','verified','organization.active'])->get('/nexbook/exports/refunds.csv',[\\App\\Http\\Controllers\\NexbookCreditRefundExportController::class,'refunds'])->middleware('throttle:20,1');
